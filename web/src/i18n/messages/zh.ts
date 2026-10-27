@@ -229,6 +229,10 @@ export const zh: Messages = {
     lineBody: (reportId) => `添加我们的 LINE 好友，然后在聊天中发送 ${reportId}，即可将此登记与你的 LINE 绑定。`,
     lineButton: "添加 LINE 好友",
     lineQrAlt: "添加 LINE 官方账号的二维码",
+    confirmEmailTitle: "重要：请先确认一次邮箱",
+    confirmEmailBody: (email) => `我们已从 "BU Lost & Found" 发送邮件到 ${email}。请点击邮件中的 Confirm subscription，否则将收不到通知。（如未找到，请查看垃圾邮件文件夹。）`,
+    emailHint: "请使用学校邮箱 @bumail.net（教职员工：@bu.ac.th）",
+    emailNotUniversity: "必须是学校邮箱：@bumail.net 或 @bu.ac.th",
   },
   login: {
     demoAccounts: "测试账户（模拟数据模式）",

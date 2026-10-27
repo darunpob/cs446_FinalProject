@@ -229,6 +229,10 @@ export const ja: Messages = {
     lineBody: (reportId) => `公式 LINE を友だち追加し、チャットで ${reportId} を送信すると、この届出が LINE と連携されます。`,
     lineButton: "LINE で友だち追加",
     lineQrAlt: "LINE 公式アカウントを友だち追加する QR コード",
+    confirmEmailTitle: "重要：メールアドレスを一度確認してください",
+    confirmEmailBody: (email) => `"BU Lost & Found" から ${email} にメールを送りました。メール内の Confirm subscription を押さないと通知が届きません。（見つからない場合は迷惑メールフォルダを確認してください）`,
+    emailHint: "大学のメールアドレス @bumail.net を使ってください（教職員は @bu.ac.th）",
+    emailNotUniversity: "大学のメールアドレス（@bumail.net または @bu.ac.th）を入力してください",
   },
   login: {
     demoAccounts: "デモアカウント（モックデータモード）",
