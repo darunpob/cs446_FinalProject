@@ -126,7 +126,7 @@ function Results() {
   const { placeName } = useDirectory();
   const { t } = useI18n();
   const query = toQuery(filters);
-  const { state, reload } = useApiQuery(() => api.listFoundItems(query), [query.q, query.category, query.locationId, query.status]);
+  const { state, reload } = useApiQuery(() => api.listFoundItems(query), [query.q, query.category, query.location, query.status]);
 
   if (state.phase === "failed") return <ErrorNotice message={state.message} onRetry={reload} />;
   if (state.phase === "loading") {

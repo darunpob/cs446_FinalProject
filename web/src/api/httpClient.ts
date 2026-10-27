@@ -80,7 +80,7 @@ export function createHttpApi(baseUrl: string, getAccessToken: TokenSource): Los
     },
     createFoundItem: (draft: NewFoundItem) => post<FoundItem>("/items", draft),
     createLostReport: (draft: NewLostReport) => post<LostReportReceipt>("/lost-reports", draft),
-    submitClaim: (draft: NewClaim) => post<ClaimOutcome>("/claims", draft),
+    submitClaim: ({ itemId, ...answerForm }: NewClaim) => post<ClaimOutcome>(`/items/${encodeURIComponent(itemId)}/claims`, answerForm),
     listPendingReturns: async () => (await call<{ claims: Claim[] }>("/admin/claims?status=verified")).claims,
     confirmReturn: (claimId) => post<Claim>(`/admin/claims/${encodeURIComponent(claimId)}/return`, {}),
     listStaleItems: async (minDays) => (await call<{ items: StaleItem[] }>(`/admin/items/stale?days=${minDays}`)).items,

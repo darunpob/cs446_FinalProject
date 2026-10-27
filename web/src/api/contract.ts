@@ -50,7 +50,7 @@ export interface FoundItem {
 export interface FoundItemQuery {
   q?: string;
   category?: CategoryId;
-  locationId?: string;
+  location?: string;
   status?: FoundItemStatus;
 }
 

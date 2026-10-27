@@ -1,6 +1,6 @@
 import type { Claim, FoundItem, NewLostReport } from "../contract";
-import { foundItemSeeds, pendingClaimSeeds } from "../../fixtures/foundItems";
-import type { FoundItemSeed } from "../../fixtures/foundItems";
+import { foundItemSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
+import type { FoundItemSeed } from "../../fixtures/mockData";
 
 export interface StoredFoundItem extends FoundItem {
   verificationAnswer: string;
