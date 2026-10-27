@@ -229,6 +229,8 @@ export const en: Messages = {
     lineBody: (reportId) => `Add our LINE account, then send ${reportId} in the chat to link this report to your LINE.`,
     lineButton: "Add LINE friend",
     lineQrAlt: "QR code to add the LINE Official Account",
+    confirmEmailTitle: "Important: confirm your email once",
+    confirmEmailBody: (email) => `We sent an email from "BU Lost & Found" to ${email}. Click Confirm subscription in it, or you won't receive notifications. (Check your spam folder if you can't find it.)`,
   },
   login: {
     demoAccounts: "Demo accounts (mock data mode)",

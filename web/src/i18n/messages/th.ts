@@ -208,6 +208,8 @@ export interface Messages {
     lineBody: (reportId: string) => string;
     lineButton: string;
     lineQrAlt: string;
+    confirmEmailTitle: string;
+    confirmEmailBody: (email: string) => string;
   };
   login: {
     demoAccounts: string;
@@ -468,6 +470,8 @@ export const th: Messages = {
     lineBody: (reportId) => `เพิ่มเพื่อน LINE ของเรา แล้วพิมพ์ ${reportId} ในแชท เพื่อผูกการแจ้งนี้กับ LINE ของคุณ`,
     lineButton: "เพิ่มเพื่อน LINE",
     lineQrAlt: "QR code เพิ่มเพื่อน LINE Official Account",
+    confirmEmailTitle: "สำคัญ: ยืนยันอีเมลก่อน 1 ครั้ง",
+    confirmEmailBody: (email) => `เราส่งอีเมลจาก "BU Lost & Found" ไปที่ ${email} แล้ว กดลิงก์ Confirm subscription ในอีเมลนั้น ไม่อย่างนั้นจะไม่ได้รับแจ้งเตือน (ถ้าไม่เจอ ลองดูในโฟลเดอร์สแปม)`,
   },
   login: {
     demoAccounts: "บัญชีทดลอง (โหมดข้อมูลจำลอง)",

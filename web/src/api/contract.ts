@@ -1,5 +1,5 @@
 /**
- * Shared shapes for the REST API (API Gateway + Lambda).
+ * Shared shapes for the REST API (CloudFront /api/* → ALB → EC2 Auto Scaling → RDS).
  * Mirrors docs/API_CONTRACT.md — change both together.
  */
 

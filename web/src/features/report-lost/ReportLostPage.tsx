@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { AtSign, BellRing, IdCard, MessageCircle, Phone, Sparkles } from "lucide-react";
+import { AtSign, BellRing, IdCard, MailCheck, MessageCircle, Phone, Sparkles } from "lucide-react";
 import type { CategoryId, LostReportReceipt } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
 import { Field, TextArea, TextInput } from "../../design-system/Field";
@@ -15,7 +15,7 @@ import { useLostReportForm } from "./useLostReportForm";
 
 const CARD_HOLDING_CATEGORIES: CategoryId[] = ["card", "wallet"];
 
-function LostReceipt({ receipt }: { receipt: LostReportReceipt }) {
+function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: string }) {
   const matches = receipt.possibleMatches;
   const { t } = useI18n();
   const text = t.reportLost;
@@ -30,6 +30,13 @@ function LostReceipt({ receipt }: { receipt: LostReportReceipt }) {
         <p className="relative mt-2 max-w-xl text-ink-2">
           {text.receiptNumber} <strong className="text-ink">{receipt.id}</strong> · {text.receiptLead}
         </p>
+        <div role="note" className="relative mt-5 flex max-w-2xl gap-3 rounded-2xl border border-warn/30 bg-warn-soft p-4">
+          <MailCheck className="mt-0.5 size-5 shrink-0 text-warn" aria-hidden />
+          <div>
+            <p className="text-sm font-semibold text-ink">{text.confirmEmailTitle}</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink-2">{text.confirmEmailBody(email)}</p>
+          </div>
+        </div>
       </Card>
       {LINE_OA_URL && <LineFollowCard reportId={receipt.id} />}
       <div className="mt-10 mb-4 flex items-center gap-2">
@@ -54,7 +61,7 @@ export function ReportLostPage() {
   const { t } = useI18n();
   const text = t.reportLost;
 
-  if (receipt) return <LostReceipt receipt={receipt} />;
+  if (receipt) return <LostReceipt receipt={receipt} email={draft.email.trim()} />;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();

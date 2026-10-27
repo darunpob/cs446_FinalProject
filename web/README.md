@@ -43,7 +43,7 @@ Endpoint ทั้งหมดอยู่ใน [`../docs/API_CONTRACT.md`](../
 ใช้ HashRouter (`/#/items/...`) จึงไม่ต้องตั้ง redirect/error document พิเศษ และ asset ใช้ path แบบ relative (`base: "./"`)
 
 ```bash
-# ถ้า CloudFront ไม่ได้ส่ง /api/* ไป API Gateway ให้แก้ VITE_API_BASE ใน .env.aws เป็น invoke URL เต็มก่อน
+# CloudFront ต้องมี behavior /api/* → ALB (ดู docs/API_CONTRACT.md ข้อ 0) หน้าเว็บจึงเรียก /api ได้ตรง ๆ
 npm run build:aws
 aws s3 sync dist/ s3://<bucket-name>/ --delete
 ```
