@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Camera, ImagePlus, RefreshCw, Trash2 } from "lucide-react";
+import { messages } from "../../i18n/locale";
+import { useI18n } from "../../i18n/useI18n";
 import { MAX_SOURCE_BYTES } from "./photoCompression";
 
 interface PhotoPickerProps {
@@ -11,12 +13,13 @@ interface PhotoPickerProps {
 
 function acceptFile(file: File | undefined, onChange: (photo: File) => void, onReject: (reason: string) => void) {
   if (!file) return;
-  if (!file.type.startsWith("image/")) return onReject("รองรับเฉพาะไฟล์รูปภาพ");
-  if (file.size > MAX_SOURCE_BYTES) return onReject("ไฟล์ใหญ่เกิน 15 MB");
+  if (!file.type.startsWith("image/")) return onReject(messages().photo.onlyImages);
+  if (file.size > MAX_SOURCE_BYTES) return onReject(messages().photo.tooLarge);
   onChange(file);
 }
 
 export function PhotoPicker({ photo, onChange, onReject }: PhotoPickerProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -39,18 +42,18 @@ export function PhotoPicker({ photo, onChange, onReject }: PhotoPickerProps) {
     acceptFile(event.dataTransfer.files[0], onChange, onReject);
   };
 
-  const picker = <input ref={inputRef} type="file" accept="image/*" className="sr-only" onChange={handleInput} aria-label="เลือกรูปถ่าย" />;
+  const picker = <input ref={inputRef} type="file" accept="image/*" className="sr-only" onChange={handleInput} aria-label={t.photo.pickLabel} />;
 
   if (previewUrl) {
     return (
       <div className="group relative overflow-hidden rounded-2xl border border-line">
         {picker}
-        <img src={previewUrl} alt="ตัวอย่างรูปที่เลือก" className="aspect-[4/3] w-full object-cover" />
+        <img src={previewUrl} alt={t.photo.previewAlt} className="aspect-[4/3] w-full object-cover" />
         <div className="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-gradient-to-t from-black/60 to-transparent p-3 pt-10">
           <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-white/90 px-3 text-sm font-medium text-gray-900 backdrop-blur transition-colors duration-150 hover:bg-white">
-            <RefreshCw className="size-4" /> เปลี่ยนรูป
+            <RefreshCw className="size-4" /> {t.photo.change}
           </button>
-          <button type="button" onClick={() => onChange(null)} aria-label="ลบรูป" className="grid size-9 cursor-pointer place-items-center rounded-xl bg-white/90 text-gray-900 backdrop-blur transition-colors duration-150 hover:bg-white hover:text-red-600">
+          <button type="button" onClick={() => onChange(null)} aria-label={t.photo.remove} className="grid size-9 cursor-pointer place-items-center rounded-xl bg-white/90 text-gray-900 backdrop-blur transition-colors duration-150 hover:bg-white hover:text-red-600">
             <Trash2 className="size-4" />
           </button>
         </div>
@@ -70,11 +73,11 @@ export function PhotoPicker({ photo, onChange, onReject }: PhotoPickerProps) {
         <ImagePlus className="size-7" />
       </span>
       <div>
-        <p className="font-medium">ถ่ายรูปหรือลากรูปมาวางที่นี่</p>
-        <p className="mt-1 text-sm text-ink-3">JPG, PNG หรือ HEIC ไม่เกิน 15 MB · ระบบจะย่อขนาดให้อัตโนมัติ</p>
+        <p className="font-medium">{t.photo.dropHere}</p>
+        <p className="mt-1 text-sm text-ink-3">{t.photo.formats}</p>
       </div>
       <button type="button" onClick={() => inputRef.current?.click()} className="mt-1 inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-surface px-4 text-sm font-medium shadow-card ring-1 ring-line-strong transition-[box-shadow,color] duration-150 hover:text-brand-ink hover:ring-brand/50">
-        <Camera className="size-4" /> เลือกรูป
+        <Camera className="size-4" /> {t.photo.choose}
       </button>
     </div>
   );

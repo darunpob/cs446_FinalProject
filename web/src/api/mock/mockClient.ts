@@ -1,4 +1,5 @@
 import { ApiError } from "../errors";
+import { messages } from "../../i18n/locale";
 import type {
   CampusStats,
   Claim,
@@ -48,13 +49,13 @@ function readBlobAsDataUrl(photo: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new ApiError("SERVER", "อ่านไฟล์รูปไม่สำเร็จ"));
+    reader.onerror = () => reject(new ApiError("SERVER", messages().errors.readPhotoFailed));
     reader.readAsDataURL(photo);
   });
 }
 
 function requireText(value: string, fieldLabel: string): void {
-  if (!value.trim()) throw new ApiError("VALIDATION", `กรุณากรอก${fieldLabel}`, 400);
+  if (!value.trim()) throw new ApiError("VALIDATION", messages().errors.required(fieldLabel), 400);
 }
 
 function isSameMonth(iso: string | null, reference: Date): boolean {
@@ -75,7 +76,7 @@ function authenticateDemoAccount(email: string, password: string): Session {
     const user = { email: normalizedEmail, displayName: normalizedEmail.split("@")[0], role: "student" as const };
     return { accessToken: `mock.student.${issuedAt}`, user };
   }
-  throw new ApiError("UNAUTHORIZED", "อีเมลหรือรหัสผ่านไม่ถูกต้อง", 401);
+  throw new ApiError("UNAUTHORIZED", messages().errors.badLogin, 401);
 }
 
 export class MockLostFoundApi implements LostFoundApi {
@@ -117,7 +118,7 @@ export class MockLostFoundApi implements LostFoundApi {
 
   private findStored(itemId: string): StoredFoundItem {
     const stored = this.db.foundItems.find((candidate) => candidate.id === itemId);
-    if (!stored) throw new ApiError("NOT_FOUND", "ไม่พบรายการนี้ อาจถูกลบไปแล้ว", 404);
+    if (!stored) throw new ApiError("NOT_FOUND", messages().errors.itemNotFound, 404);
     return stored;
   }
 
@@ -158,9 +159,9 @@ export class MockLostFoundApi implements LostFoundApi {
 
   createFoundItem(draft: NewFoundItem) {
     return this.settle(() => {
-      requireText(draft.title, "ชื่อสิ่งของ");
-      requireText(draft.verificationQuestion, "คำถามยืนยัน");
-      requireText(draft.verificationAnswer, "คำตอบยืนยัน");
+      requireText(draft.title, messages().errors.fields.itemTitle);
+      requireText(draft.verificationQuestion, messages().errors.fields.question);
+      requireText(draft.verificationAnswer, messages().errors.fields.answer);
       const stored: StoredFoundItem = {
         id: this.nextId("itm"),
         title: draft.title.trim(),
@@ -184,8 +185,8 @@ export class MockLostFoundApi implements LostFoundApi {
 
   createLostReport(draft: NewLostReport) {
     return this.settle((): LostReportReceipt => {
-      requireText(draft.title, "สิ่งที่หาย");
-      requireText(draft.contact.name, "ชื่อผู้แจ้ง");
+      requireText(draft.title, messages().errors.fields.lostWhat);
+      requireText(draft.contact.name, messages().errors.fields.reporterName);
       const report = { ...draft, id: this.nextId("lst"), createdAt: this.now().toISOString() };
       this.db.lostReports.unshift(report);
       this.database.persist();
@@ -200,11 +201,11 @@ export class MockLostFoundApi implements LostFoundApi {
 
   private evaluateClaim(draft: NewClaim): ClaimOutcome {
     const stored = this.findStored(draft.itemId);
-    if (stored.status !== "available") throw new ApiError("CONFLICT", "มีผู้ยืนยันความเป็นเจ้าของรายการนี้แล้ว", 409);
+    if (stored.status !== "available") throw new ApiError("CONFLICT", messages().errors.alreadyClaimed, 409);
     const attemptKey = `${draft.itemId}:${draft.studentId.trim()}`;
     const usedAttempts = this.db.failedAttempts[attemptKey] ?? 0;
     if (usedAttempts >= MAX_CLAIM_ATTEMPTS) {
-      throw new ApiError("TOO_MANY_ATTEMPTS", "ตอบผิดครบจำนวนครั้งแล้ว กรุณาติดต่อ รปภ. ที่จุดรับฝากโดยตรง", 429);
+      throw new ApiError("TOO_MANY_ATTEMPTS", messages().errors.tooManyAttempts, 429);
     }
     if (!answerMatches(draft.answer, stored.verificationAnswer)) {
       this.db.failedAttempts[attemptKey] = usedAttempts + 1;
@@ -243,8 +244,8 @@ export class MockLostFoundApi implements LostFoundApi {
   confirmReturn(claimId: string) {
     return this.settle(() => {
       const claim = this.db.claims.find((candidate) => candidate.id === claimId);
-      if (!claim) throw new ApiError("NOT_FOUND", "ไม่พบคำขอรับคืนนี้", 404);
-      if (claim.status === "returned") throw new ApiError("CONFLICT", "รายการนี้ยืนยันการคืนไปแล้ว", 409);
+      if (!claim) throw new ApiError("NOT_FOUND", messages().errors.claimNotFound, 404);
+      if (claim.status === "returned") throw new ApiError("CONFLICT", messages().errors.alreadyReturned, 409);
       const returnedAt = this.now().toISOString();
       claim.status = "returned";
       claim.returnedAt = returnedAt;

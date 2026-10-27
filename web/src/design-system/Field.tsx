@@ -1,6 +1,7 @@
 import { useId } from "react";
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { ChevronDown } from "lucide-react";
+import { useI18n } from "../i18n/useI18n";
 
 const CONTROL =
   "w-full rounded-xl border bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-3 " +
@@ -20,6 +21,7 @@ interface FieldProps {
 }
 
 export function Field({ label, hint, error, optional, children }: FieldProps) {
+  const { t } = useI18n();
   const controlId = useId();
   const messageId = `${controlId}-message`;
   const message = error ?? hint;
@@ -27,7 +29,7 @@ export function Field({ label, hint, error, optional, children }: FieldProps) {
     <div className="flex flex-col gap-1.5">
       <label htmlFor={controlId} className="flex items-baseline gap-2 text-sm font-medium text-ink">
         {label}
-        {optional && <span className="text-xs font-normal text-ink-3">ไม่บังคับ</span>}
+        {optional && <span className="text-xs font-normal text-ink-3">{t.common.optional}</span>}
       </label>
       {children(controlId, message ? messageId : undefined)}
       {message && (

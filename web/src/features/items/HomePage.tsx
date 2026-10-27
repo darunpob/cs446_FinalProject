@@ -6,6 +6,7 @@ import { useApiQuery } from "../../api/useApiQuery";
 import { ButtonLink } from "../../design-system/Button";
 import { SelectInput } from "../../design-system/Field";
 import { EmptyState, ErrorNotice } from "../../design-system/Surface";
+import { useI18n } from "../../i18n/useI18n";
 import { CATEGORIES } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { ItemCard, ItemCardSkeleton } from "./ItemCard";
@@ -29,34 +30,35 @@ function StatTile({ icon: Icon, value, label, hue }: { icon: LucideIcon; value: 
 function Hero({ draftSearch, onSearch }: { draftSearch: string; onSearch: (text: string) => void }) {
   const { state } = useApiQuery(() => api.getStats(), []);
   const stats = state.phase === "ready" ? state.value : null;
+  const { t } = useI18n();
   return (
     <section className="grid items-end gap-8 pb-8 lg:grid-cols-[1.4fr_1fr]">
       <div className="animate-rise">
         <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-medium text-ink-2 backdrop-blur">
-          <span className="size-1.5 animate-pulse rounded-full bg-success" /> อัปเดตแบบเรียลไทม์จากจุดรับฝากทั่วแคมปัส
+          <span className="size-1.5 animate-pulse rounded-full bg-success" /> {t.home.liveBadge}
         </span>
         <h1 className="mt-4 font-display text-4xl leading-[1.15] font-bold tracking-tight text-balance sm:text-5xl">
-          ของหาย? <span className="bg-gradient-to-r from-brand to-accent bg-clip-text text-transparent">เช็กตรงนี้ก่อน</span>
+          {t.home.heroTitle} <span className="bg-gradient-to-r from-brand to-accent bg-clip-text text-transparent">{t.home.heroHighlight}</span>
         </h1>
         <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-ink-2 sm:text-base">
-          รวมของที่มีคนเก็บได้ในมหาวิทยาลัยไว้ที่เดียว ค้นหา ยืนยันความเป็นเจ้าของ แล้วไปรับคืนที่จุดรับฝากได้เลย
+          {t.home.heroLead}
         </p>
         <label className="group relative mt-6 block max-w-xl">
-          <span className="sr-only">ค้นหาของที่เจอ</span>
+          <span className="sr-only">{t.home.searchLabel}</span>
           <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-3 transition-colors duration-150 group-focus-within:text-brand" />
           <input
             type="search"
             value={draftSearch}
             onChange={(event) => onSearch(event.target.value)}
-            placeholder="ลองพิมพ์ เช่น iPhone, กุญแจ, กระเป๋าสตางค์"
+            placeholder={t.home.searchPlaceholder}
             className="h-14 w-full rounded-2xl border border-line-strong bg-surface pr-4 pl-12 text-base shadow-card outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-ink-3 focus:border-brand focus:ring-4 focus:ring-brand/15"
           />
         </label>
       </div>
       <div className="grid animate-rise gap-3 [animation-delay:80ms] sm:grid-cols-3 lg:grid-cols-1">
-        <StatTile icon={PackageSearch} value={stats?.waiting ?? null} label="ชิ้นที่รอเจ้าของ" hue={254} />
-        <StatTile icon={Hourglass} value={stats?.awaitingPickup ?? null} label="ยืนยันแล้ว รอมารับ" hue={38} />
-        <StatTile icon={PackageCheck} value={stats?.returnedThisMonth ?? null} label="คืนเจ้าของแล้วเดือนนี้" hue={160} />
+        <StatTile icon={PackageSearch} value={stats?.waiting ?? null} label={t.home.statWaiting} hue={254} />
+        <StatTile icon={Hourglass} value={stats?.awaitingPickup ?? null} label={t.home.statAwaiting} hue={38} />
+        <StatTile icon={PackageCheck} value={stats?.returnedThisMonth ?? null} label={t.home.statReturned} hue={160} />
       </div>
     </section>
   );
@@ -72,23 +74,24 @@ function chipClass(active: boolean): string {
 function FilterBar() {
   const { filters, update } = useItemFilters();
   const { placesByZone } = useDirectory();
+  const { t } = useI18n();
   return (
     <div className="sticky top-16 z-30 -mx-4 border-b border-line/60 bg-[var(--glass)] px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] lg:mx-0 lg:min-w-0 lg:flex-1 lg:px-0 lg:pr-8 lg:[mask-image:linear-gradient(to_right,black_88%,transparent)]" role="group" aria-label="หมวดหมู่">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] lg:mx-0 lg:min-w-0 lg:flex-1 lg:px-0 lg:pr-8 lg:[mask-image:linear-gradient(to_right,black_88%,transparent)]" role="group" aria-label={t.home.categoryGroup}>
           <button type="button" className={chipClass(filters.category === null)} onClick={() => update({ category: null })}>
-            <LayoutGrid className="size-4" /> ทั้งหมด
+            <LayoutGrid className="size-4" /> {t.home.all}
           </button>
-          {CATEGORIES.map(({ id, label, icon: Icon }) => (
+          {CATEGORIES.map(({ id, icon: Icon }) => (
             <button key={id} type="button" className={chipClass(filters.category === id)} aria-pressed={filters.category === id} onClick={() => update({ category: filters.category === id ? null : id })}>
-              <Icon className="size-4" /> {label}
+              <Icon className="size-4" /> {t.categories[id]}
             </button>
           ))}
         </div>
         <div className="flex gap-2">
           <div className="min-w-0 flex-1 lg:w-52 lg:flex-none">
-            <SelectInput value={filters.locationId} onChange={(event) => update({ locationId: event.target.value })} aria-label="จุดที่เจอ">
-              <option value="">ทุกจุดที่เจอ</option>
+            <SelectInput value={filters.locationId} onChange={(event) => update({ locationId: event.target.value })} aria-label={t.home.locationLabel}>
+              <option value="">{t.home.allLocations}</option>
               {placesByZone.map(([zone, places]) => (
                 <optgroup key={zone} label={zone}>
                   {places.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}
@@ -104,9 +107,10 @@ function FilterBar() {
 }
 
 function ScopeToggle({ scope, onChange }: { scope: StatusScope; onChange: (scope: StatusScope) => void }) {
-  const options: Array<[StatusScope, string]> = [["open", "รอเจ้าของ"], ["all", "ทั้งหมด"]];
+  const { t } = useI18n();
+  const options: Array<[StatusScope, string]> = [["open", t.home.scopeOpen], ["all", t.home.all]];
   return (
-    <div className="flex h-11 shrink-0 rounded-xl border border-line-strong bg-surface-2 p-1" role="radiogroup" aria-label="สถานะ">
+    <div className="flex h-11 shrink-0 rounded-xl border border-line-strong bg-surface-2 p-1" role="radiogroup" aria-label={t.home.statusGroup}>
       {options.map(([value, label]) => (
         <button key={value} type="button" role="radio" aria-checked={scope === value} onClick={() => onChange(value)}
           className={`cursor-pointer rounded-lg px-3 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ${scope === value ? "bg-surface text-ink shadow-card" : "text-ink-3 hover:text-ink"}`}>
@@ -120,6 +124,7 @@ function ScopeToggle({ scope, onChange }: { scope: StatusScope; onChange: (scope
 function Results() {
   const { filters, clear, isFiltered } = useItemFilters();
   const { placeName } = useDirectory();
+  const { t } = useI18n();
   const query = toQuery(filters);
   const { state, reload } = useApiQuery(() => api.listFoundItems(query), [query.q, query.category, query.locationId, query.status]);
 
@@ -132,21 +137,21 @@ function Results() {
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-ink-2">
-          พบ <strong className="font-semibold text-ink">{foundItems.length}</strong> รายการ
+          {t.home.resultCount.before} <strong className="font-semibold text-ink">{foundItems.length}</strong> {t.home.resultCount.after}
           {filters.locationId && <span className="ml-1 inline-flex items-center gap-1"><MapPin className="size-3.5" /> {placeName(filters.locationId)}</span>}
         </p>
         {isFiltered && (
           <button type="button" onClick={clear} className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-sm text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink">
-            <X className="size-3.5" /> ล้างตัวกรอง
+            <X className="size-3.5" /> {t.home.clearFilters}
           </button>
         )}
       </div>
       {foundItems.length === 0 ? (
         <EmptyState
           icon={<PackageSearch className="size-7" />}
-          title="ยังไม่พบของที่ตรงกับที่ค้นหา"
-          description="ลองเปลี่ยนคำค้นหรือตัวกรอง หรือฝากแจ้งของหายไว้ เมื่อมีคนเจอของที่ตรงกันเราจะแจ้งเตือนผ่าน LINE"
-          action={<ButtonLink to="/report-lost" variant="soft" className="mt-2">แจ้งของหาย</ButtonLink>}
+          title={t.home.emptyTitle}
+          description={t.home.emptyDescription}
+          action={<ButtonLink to="/report-lost" variant="soft" className="mt-2">{t.nav.reportLost}</ButtonLink>}
         />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -159,11 +164,12 @@ function Results() {
 
 export function HomePage() {
   const { draftSearch, setDraftSearch } = useSearchDraft();
+  const { t } = useI18n();
   return (
     <>
       <Hero draftSearch={draftSearch} onSearch={setDraftSearch} />
       <FilterBar />
-      <section className="pt-6" aria-label="รายการของที่เจอ">
+      <section className="pt-6" aria-label={t.home.listLabel}>
         <Results />
       </section>
     </>

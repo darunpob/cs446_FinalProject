@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
+import { useI18n } from "../i18n/useI18n";
 
 type ThemeChoice = "light" | "dark";
 
@@ -12,6 +13,7 @@ function currentTheme(): ThemeChoice {
 }
 
 export function ThemeToggle() {
+  const { t } = useI18n();
   const [theme, setTheme] = useState<ThemeChoice>(currentTheme);
 
   const toggle = () => {
@@ -25,7 +27,7 @@ export function ThemeToggle() {
     }
   };
 
-  const label = theme === "dark" ? "เปลี่ยนเป็นธีมสว่าง" : "เปลี่ยนเป็นธีมมืด";
+  const label = theme === "dark" ? t.theme.toLight : t.theme.toDark;
   return (
     <button
       type="button"

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../../api/client";
 import type { CategoryId, LostReportReceipt } from "../../api/contract";
 import { describeError } from "../../api/errors";
+import { messages } from "../../i18n/locale";
 import { fromLocalInputValue, toLocalInputValue } from "../catalog/thaiTime";
 
 export interface LostReportDraft {
@@ -27,20 +28,22 @@ function blankDraft(name = "", email = ""): LostReportDraft {
 
 function contactErrors(draft: LostReportDraft): LostReportErrors {
   const phone = draft.phone.replace(/[\s-]/g, "");
+  const text = messages().reportLost;
   return {
-    contact: draft.lineId.trim() || phone || draft.email.trim() ? undefined : "ใส่ช่องทางติดต่ออย่างน้อย 1 ช่องทาง",
-    phone: phone && !PHONE_PATTERN.test(phone) ? "เบอร์โทรไม่ถูกต้อง" : undefined,
-    email: draft.email.trim() && !EMAIL_PATTERN.test(draft.email.trim()) ? "อีเมลไม่ถูกต้อง" : undefined,
+    contact: draft.lineId.trim() || phone || draft.email.trim() ? undefined : text.contactRequired,
+    phone: phone && !PHONE_PATTERN.test(phone) ? text.phoneInvalid : undefined,
+    email: draft.email.trim() && !EMAIL_PATTERN.test(draft.email.trim()) ? text.emailInvalid : undefined,
   };
 }
 
 export function validateLostReport(draft: LostReportDraft): LostReportErrors {
+  const text = messages();
   const checks: LostReportErrors = {
-    title: draft.title.trim().length < 3 ? "บอกว่าหายอะไร อย่างน้อย 3 ตัวอักษร" : undefined,
-    category: draft.category ? undefined : "เลือกหมวดหมู่",
-    lastSeenLocationId: draft.lastSeenLocationId ? undefined : "เลือกบริเวณที่น่าจะหาย",
-    lostAtLocal: draft.lostAtLocal ? undefined : "ระบุเวลาโดยประมาณ",
-    name: draft.name.trim() ? undefined : "กรอกชื่อของคุณ",
+    title: draft.title.trim().length < 3 ? text.reportLost.titleTooShort : undefined,
+    category: draft.category ? undefined : text.reportFound.categoryRequired,
+    lastSeenLocationId: draft.lastSeenLocationId ? undefined : text.reportLost.locationRequired,
+    lostAtLocal: draft.lostAtLocal ? undefined : text.reportLost.timeRequired,
+    name: draft.name.trim() ? undefined : text.reportLost.nameRequired,
     ...contactErrors(draft),
   };
   return Object.fromEntries(Object.entries(checks).filter(([, message]) => message)) as LostReportErrors;

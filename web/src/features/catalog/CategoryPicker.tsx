@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { CategoryId } from "../../api/contract";
+import { useI18n } from "../../i18n/useI18n";
 import { CATEGORIES } from "./categories";
 
 interface CategoryPickerProps {
@@ -10,9 +11,10 @@ interface CategoryPickerProps {
 }
 
 export function CategoryPicker({ value, onChange, invalid = false, labelledBy }: CategoryPickerProps) {
+  const { t } = useI18n();
   return (
     <div role="radiogroup" aria-labelledby={labelledBy} aria-invalid={invalid} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {CATEGORIES.map(({ id, label, icon: Icon, hue }) => {
+      {CATEGORIES.map(({ id, icon: Icon, hue }) => {
         const selected = value === id;
         const ring = selected ? "border-brand ring-4 ring-brand/15 bg-brand-soft/60" : invalid ? "border-danger/60" : "border-line hover:border-line-strong";
         return (
@@ -27,7 +29,7 @@ export function CategoryPicker({ value, onChange, invalid = false, labelledBy }:
             <span className="tint grid size-9 place-items-center rounded-xl" style={{ "--h": hue } as CSSProperties}>
               <Icon className="size-[18px]" />
             </span>
-            {label}
+            {t.categories[id]}
           </button>
         );
       })}
