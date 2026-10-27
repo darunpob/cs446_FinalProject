@@ -19,7 +19,7 @@ describe("MockLostFoundApi", () => {
     const api = freshApi();
     const electronics = await api.listFoundItems({ category: "electronics" });
     expect(electronics.every((found) => found.category === "electronics")).toBe(true);
-    const library = await api.listFoundItems({ locationId: "loc-library" });
+    const library = await api.listFoundItems({ location: "loc-library" });
     expect(library.map((found) => found.id)).toContain("itm-1001");
     const searched = await api.listFoundItems({ q: "iphone" });
     expect(searched.map((found) => found.id)).toEqual(["itm-1001"]);

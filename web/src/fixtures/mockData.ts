@@ -1,4 +1,30 @@
-import type { CategoryId, FoundItemStatus } from "../api/contract";
+/**
+ * All mock data for USE_MOCK mode lives here. Nothing in this file ships when USE_MOCK is false.
+ * Edit place names and drop-off points to match the real campus before the pilot.
+ */
+import type { CampusDirectory, CategoryId, FoundItemStatus, UserRole } from "../api/contract";
+
+export const campusDirectoryFixture: CampusDirectory = {
+  foundLocations: [
+    { id: "loc-a1", name: "อาคาร A1", zone: "โซนอาคารเรียน" },
+    { id: "loc-a5", name: "อาคาร A5", zone: "โซนอาคารเรียน" },
+    { id: "loc-b2", name: "อาคาร B2", zone: "โซนอาคารเรียน" },
+    { id: "loc-b6", name: "อาคาร B6", zone: "โซนอาคารเรียน" },
+    { id: "loc-library", name: "ห้องสมุด", zone: "โซนกลาง" },
+    { id: "loc-canteen", name: "โรงอาหาร", zone: "โซนกลาง" },
+    { id: "loc-plaza", name: "ลานกิจกรรม", zone: "โซนกลาง" },
+    { id: "loc-gym", name: "สนามกีฬา / ยิม", zone: "โซนกีฬา" },
+    { id: "loc-parking", name: "ลานจอดรถ", zone: "โซนรอบนอก" },
+    { id: "loc-shuttle", name: "จุดรอรถรับส่ง", zone: "โซนรอบนอก" },
+    { id: "loc-dorm", name: "หอพัก", zone: "โซนรอบนอก" },
+  ],
+  dropOffPoints: [
+    { id: "drop-gate1", name: "ป้อม รปภ. ประตู 1", hours: "เปิด 24 ชั่วโมง", phone: "02-000-0001" },
+    { id: "drop-gate2", name: "ป้อม รปภ. ประตู 2", hours: "06:00 – 22:00 น.", phone: "02-000-0002" },
+    { id: "drop-library", name: "เคาน์เตอร์ห้องสมุด", hours: "08:30 – 20:00 น.", phone: "02-000-0003" },
+    { id: "drop-student", name: "สำนักงานกิจการนักศึกษา", hours: "จ.–ศ. 08:30 – 16:30 น.", phone: "02-000-0004" },
+  ],
+};
 
 export interface FoundItemSeed {
   id: string;
@@ -104,4 +130,16 @@ export const pendingClaimSeeds: ClaimSeed[] = [
     id: "clm-2001", itemId: "itm-1004", claimantName: "ธนพล ใจดี", studentId: "1650707093",
     contact: "LINE: thanaphon.j", pickupCode: "K7Q2MX", hoursAgo: 5,
   },
+];
+
+export interface DemoAccount {
+  email: string;
+  password: string;
+  displayName: string;
+  role: UserRole;
+}
+
+export const demoAccounts: DemoAccount[] = [
+  { email: "guard@bu.ac.th", password: "guard1234", displayName: "เจ้าหน้าที่ รปภ. ประตู 1", role: "guard" },
+  { email: "student@bumail.net", password: "student1234", displayName: "นักศึกษาทดลอง", role: "student" },
 ];

@@ -28,7 +28,7 @@ export function toQuery(filters: ItemFilters): FoundItemQuery {
   return {
     q: filters.searchText.trim() || undefined,
     category: filters.category ?? undefined,
-    locationId: filters.locationId || undefined,
+    location: filters.locationId || undefined,
     status: filters.scope === "open" ? "available" : undefined,
   };
 }

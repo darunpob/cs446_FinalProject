@@ -13,8 +13,7 @@ import type {
   Session,
   StaleItem,
 } from "../contract";
-import { campusDirectoryFixture } from "../../fixtures/campusDirectory";
-import { demoAccounts } from "../../fixtures/accounts";
+import { campusDirectoryFixture, demoAccounts } from "../../fixtures/mockData";
 import { MAX_CLAIM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
 import type { MockDatabaseHandle, StoredFoundItem } from "./mockDatabase";
@@ -37,7 +36,7 @@ function placeName(placeId: string): string {
 
 function matchesQuery(stored: StoredFoundItem, query: FoundItemQuery): boolean {
   if (query.category && stored.category !== query.category) return false;
-  if (query.locationId && stored.foundLocationId !== query.locationId) return false;
+  if (query.location && stored.foundLocationId !== query.location) return false;
   if (query.status && stored.status !== query.status) return false;
   if (!query.q) return true;
   const haystack = `${stored.title} ${stored.description} ${placeName(stored.foundLocationId)}`.toLowerCase();

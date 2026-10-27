@@ -2,12 +2,12 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AtSign, KeyRound, LogIn, ShieldCheck } from "lucide-react";
-import { isMockMode } from "../../api/client";
+import { USE_MOCK } from "../../api/client";
 import { describeError } from "../../api/errors";
 import { Button } from "../../design-system/Button";
 import { Field, TextInput } from "../../design-system/Field";
 import { Card, ErrorNotice } from "../../design-system/Surface";
-import { demoAccounts } from "../../fixtures/accounts";
+import { demoAccounts } from "../../fixtures/mockData";
 import { useAuth } from "./AuthProvider";
 
 function safeNextPath(rawNext: string | null): string {
@@ -80,7 +80,7 @@ export function LoginPage() {
           </Field>
           <Button type="submit" size="lg" loading={submitting} className="mt-2 w-full">เข้าสู่ระบบ</Button>
         </form>
-        {isMockMode && <DemoAccounts onPick={(demoEmail, demoPassword) => { setEmail(demoEmail); setPassword(demoPassword); }} />}
+        {USE_MOCK && <DemoAccounts onPick={(demoEmail, demoPassword) => { setEmail(demoEmail); setPassword(demoPassword); }} />}
       </Card>
     </div>
   );

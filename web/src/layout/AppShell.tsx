@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { CirclePlus, House, LogIn, LogOut, Megaphone, Search, ShieldCheck, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../features/auth/AuthProvider";
-import { isMockMode, resetMockData } from "../api/client";
+import { USE_MOCK, resetMockData } from "../api/client";
 import { ButtonLink } from "../design-system/Button";
 import { PageErrorBoundary } from "./PageErrorBoundary";
 import { ThemeToggle } from "./ThemeToggle";
@@ -125,7 +125,7 @@ function Footer() {
     <footer className="mx-auto max-w-6xl px-4 pt-16 pb-28 text-sm text-ink-3 sm:px-6 md:pb-10">
       <div className="flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
         <p>BU Lost &amp; Found · โปรเจกต์ CS446 Cloud Computing · มหาวิทยาลัยกรุงเทพ</p>
-        {isMockMode && (
+        {USE_MOCK && (
           <p className="flex items-center gap-2">
             <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn">ข้อมูลจำลอง</span>
             <button type="button" onClick={handleReset} className="cursor-pointer underline-offset-4 transition-colors duration-150 hover:text-ink hover:underline">
