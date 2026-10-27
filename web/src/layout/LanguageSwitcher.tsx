@@ -44,14 +44,15 @@ export function LanguageSwitcher() {
         aria-expanded={open}
         aria-label={t.common.language}
         title={t.common.language}
-        className={`flex h-10 cursor-pointer items-center gap-1.5 rounded-xl px-2.5 text-sm font-medium transition-colors duration-150 hover:bg-surface-2 hover:text-ink ${open ? "bg-surface-2 text-ink" : "text-ink-2"}`}
+        className={`flex h-10 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold transition-colors duration-150 hover:bg-board hover:text-on-felt ${open ? "bg-board text-on-felt" : "text-on-felt-2"}`}
       >
         <Languages className="size-[18px]" aria-hidden />
         <span>{current.short}</span>
         <ChevronDown className={`size-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
       {open && (
-        <div role="menu" aria-label={t.common.language} className="absolute right-0 top-full z-50 mt-2 w-44 animate-rise overflow-hidden rounded-2xl border border-line-strong bg-surface p-1.5 shadow-lift">
+        <div role="menu" aria-label={t.common.language} className="paper absolute right-0 top-full z-50 mt-2 w-44 animate-fade overflow-hidden rounded-md p-1.5 pt-2.5 shadow-lifted">
+          <div className="absolute inset-x-0 top-0 h-1 bg-stock-yellow" aria-hidden />
           {LOCALES.map((option) => {
             const selected = option.id === locale;
             return (
@@ -62,10 +63,10 @@ export function LanguageSwitcher() {
                 aria-checked={selected}
                 onClick={() => choose(option.id)}
                 lang={option.id}
-                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] transition-colors duration-150 ${selected ? "bg-brand-soft font-semibold text-brand-ink" : "text-ink hover:bg-surface-2"}`}
+                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-sm px-3 py-2.5 text-left text-[15px] transition-colors duration-150 ${selected ? "bg-stock-yellow font-semibold text-stock-ink" : "text-ink hover:bg-surface-2"}`}
               >
                 <span className="flex items-center gap-2.5">
-                  <span className={`w-6 text-xs font-semibold ${selected ? "text-brand-ink" : "text-ink-3"}`}>{option.short}</span>
+                  <span className={`w-6 text-xs font-bold ${selected ? "text-stock-ink" : "text-ink-3"}`}>{option.short}</span>
                   {option.label}
                 </span>
                 {selected && <Check className="size-4" aria-hidden />}

@@ -3,6 +3,7 @@ import type { ChangeEvent, DragEvent } from "react";
 import { Camera, ImagePlus, RefreshCw, Trash2 } from "lucide-react";
 import { messages } from "../../i18n/locale";
 import { useI18n } from "../../i18n/useI18n";
+import { Button } from "../../design-system/Button";
 import { MAX_SOURCE_BYTES } from "./photoCompression";
 
 interface PhotoPickerProps {
@@ -46,16 +47,16 @@ export function PhotoPicker({ photo, onChange, onReject }: PhotoPickerProps) {
 
   if (previewUrl) {
     return (
-      <div className="group relative overflow-hidden rounded-2xl border border-line">
+      <div className="overflow-hidden rounded-md border-2 border-dashed border-line-strong">
         {picker}
         <img src={previewUrl} alt={t.photo.previewAlt} className="aspect-[4/3] w-full object-cover" />
-        <div className="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-gradient-to-t from-black/60 to-transparent p-3 pt-10">
-          <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-white/90 px-3 text-sm font-medium text-gray-900 backdrop-blur transition-colors duration-150 hover:bg-white">
-            <RefreshCw className="size-4" /> {t.photo.change}
-          </button>
-          <button type="button" onClick={() => onChange(null)} aria-label={t.photo.remove} className="grid size-9 cursor-pointer place-items-center rounded-xl bg-white/90 text-gray-900 backdrop-blur transition-colors duration-150 hover:bg-white hover:text-red-600">
-            <Trash2 className="size-4" />
-          </button>
+        <div className="flex justify-end gap-2 border-t border-line-strong p-2.5">
+          <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()} icon={<RefreshCw className="size-4" aria-hidden />}>
+            {t.photo.change}
+          </Button>
+          <Button size="sm" variant="danger" onClick={() => onChange(null)} aria-label={t.photo.remove} className="w-9 px-0">
+            <Trash2 className="size-4" aria-hidden />
+          </Button>
         </div>
       </div>
     );
@@ -66,19 +67,19 @@ export function PhotoPicker({ photo, onChange, onReject }: PhotoPickerProps) {
       onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
-      className={`flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-150 ${dragging ? "border-brand bg-brand-soft" : "border-line-strong bg-surface-2/50"}`}
+      className={`flex flex-col items-center gap-3 rounded-md border-2 border-dashed px-6 py-10 text-center transition-colors duration-150 ${dragging ? "border-ink bg-stock-mint/40" : "border-line-strong"}`}
     >
       {picker}
-      <span className="grid size-14 place-items-center rounded-2xl bg-surface text-brand shadow-card">
-        <ImagePlus className="size-7" />
+      <span className="grid size-14 place-items-center rounded-sm bg-stock-mint text-stock-ink">
+        <ImagePlus className="size-7" aria-hidden />
       </span>
       <div>
-        <p className="font-medium">{t.photo.dropHere}</p>
+        <p className="font-semibold">{t.photo.dropHere}</p>
         <p className="mt-1 text-sm text-ink-3">{t.photo.formats}</p>
       </div>
-      <button type="button" onClick={() => inputRef.current?.click()} className="mt-1 inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-surface px-4 text-sm font-medium shadow-card ring-1 ring-line-strong transition-[box-shadow,color] duration-150 hover:text-brand-ink hover:ring-brand/50">
-        <Camera className="size-4" /> {t.photo.choose}
-      </button>
+      <Button variant="secondary" onClick={() => inputRef.current?.click()} icon={<Camera className="size-4" aria-hidden />} className="mt-1">
+        {t.photo.choose}
+      </Button>
     </div>
   );
 }

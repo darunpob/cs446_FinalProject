@@ -4,9 +4,9 @@ import { ChevronDown } from "lucide-react";
 import { useI18n } from "../i18n/useI18n";
 
 const CONTROL =
-  "w-full rounded-xl border bg-surface px-3.5 text-[15px] text-ink placeholder:text-ink-3 " +
+  "w-full rounded-lg border bg-field px-3.5 text-[15px] text-ink placeholder:text-ink-3 " +
   "transition-[border-color,box-shadow] duration-150 outline-none " +
-  "focus:border-brand focus:ring-4 focus:ring-brand/15";
+  "focus:border-ink focus:ring-4 focus:ring-stock-yellow/60";
 
 function controlClass(hasError: boolean, extra = ""): string {
   return `${CONTROL} ${hasError ? "border-danger" : "border-line-strong hover:border-ink-3"} ${extra}`;
@@ -27,7 +27,7 @@ export function Field({ label, hint, error, optional, children }: FieldProps) {
   const message = error ?? hint;
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={controlId} className="flex items-baseline gap-2 text-sm font-medium text-ink">
+      <label htmlFor={controlId} className="flex items-baseline gap-2 text-sm font-semibold text-ink">
         {label}
         {optional && <span className="text-xs font-normal text-ink-3">{t.common.optional}</span>}
       </label>

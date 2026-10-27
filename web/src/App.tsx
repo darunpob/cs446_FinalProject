@@ -20,7 +20,7 @@ function NotFoundPage() {
       icon={<Compass className="size-7" />}
       title={t.notFound.title}
       description={t.notFound.description}
-      action={<ButtonLink to="/" variant="soft" className="mt-2">{t.common.backHome}</ButtonLink>}
+      action={<ButtonLink to="/" className="mt-2">{t.common.backHome}</ButtonLink>}
     />
   );
 }

@@ -3,3 +3,6 @@ dist
 .env.local
 .env.*.local
 *.log
+.impeccable/review
+.impeccable/mocks
+.impeccable/config.local.json

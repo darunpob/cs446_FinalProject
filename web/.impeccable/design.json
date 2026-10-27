@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-28T00:30:00+07:00",
+  "title": "Design System: BU Lost & Found",
+  "extensions": {
+    "colorMeta": {
+      "felt": { "role": "primary", "displayName": "Faculty Felt", "tonalRamp": ["hsl(157 44% 8%)", "hsl(157 42% 13%)", "hsl(157 42% 21%)", "hsl(157 34% 30%)", "hsl(157 28% 42%)", "hsl(157 24% 56%)", "hsl(157 22% 72%)", "hsl(157 20% 90%)"] },
+      "paper": { "role": "neutral", "displayName": "Notice Paper", "tonalRamp": ["hsl(42 10% 20%)", "hsl(42 10% 35%)", "hsl(42 12% 50%)", "hsl(42 14% 68%)", "hsl(40 24% 86%)", "hsl(42 32% 92%)", "hsl(44 50% 97%)", "hsl(0 0% 100%)"] },
+      "ink": { "role": "neutral", "displayName": "Board Ink", "tonalRamp": ["hsl(158 30% 6%)", "hsl(158 30% 11%)", "hsl(156 14% 20%)", "hsl(156 10% 29%)", "hsl(156 7% 39%)", "hsl(156 6% 55%)", "hsl(156 6% 72%)", "hsl(156 6% 90%)"] },
+      "stock-yellow": { "role": "secondary", "displayName": "Card Stock Yellow" },
+      "stock-pink": { "role": "secondary", "displayName": "Card Stock Pink" },
+      "stock-sky": { "role": "secondary", "displayName": "Card Stock Sky" },
+      "stock-mint": { "role": "secondary", "displayName": "Card Stock Mint" },
+      "stock-orange": { "role": "secondary", "displayName": "Card Stock Orange" },
+      "stock-lilac": { "role": "secondary", "displayName": "Card Stock Lilac" },
+      "stock-lime": { "role": "secondary", "displayName": "Card Stock Lime" },
+      "stock-sand": { "role": "secondary", "displayName": "Card Stock Sand" },
+      "stamp-red": { "role": "tertiary", "displayName": "Stamp Red", "tonalRamp": ["hsl(3 66% 20%)", "hsl(3 66% 30%)", "hsl(3 66% 43%)", "hsl(3 70% 55%)", "hsl(3 74% 66%)", "hsl(3 78% 78%)", "hsl(3 80% 88%)", "hsl(3 80% 95%)"] },
+      "verify-blue": { "role": "tertiary", "displayName": "Verify Blue", "tonalRamp": ["hsl(222 62% 18%)", "hsl(222 62% 28%)", "hsl(222 62% 40%)", "hsl(220 66% 52%)", "hsl(218 72% 64%)", "hsl(216 78% 76%)", "hsl(215 80% 87%)", "hsl(222 80% 95%)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Marker Display", "purpose": "Home hero headline only." },
+      "title": { "displayName": "Marker Title", "purpose": "Page titles on card stock, item titles, dialog titles." },
+      "heading": { "displayName": "Section Heading", "purpose": "Form sections and panels." },
+      "body": { "displayName": "Body", "purpose": "Descriptions and help text." },
+      "label": { "displayName": "Label", "purpose": "Field labels, chips, buttons." },
+      "code": { "displayName": "Pickup Code", "purpose": "Pickup codes only." }
+    },
+    "shadows": [
+      { "name": "paper", "value": "0 1px 1px rgb(4 22 15 / 0.14), 0 6px 14px -6px rgb(4 22 15 / 0.4)", "purpose": "Resting sheets and notices on felt." },
+      { "name": "lifted", "value": "0 2px 3px rgb(4 22 15 / 0.16), 0 16px 30px -10px rgb(4 22 15 / 0.5)", "purpose": "Hovered notices, menus, raised tab button." },
+      { "name": "sheet", "value": "0 -2px 6px rgb(4 22 15 / 0.12), 0 24px 48px -12px rgb(4 22 15 / 0.55)", "purpose": "Dialogs and the bottom tab bar." }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Stamp press and dialog sheet." },
+      { "name": "stamp-press", "value": "0.42s", "purpose": "Status stamp landing: scale 1.6 to 1, blur 3px to 0." },
+      { "name": "state", "value": "150ms ease-out", "purpose": "Hover, focus, and selection transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action on paper; felt with cream text.",
+      "html": "<button class=\"ds-btn-primary\">ยืนยันว่าเป็นของฉัน</button>",
+      "css": ".ds-btn-primary { background: var(--action, hsl(157 42% 21%)); color: var(--action-ink, hsl(46 50% 96%)); height: 44px; padding: 0 16px; border: 0; border-radius: 8px; font: 600 15px Anuphan, sans-serif; box-shadow: 0 1px 1px rgb(4 22 15 / .14), 0 6px 14px -6px rgb(4 22 15 / .4); cursor: pointer; transition: background-color .15s ease-out, translate .15s; } .ds-btn-primary:hover { background: var(--action-hover, hsl(157 46% 15%)); } .ds-btn-primary:active { translate: 0 1px; } .ds-btn-primary:focus-visible { outline: 2px solid hsl(158 30% 11%); outline-offset: 2px; }"
+    },
+    {
+      "name": "Mint Button",
+      "kind": "button",
+      "refersTo": "button-mint",
+      "description": "Report-found actions only.",
+      "html": "<button class=\"ds-btn-mint\">แจ้งเจอของ</button>",
+      "css": ".ds-btn-mint { background: hsl(146 46% 71%); color: hsl(158 30% 11%); height: 44px; padding: 0 16px; border: 0; border-radius: 8px; font: 600 15px Anuphan, sans-serif; box-shadow: 0 1px 1px rgb(4 22 15 / .14), 0 6px 14px -6px rgb(4 22 15 / .4); cursor: pointer; transition: filter .15s; } .ds-btn-mint:hover { filter: brightness(1.05); } .ds-btn-mint:focus-visible { outline: 2px solid hsl(158 30% 11%); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White field on paper with ink border on focus and a yellow ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"name.surn@bumail.net\">",
+      "css": ".ds-input { background: #fff; color: hsl(158 30% 11%); height: 44px; padding: 0 14px; border: 1px solid hsl(42 14% 68%); border-radius: 8px; font: 15px Anuphan, sans-serif; outline: none; transition: border-color .15s, box-shadow .15s; } .ds-input:hover { border-color: hsl(156 7% 39%); } .ds-input:focus { border-color: hsl(158 30% 11%); box-shadow: 0 0 0 4px hsl(47 92% 62% / .6); }"
+    },
+    {
+      "name": "Category Chip",
+      "kind": "chip",
+      "description": "Filter chip on felt; fills with its card stock when selected.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-chip-on\">ทั้งหมด</button><button class=\"ds-chip\"><span class=\"ds-swatch\"></span>อิเล็กทรอนิกส์</button></div>",
+      "css": ".ds-chips { display: flex; gap: 8px; padding: 12px; background: hsl(157 40% 16%); } .ds-chip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border: 1px solid hsl(157 26% 31%); border-radius: 6px; background: transparent; color: hsl(46 50% 95%); font: 600 14px Anuphan, sans-serif; cursor: pointer; transition: border-color .15s; } .ds-chip:hover { border-color: hsl(150 22% 79%); } .ds-chip-on { background: hsl(47 92% 62%); color: hsl(158 30% 11%); border-color: transparent; } .ds-swatch { width: 12px; height: 12px; border-radius: 2px; background: hsl(203 72% 75%); }"
+    },
+    {
+      "name": "Notice",
+      "kind": "card",
+      "description": "A found item pinned to the board: card-stock header, photo, stamp, title, place.",
+      "html": "<div class=\"ds-board\"><a class=\"ds-notice\" href=\"#\"><span class=\"ds-pin\"></span><div class=\"ds-notice-head\"><span>อิเล็กฯ</span><b>LIB</b></div><div class=\"ds-notice-photo\"><span class=\"ds-stamp\">รอเจ้าของ</span></div><div class=\"ds-notice-body\"><strong>iPhone 15 เคสสีม่วงใส</strong><small>ห้องสมุด · วันนี้</small></div></a></div>",
+      "css": ".ds-board { background: hsl(157 40% 16%); padding: 24px; } .ds-notice { position: relative; display: flex; flex-direction: column; width: 180px; background: hsl(44 50% 97%); color: hsl(158 30% 11%); border-radius: 2px; text-decoration: none; font-family: Anuphan, sans-serif; box-shadow: 0 1px 1px rgb(4 22 15 / .14), 0 6px 14px -6px rgb(4 22 15 / .4); transition: translate .2s ease-out, box-shadow .2s; } .ds-notice:hover { translate: 0 -2px; box-shadow: 0 2px 3px rgb(4 22 15 / .16), 0 16px 30px -10px rgb(4 22 15 / .5); } .ds-pin { position: absolute; top: -5px; left: 50%; width: 12px; height: 12px; border-radius: 50%; background: hsl(3 72% 48%); transform: translateX(-50%); box-shadow: inset -2px -2px 0 rgb(0 0 0 / .22), inset 2px 2px 0 rgb(255 255 255 / .35), 1px 2px 2px rgb(4 22 15 / .45); } .ds-notice-head { display: flex; justify-content: space-between; align-items: center; height: 36px; padding: 0 12px; background: hsl(203 72% 75%); font-size: 13px; } .ds-notice-photo { position: relative; aspect-ratio: 4/3; background: hsl(203 72% 75% / .35); } .ds-stamp { position: absolute; right: 8px; bottom: 8px; padding: 1px 8px; border: 2px solid currentColor; border-radius: 999px; color: hsl(3 66% 43%); background: hsl(44 50% 97% / .88); font-weight: 700; font-size: 12px; transform: rotate(-7deg); } .ds-notice-body { display: flex; flex-direction: column; gap: 4px; padding: 12px; } .ds-notice-body small { color: hsl(156 10% 29%); font-size: 13px; }"
+    },
+    {
+      "name": "Status Stamp",
+      "kind": "custom",
+      "description": "Status as ink stamp: round red waiting, square blue verified, struck grey returned.",
+      "html": "<div class=\"ds-stamps\"><span class=\"ds-st ds-st-wait\">รอเจ้าของ</span><span class=\"ds-st ds-st-ok\">ยืนยันแล้ว รอรับ</span><span class=\"ds-st ds-st-done\">คืนแล้ว</span></div>",
+      "css": ".ds-stamps { display: flex; gap: 20px; padding: 20px; background: hsl(44 50% 97%); font-family: Anuphan, sans-serif; } .ds-st { display: inline-flex; padding: 2px 10px; border: 2px solid currentColor; font-weight: 700; font-size: 14px; transform: rotate(-7deg); animation: ds-press .42s cubic-bezier(.16,1,.3,1) both; } .ds-st-wait { color: hsl(3 66% 43%); border-radius: 999px; } .ds-st-ok { color: hsl(222 62% 40%); border-radius: 2px; } .ds-st-done { color: hsl(156 7% 39%); border-radius: 2px; text-decoration: line-through 2px; } @keyframes ds-press { 0% { opacity: 0; transform: rotate(-7deg) scale(1.6); filter: blur(3px); } 60% { opacity: 1; filter: none; } 100% { transform: rotate(-7deg) scale(1); } }"
+    },
+    {
+      "name": "Header",
+      "kind": "nav",
+      "description": "Felt header with BU card-stock mark, route-stock active link, scalloped trim.",
+      "html": "<header class=\"ds-head\"><div class=\"ds-head-bar\"><span class=\"ds-mark\">BU</span><span class=\"ds-name\">Lost &amp; Found</span><a class=\"ds-link ds-link-on\" href=\"#\">ของที่เจอ</a><a class=\"ds-link\" href=\"#\">แจ้งของหาย</a></div><div class=\"ds-trim\"></div></header>",
+      "css": ".ds-head-bar { display: flex; align-items: center; gap: 8px; height: 64px; padding: 0 16px; background: hsl(157 42% 21%); font-family: Anuphan, sans-serif; } .ds-mark { background: hsl(47 92% 62%); color: hsl(158 30% 11%); padding: 2px 6px; border-radius: 2px; font-weight: 700; } .ds-name { font: 20px Itim, Anuphan, sans-serif; color: hsl(46 50% 95%); margin-right: 16px; } .ds-link { padding: 8px 12px; border-radius: 6px; color: hsl(150 22% 79%); font-weight: 600; font-size: 14px; text-decoration: none; transition: background-color .15s; } .ds-link:hover { background: hsl(157 40% 16%); color: hsl(46 50% 95%); } .ds-link-on { background: hsl(47 92% 62%); color: hsl(158 30% 11%); } .ds-trim { height: 10px; background: hsl(47 92% 62%); -webkit-mask: radial-gradient(circle at 8px 0, #000 8px, transparent 8.5px) 0 0 / 16px 10px repeat-x; mask: radial-gradient(circle at 8px 0, #000 8px, transparent 8.5px) 0 0 / 16px 10px repeat-x; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Faculty Notice Board",
+    "overview": "The whole app is the felt board outside a Thai faculty office. The shell and page ground are dark felt green; everything a person reads sits on paper pinned to it. Found items are notices with a card-stock header, and their status is an ink stamp. Real-world board materials supply type, palette, density and one signature move. Navigation and controls stay standard web controls.\n\nThe surface is an Operate surface: an anxious owner searching on a phone, a finder logging an item, a guard at the booth. Expression never hides the task. The board carries colour at page scale (felt shell, card-stock categories, route hues) rather than a grey screen with one accent.",
+    "keyCharacteristics": [
+      "Felt-green ground and header; paper sheets for every reading surface.",
+      "Thai card-stock colours mark categories, route sections, and page titles.",
+      "Red push-pins on sheets and notices; scalloped yellow board trim under the header.",
+      "Status stamps: round red = waiting for owner, square blue = verified, struck grey = returned.",
+      "Itim marker voice for page titles only; Anuphan for everything else."
+    ],
+    "rules": [
+      { "name": "The Route Stock Rule", "body": "Each top-level route owns one card-stock hue at full strength: found items yellow, report lost pink, report found mint, guard panel sky, account sand. Page titles are cut from it and the active nav item wears it.", "section": "colors" },
+      { "name": "The Two Surfaces Rule", "body": "Text is either on felt (on-felt tokens, yellow focus ring) or on paper (ink tokens, ink focus ring). The `.paper` class switches the focus colour automatically; never place ink text directly on felt.", "section": "colors" },
+      { "name": "The Marker Rule", "body": "Itim is handwriting on the board: page titles, item titles, dialog titles. Never for body, labels, buttons, or numbers.", "section": "typography" },
+      { "name": "The Pinned Rule", "body": "A sheet that stands alone on the board carries a pin at its top edge (`.pin`). Sheets nested inside another sheet never get a pin and never get a shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** put every reading surface on paper and keep text on felt in on-felt tokens.",
+      "**Do** colour categories and routes with card stock at full strength, with ink text on top.",
+      "**Do** carry status with stamp shape and word, never colour alone.",
+      "**Do** keep motion to the stamp press, the dialog sheet rising, and hover lifts."
+    ],
+    "donts": [
+      "**Don't** use gradients, glass, glow shadows, or gradient text.",
+      "**Don't** put a kicker or eyebrow label above a heading; the card-stock title strip carries the section.",
+      "**Don't** nest a shadowed card inside a sheet; separate with dashed perforation rules instead.",
+      "**Don't** add cork texture, paper grain, or tilted notices; the board lends type, palette, density and the stamp, never a costume."
+    ]
+  }
+}

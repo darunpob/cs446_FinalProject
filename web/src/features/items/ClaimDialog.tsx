@@ -1,12 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { BadgeCheck, CircleHelp, Clock3, MapPin, Phone, ShieldAlert } from "lucide-react";
+import { CircleHelp, Clock3, MapPin, Phone, ShieldAlert } from "lucide-react";
 import { api } from "../../api/client";
 import type { ClaimOutcome, FoundItem } from "../../api/contract";
 import { describeError } from "../../api/errors";
 import { Button } from "../../design-system/Button";
 import { Field, TextInput } from "../../design-system/Field";
-import { Dialog, ErrorNotice } from "../../design-system/Surface";
+import { Dialog, ErrorNotice, StatusStamp } from "../../design-system/Surface";
 import { messages } from "../../i18n/locale";
 import { useI18n } from "../../i18n/useI18n";
 import { useAuth } from "../auth/AuthProvider";
@@ -77,14 +77,14 @@ export function ClaimDialog({ foundItem, open, onClose, onVerified }: ClaimDialo
         <PickupTicket pickupCode={verified.pickupCode} dropOffPointId={verified.dropOffPointId} onDone={onClose} />
       ) : (
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-          <div className="rounded-2xl border border-brand/20 bg-brand-soft p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-brand-ink">
-              <CircleHelp className="size-4" /> {t.claim.questionFromFinder}
+          <div className="rounded-sm bg-stock-yellow p-4 text-stock-ink shadow-paper">
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <CircleHelp className="size-4" aria-hidden /> {t.claim.questionFromFinder}
             </div>
-            <p className="mt-1.5 font-display text-lg font-semibold">{foundItem.verificationQuestion}</p>
+            <p className="mt-1.5 font-display text-xl leading-snug">{foundItem.verificationQuestion}</p>
           </div>
           {outcome?.status === "rejected" && (
-            <div role="alert" className="flex gap-2 rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">
+            <div role="alert" className="flex gap-2 rounded-md bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
               <ShieldAlert className="size-5 shrink-0" />
               {t.claim.wrongAnswer(outcome.attemptsLeft)}
             </div>
@@ -119,16 +119,15 @@ function PickupTicket({ pickupCode, dropOffPointId, onDone }: { pickupCode: stri
   const { t } = useI18n();
   return (
     <div className="flex flex-col gap-5">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand to-accent p-6 text-center text-white">
-        <div className="dot-grid absolute inset-0 opacity-15" aria-hidden />
-        <BadgeCheck className="relative mx-auto size-8" />
-        <p className="relative mt-2 text-sm opacity-90">{t.claim.pickupCode}</p>
-        <p className="relative mt-1 font-display text-4xl font-bold tracking-[0.3em]">{pickupCode}</p>
+      <div className="relative rounded-md border-2 border-dashed border-line-strong bg-surface-2 px-6 pt-5 pb-6 text-center">
+        <p className="text-sm font-semibold text-ink-2">{t.claim.pickupCode}</p>
+        <p className="mt-1 font-mono text-4xl font-bold tracking-[0.25em] tabular-nums">{pickupCode}</p>
+        <StatusStamp status="claimed" size="lg" pressed className="absolute -top-4 -right-2 [--stamp-tilt:8deg]" />
       </div>
-      <div className="flex flex-col gap-2 rounded-2xl border border-line p-4 text-sm">
-        <p className="flex items-center gap-2 font-medium"><MapPin className="size-4 text-brand" /> {point?.name ?? t.claim.dropOffFallback}</p>
-        {point && <p className="flex items-center gap-2 text-ink-2"><Clock3 className="size-4 text-ink-3" /> {point.hours}</p>}
-        {point && <p className="flex items-center gap-2 text-ink-2"><Phone className="size-4 text-ink-3" /> {point.phone}</p>}
+      <div className="flex flex-col gap-2 rounded-md border border-line p-4 text-sm">
+        <p className="flex items-center gap-2 font-semibold"><MapPin className="size-4 text-ink-2" aria-hidden /> {point?.name ?? t.claim.dropOffFallback}</p>
+        {point && <p className="flex items-center gap-2 text-ink-2 tabular-nums"><Clock3 className="size-4 text-ink-3" aria-hidden /> {point.hours}</p>}
+        {point && <p className="flex items-center gap-2 text-ink-2 tabular-nums"><Phone className="size-4 text-ink-3" aria-hidden /> {point.phone}</p>}
       </div>
       <p className="text-sm leading-relaxed text-ink-2">
         {t.claim.pickupBefore} <strong className="text-ink">{t.claim.pickupStrong}</strong> {t.claim.pickupAfter}

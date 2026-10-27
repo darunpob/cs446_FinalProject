@@ -65,7 +65,6 @@ export const ja: Messages = {
     },
   },
   home: {
-    liveBadge: "キャンパス内の預かり所からリアルタイム更新",
     heroTitle: "なくし物？",
     heroHighlight: "まずはここをチェック",
     heroLead: "学内で拾われた物をひとまとめに。検索して持ち主であることを確認し、預かり所で受け取れます。",
@@ -142,7 +141,6 @@ export const ja: Messages = {
     choose: "写真を選ぶ",
   },
   reportFound: {
-    eyebrow: "拾得届",
     title: "落とし物を拾いましたか？持ち主に届けましょう",
     description: "入力は 2 分以内。学内全体に掲載し、一致する紛失届を出した人に LINE で通知します。",
     step1Title: "何を拾いましたか",
@@ -189,7 +187,6 @@ export const ja: Messages = {
     answerRequired: "正しい答えを入力してください（持ち主にはこの欄は表示されません）",
   },
   reportLost: {
-    eyebrow: "紛失届",
     title: "なくした物を教えてください。一緒に探します",
     description: "登録済みの拾得物とすぐに照合し、新しい登録も見守ります。それらしい物が見つかったらお知らせします。",
     step1Title: "何をなくしましたか",
@@ -246,7 +243,6 @@ export const ja: Messages = {
     password: "パスワード",
   },
   admin: {
-    eyebrow: "警備コントロールパネル",
     greeting: (name) => `こんにちは、${name}さん`,
     metricAwaiting: "受取待ち",
     metricWaiting: "持ち主未確認",

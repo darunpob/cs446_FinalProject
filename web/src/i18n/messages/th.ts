@@ -52,7 +52,6 @@ export interface Messages {
     dropOffs: Partial<Record<string, DropOffText>>;
   };
   home: {
-    liveBadge: string;
     heroTitle: string;
     heroHighlight: string;
     heroLead: string;
@@ -125,7 +124,6 @@ export interface Messages {
     choose: string;
   };
   reportFound: {
-    eyebrow: string;
     title: string;
     description: string;
     step1Title: string;
@@ -168,7 +166,6 @@ export interface Messages {
     answerRequired: string;
   };
   reportLost: {
-    eyebrow: string;
     title: string;
     description: string;
     step1Title: string;
@@ -225,7 +222,6 @@ export interface Messages {
     password: string;
   };
   admin: {
-    eyebrow: string;
     greeting: (name: string) => string;
     metricAwaiting: string;
     metricWaiting: string;
@@ -308,7 +304,6 @@ export const th: Messages = {
   time: { justNow: "เมื่อสักครู่", clockSuffix: " น." },
   directory: { unknownPlace: "ไม่ระบุสถานที่", places: {}, dropOffs: {} },
   home: {
-    liveBadge: "อัปเดตแบบเรียลไทม์จากจุดรับฝากทั่วแคมปัส",
     heroTitle: "ของหาย?",
     heroHighlight: "เช็กตรงนี้ก่อน",
     heroLead: "รวมของที่มีคนเก็บได้ในมหาวิทยาลัยไว้ที่เดียว ค้นหา ยืนยันความเป็นเจ้าของ แล้วไปรับคืนที่จุดรับฝากได้เลย",
@@ -385,7 +380,6 @@ export const th: Messages = {
     choose: "เลือกรูป",
   },
   reportFound: {
-    eyebrow: "แจ้งเจอของ",
     title: "เจอของใครทำหาย? ช่วยส่งคืนกัน",
     description: "กรอกข้อมูลไม่ถึง 2 นาที ระบบจะประกาศให้ทั้งมหาวิทยาลัยเห็น และแจ้งเตือนคนที่แจ้งของหายที่ตรงกันผ่าน LINE",
     step1Title: "เจออะไร",
@@ -432,7 +426,6 @@ export const th: Messages = {
     answerRequired: "ใส่คำตอบที่ถูกต้อง (เจ้าของจะไม่เห็นช่องนี้)",
   },
   reportLost: {
-    eyebrow: "แจ้งของหาย",
     title: "บอกเราว่าหายอะไร เดี๋ยวช่วยตามให้",
     description: "ระบบจะเทียบกับของที่มีคนแจ้งเจอทันที และเฝ้าดูรายการใหม่ ๆ ให้ เมื่อเจอของที่น่าจะใช่จะส่งแจ้งเตือนหาคุณ",
     step1Title: "หายอะไร",
@@ -489,7 +482,6 @@ export const th: Messages = {
     password: "รหัสผ่าน",
   },
   admin: {
-    eyebrow: "แผงควบคุม รปภ.",
     greeting: (name) => `สวัสดี, ${name}`,
     metricAwaiting: "รอเจ้าของมารับ",
     metricWaiting: "ของที่ยังไม่มีเจ้าของ",

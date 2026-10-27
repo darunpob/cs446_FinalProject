@@ -1,6 +1,4 @@
-import type { CSSProperties } from "react";
-import { Hourglass, LayoutGrid, MapPin, PackageCheck, PackageSearch, Search, X } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { LayoutGrid, MapPin, PackageSearch, Search, X } from "lucide-react";
 import { api } from "../../api/client";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ButtonLink } from "../../design-system/Button";
@@ -9,20 +7,15 @@ import { EmptyState, ErrorNotice } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { CATEGORIES } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
-import { ItemCard, ItemCardSkeleton } from "./ItemCard";
+import { ItemCard, ItemCardSkeleton, NOTICE_GRID } from "./ItemCard";
 import { toQuery, useItemFilters, useSearchDraft } from "./useItemFilters";
 import type { StatusScope } from "./useItemFilters";
 
-function StatTile({ icon: Icon, value, label, hue }: { icon: LucideIcon; value: number | null; label: string; hue: number }) {
+function Tally({ value, label }: { value: number | null; label: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface/80 p-4 shadow-card backdrop-blur">
-      <span className="tint grid size-11 shrink-0 place-items-center rounded-xl" style={{ "--h": hue } as CSSProperties}>
-        <Icon className="size-5" />
-      </span>
-      <div>
-        <div className="font-display text-2xl leading-none font-bold tabular-nums">{value ?? "–"}</div>
-        <div className="mt-1 text-[13px] text-ink-2">{label}</div>
-      </div>
+    <div className="min-w-0 border-l-2 border-felt-line pl-3">
+      <div className="text-xl leading-none font-bold tabular-nums sm:text-3xl">{value ?? "–"}</div>
+      <div className="mt-1 text-xs leading-snug text-on-felt-2 sm:text-sm">{label}</div>
     </div>
   );
 }
@@ -32,43 +25,59 @@ function Hero({ draftSearch, onSearch }: { draftSearch: string; onSearch: (text:
   const stats = state.phase === "ready" ? state.value : null;
   const { t } = useI18n();
   return (
-    <section className="grid items-end gap-8 pb-8 lg:grid-cols-[1.4fr_1fr]">
-      <div className="animate-rise">
-        <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-medium text-ink-2 backdrop-blur">
-          <span className="size-1.5 animate-pulse rounded-full bg-success" /> {t.home.liveBadge}
-        </span>
-        <h1 className="mt-4 font-display text-4xl leading-[1.15] font-bold tracking-tight text-balance sm:text-5xl">
-          {t.home.heroTitle} <span className="bg-gradient-to-r from-brand to-accent bg-clip-text text-transparent">{t.home.heroHighlight}</span>
+    <section className="grid gap-4 pb-5 sm:gap-6 sm:pb-6 lg:grid-cols-[1.5fr_1fr] lg:items-end lg:gap-12">
+      <div>
+        <h1 className="font-display text-[2rem] leading-tight sm:text-5xl">
+          {t.home.heroTitle} <span className="text-stock-yellow">{t.home.heroHighlight}</span>
         </h1>
-        <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-ink-2 sm:text-base">
-          {t.home.heroLead}
-        </p>
-        <label className="group relative mt-6 block max-w-xl">
+        <p className="mt-2 max-w-lg text-sm leading-relaxed text-on-felt-2 sm:text-base">{t.home.heroLead}</p>
+        <label className="relative mt-4 block max-w-xl sm:mt-5">
           <span className="sr-only">{t.home.searchLabel}</span>
-          <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-3 transition-colors duration-150 group-focus-within:text-brand" />
+          <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-ink-3" aria-hidden />
           <input
             type="search"
             value={draftSearch}
             onChange={(event) => onSearch(event.target.value)}
             placeholder={t.home.searchPlaceholder}
-            className="h-14 w-full rounded-2xl border border-line-strong bg-surface pr-4 pl-12 text-base shadow-card outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-ink-3 focus:border-brand focus:ring-4 focus:ring-brand/15"
+            className="paper h-13 w-full sm:h-14 rounded-lg pr-4 pl-12 text-base shadow-paper outline-none transition-shadow duration-150 placeholder:text-ink-3 focus:ring-4 focus:ring-stock-yellow"
           />
         </label>
       </div>
-      <div className="grid animate-rise gap-3 [animation-delay:80ms] sm:grid-cols-3 lg:grid-cols-1">
-        <StatTile icon={PackageSearch} value={stats?.waiting ?? null} label={t.home.statWaiting} hue={254} />
-        <StatTile icon={Hourglass} value={stats?.awaitingPickup ?? null} label={t.home.statAwaiting} hue={38} />
-        <StatTile icon={PackageCheck} value={stats?.returnedThisMonth ?? null} label={t.home.statReturned} hue={160} />
+      <div className="grid grid-cols-3 gap-3">
+        <Tally value={stats?.waiting ?? null} label={t.home.statWaiting} />
+        <Tally value={stats?.awaitingPickup ?? null} label={t.home.statAwaiting} />
+        <Tally value={stats?.returnedThisMonth ?? null} label={t.home.statReturned} />
       </div>
     </section>
   );
 }
 
-function chipClass(active: boolean): string {
+function chipClass(active: boolean, stock: string): string {
   const state = active
-    ? "border-transparent bg-ink text-bg shadow-card"
-    : "border-line bg-surface text-ink-2 hover:border-line-strong hover:text-ink";
-  return `inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors duration-150 ${state}`;
+    ? `${stock} text-stock-ink border-transparent shadow-paper`
+    : "border-felt-line text-on-felt hover:border-on-felt-2";
+  return `inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-md border px-3.5 text-sm font-semibold transition-colors duration-150 ${state}`;
+}
+
+function CategoryChips() {
+  const { filters, update } = useItemFilters();
+  const { t } = useI18n();
+  return (
+    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] lg:mx-0 lg:min-w-0 lg:flex-1 lg:flex-wrap lg:px-0" role="group" aria-label={t.home.categoryGroup}>
+      <button type="button" className={chipClass(filters.category === null, "bg-stock-yellow")} aria-pressed={filters.category === null} onClick={() => update({ category: null })}>
+        <LayoutGrid className="size-4" aria-hidden /> {t.home.all}
+      </button>
+      {CATEGORIES.map(({ id, icon: Icon, stock }) => {
+        const active = filters.category === id;
+        return (
+          <button key={id} type="button" className={chipClass(active, stock)} aria-pressed={active} onClick={() => update({ category: active ? null : id })}>
+            {active ? <Icon className="size-4" aria-hidden /> : <span className={`size-3 rounded-[2px] ${stock}`} aria-hidden />}
+            {t.categories[id]}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function FilterBar() {
@@ -76,18 +85,9 @@ function FilterBar() {
   const { placesByZone } = useDirectory();
   const { t } = useI18n();
   return (
-    <div className="sticky top-16 z-30 -mx-4 border-b border-line/60 bg-[var(--glass)] px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] lg:mx-0 lg:min-w-0 lg:flex-1 lg:px-0 lg:pr-8 lg:[mask-image:linear-gradient(to_right,black_88%,transparent)]" role="group" aria-label={t.home.categoryGroup}>
-          <button type="button" className={chipClass(filters.category === null)} onClick={() => update({ category: null })}>
-            <LayoutGrid className="size-4" /> {t.home.all}
-          </button>
-          {CATEGORIES.map(({ id, icon: Icon }) => (
-            <button key={id} type="button" className={chipClass(filters.category === id)} aria-pressed={filters.category === id} onClick={() => update({ category: filters.category === id ? null : id })}>
-              <Icon className="size-4" /> {t.categories[id]}
-            </button>
-          ))}
-        </div>
+    <div className="sticky top-[74px] z-30 -mx-4 border-y border-felt-line bg-board px-4 py-3 sm:-mx-6 sm:px-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+        <CategoryChips />
         <div className="flex gap-2">
           <div className="min-w-0 flex-1 lg:w-52 lg:flex-none">
             <SelectInput value={filters.locationId} onChange={(event) => update({ locationId: event.target.value })} aria-label={t.home.locationLabel}>
@@ -110,10 +110,10 @@ function ScopeToggle({ scope, onChange }: { scope: StatusScope; onChange: (scope
   const { t } = useI18n();
   const options: Array<[StatusScope, string]> = [["open", t.home.scopeOpen], ["all", t.home.all]];
   return (
-    <div className="flex h-11 shrink-0 rounded-xl border border-line-strong bg-surface-2 p-1" role="radiogroup" aria-label={t.home.statusGroup}>
+    <div className="flex h-11 shrink-0 rounded-lg border border-felt-line p-1" role="radiogroup" aria-label={t.home.statusGroup}>
       {options.map(([value, label]) => (
         <button key={value} type="button" role="radio" aria-checked={scope === value} onClick={() => onChange(value)}
-          className={`cursor-pointer rounded-lg px-3 text-sm font-medium transition-[background-color,color,box-shadow] duration-150 ${scope === value ? "bg-surface text-ink shadow-card" : "text-ink-3 hover:text-ink"}`}>
+          className={`cursor-pointer rounded-md px-3 text-sm font-semibold transition-[background-color,color] duration-150 ${scope === value ? "paper shadow-paper" : "text-on-felt-2 hover:text-on-felt"}`}>
           {label}
         </button>
       ))}
@@ -130,19 +130,19 @@ function Results() {
 
   if (state.phase === "failed") return <ErrorNotice message={state.message} onRetry={reload} />;
   if (state.phase === "loading") {
-    return <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">{Array.from({ length: 6 }, (_, slot) => <ItemCardSkeleton key={slot} />)}</div>;
+    return <div className={NOTICE_GRID}>{Array.from({ length: 6 }, (_, slot) => <ItemCardSkeleton key={slot} />)}</div>;
   }
   const foundItems = state.value;
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-ink-2">
-          {t.home.resultCount.before} <strong className="font-semibold text-ink">{foundItems.length}</strong> {t.home.resultCount.after}
-          {filters.locationId && <span className="ml-1 inline-flex items-center gap-1"><MapPin className="size-3.5" /> {placeName(filters.locationId)}</span>}
-        </p>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm text-on-felt-2">
+          {t.home.resultCount.before} <strong className="font-bold text-on-felt tabular-nums">{foundItems.length}</strong> {t.home.resultCount.after}
+          {filters.locationId && <span className="ml-1 inline-flex items-center gap-1"><MapPin className="size-3.5" aria-hidden /> {placeName(filters.locationId)}</span>}
+        </h2>
         {isFiltered && (
-          <button type="button" onClick={clear} className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-sm text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink">
-            <X className="size-3.5" /> {t.home.clearFilters}
+          <button type="button" onClick={clear} className="inline-flex h-9 cursor-pointer items-center gap-1 rounded-md px-2 text-sm font-semibold text-on-felt-2 transition-colors duration-150 hover:bg-felt hover:text-on-felt">
+            <X className="size-4" aria-hidden /> {t.home.clearFilters}
           </button>
         )}
       </div>
@@ -151,11 +151,11 @@ function Results() {
           icon={<PackageSearch className="size-7" />}
           title={t.home.emptyTitle}
           description={t.home.emptyDescription}
-          action={<ButtonLink to="/report-lost" variant="soft" className="mt-2">{t.nav.reportLost}</ButtonLink>}
+          action={<ButtonLink to="/report-lost" className="mt-2">{t.nav.reportLost}</ButtonLink>}
         />
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
-          {foundItems.map((foundItem, index) => <ItemCard key={foundItem.id} foundItem={foundItem} index={index} />)}
+        <div className={NOTICE_GRID}>
+          {foundItems.map((foundItem) => <ItemCard key={foundItem.id} foundItem={foundItem} />)}
         </div>
       )}
     </>

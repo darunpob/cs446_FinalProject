@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { AtSign, KeyRound, LogIn, ShieldCheck } from "lucide-react";
+import { AtSign, KeyRound } from "lucide-react";
 import { USE_MOCK } from "../../api/client";
 import { describeError } from "../../api/errors";
 import { Button } from "../../design-system/Button";
 import { Field, TextInput } from "../../design-system/Field";
+import { PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice } from "../../design-system/Surface";
 import { demoAccounts } from "../../fixtures/mockData";
 import { useI18n } from "../../i18n/useI18n";
@@ -19,17 +20,17 @@ function safeNextPath(rawNext: string | null): string {
 function DemoAccounts({ onPick }: { onPick: (email: string, password: string) => void }) {
   const { t } = useI18n();
   return (
-    <div className="mt-6 rounded-2xl border border-dashed border-line-strong p-4">
-      <p className="text-xs font-semibold text-ink-3">{t.login.demoAccounts}</p>
-      <div className="mt-3 flex flex-col gap-2">
+    <div className="-mx-6 mt-6 border-t-2 border-dashed border-line-strong px-6 pt-5">
+      <p className="text-xs font-semibold text-ink-2">{t.login.demoAccounts}</p>
+      <div className="mt-2 flex flex-col divide-y divide-line">
         {demoAccounts.map((account) => (
           <button key={account.email} type="button" onClick={() => onPick(account.email, account.password)}
-            className="flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2.5 text-left text-sm transition-colors duration-150 hover:bg-brand-soft">
+            className="-mx-2 flex cursor-pointer items-center justify-between gap-3 rounded-sm px-2 py-3 text-left text-sm transition-colors duration-150 hover:bg-surface-2">
             <span>
               <span className="block font-medium">{account.displayName}</span>
-              <span className="text-[13px] text-ink-3">{account.email}</span>
+              <span className="text-[13px] text-ink-2">{account.email}</span>
             </span>
-            <span className="rounded-md bg-surface px-2 py-0.5 text-xs text-ink-2">{account.role === "guard" ? t.login.roleGuard : t.login.roleStudent}</span>
+            <span className="rounded-sm bg-field px-2 py-0.5 text-xs font-semibold text-ink-2">{account.role === "guard" ? t.login.roleGuard : t.login.roleStudent}</span>
           </button>
         ))}
       </div>
@@ -64,15 +65,9 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md animate-rise py-4">
-      <div className="mb-6 text-center">
-        <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-brand to-accent text-white shadow-glow">
-          {needsGuard ? <ShieldCheck className="size-7" /> : <LogIn className="size-7" />}
-        </span>
-        <h1 className="mt-4 font-display text-3xl font-bold">{needsGuard ? t.login.guardTitle : t.login.title}</h1>
-        <p className="mt-2 text-ink-2">{needsGuard ? t.login.guardSubtitle : t.login.subtitle}</p>
-      </div>
-      <Card className="p-6">
+    <div className="mx-auto max-w-md py-4">
+      <PageHeading stock={needsGuard ? "guard" : "account"} title={needsGuard ? t.login.guardTitle : t.login.title} description={needsGuard ? t.login.guardSubtitle : t.login.subtitle} />
+      <Card pinned className="p-6 pt-8">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {failure && <ErrorNotice message={failure} />}
           <Field label={t.login.email}>

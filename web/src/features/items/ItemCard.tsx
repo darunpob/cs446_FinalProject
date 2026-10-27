@@ -1,42 +1,41 @@
 import { Link } from "react-router";
-import { Clock3, MapPin } from "lucide-react";
 import type { FoundItem } from "../../api/contract";
-import { Badge } from "../../design-system/Surface";
+import { StatusStamp } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
-import { STATUS_TONES } from "../catalog/categories";
+import { categoryMeta, placeCode } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatRelative } from "../catalog/thaiTime";
 import { ItemVisual } from "./ItemVisual";
 
-export function ItemCard({ foundItem, index = 0 }: { foundItem: FoundItem; index?: number }) {
+/** A found item as a notice pinned to the board: card-stock header, photo, stamp. */
+export function ItemCard({ foundItem }: { foundItem: FoundItem }) {
   const { placeName } = useDirectory();
   const { t } = useI18n();
-  const dimmed = foundItem.status === "returned" ? "opacity-70 saturate-50" : "";
+  const category = categoryMeta(foundItem.category);
+  const returned = foundItem.status === "returned";
   return (
     <Link
       to={`/items/${foundItem.id}`}
-      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-      className={`group flex animate-rise flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:border-brand/30 hover:shadow-lift ${dimmed}`}
+      className="paper group relative flex min-w-0 flex-col rounded-sm shadow-paper transition-[translate,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lifted"
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
-        <ItemVisual foundItem={foundItem} className="size-full transition-transform duration-500 group-hover:scale-[1.04]" />
-        <Badge tone={STATUS_TONES[foundItem.status]} className="absolute top-2 left-2 px-2 py-0.5 text-[11px] shadow-card backdrop-blur sm:top-3 sm:left-3 sm:px-2.5 sm:py-1 sm:text-xs">
-          {t.status[foundItem.status]}
-        </Badge>
+      <span className="pin" aria-hidden />
+      <div className={`flex h-7 items-center justify-between gap-1 rounded-t-sm px-2 text-stock-ink sm:h-9 sm:px-3 ${category.stock}`}>
+        <category.icon className="size-3.5 shrink-0 sm:size-4" aria-label={t.categories[category.id]} />
+        <span className="truncate text-xs font-bold tabular-nums sm:text-sm">{placeCode(foundItem.foundLocationId)}</span>
       </div>
-      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:gap-2 sm:p-4">
-        <span className="truncate text-[11px] font-medium text-ink-3 sm:text-xs">{t.categories[foundItem.category]}</span>
-        <h3 className="line-clamp-2 font-display text-[15px] leading-snug font-semibold transition-colors duration-150 group-hover:text-brand-ink sm:text-[17px]">
+      <div className="relative">
+        <ItemVisual foundItem={foundItem} iconSize="size-8 sm:size-12" className={`aspect-square w-full sm:aspect-[4/3] ${returned ? "opacity-60 grayscale" : ""}`} />
+        <StatusStamp status={foundItem.status} size="sm" className="absolute right-1 bottom-1.5 sm:right-2 sm:bottom-2" />
+      </div>
+      <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-1.5 sm:p-3.5">
+        <h3 className="line-clamp-2 text-[13px] leading-snug font-semibold underline-offset-2 group-hover:underline sm:text-base">
           {foundItem.title}
         </h3>
-        <div className="mt-auto flex flex-col gap-1 pt-1.5 text-xs text-ink-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:pt-2 sm:text-[13px]">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <MapPin className="size-3.5 shrink-0 text-ink-3" /> <span className="truncate">{placeName(foundItem.foundLocationId)}</span>
-          </span>
-          <span className="flex min-w-0 items-center gap-1.5">
-            <Clock3 className="size-3.5 shrink-0 text-ink-3" /> <span className="truncate">{formatRelative(foundItem.foundAt)}</span>
-          </span>
-        </div>
+        <p className="mt-auto truncate text-xs text-ink-2 sm:text-sm">
+          {placeName(foundItem.foundLocationId)}
+          <span className="hidden sm:inline"> · {formatRelative(foundItem.foundAt)}</span>
+        </p>
+        <p className="truncate text-xs text-ink-3 sm:hidden">{formatRelative(foundItem.foundAt)}</p>
       </div>
     </Link>
   );
@@ -44,13 +43,15 @@ export function ItemCard({ foundItem, index = 0 }: { foundItem: FoundItem; index
 
 export function ItemCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-      <div className="skeleton aspect-[4/3]" />
-      <div className="flex flex-col gap-3 p-3 sm:p-4">
-        <div className="skeleton h-3 w-20 rounded" />
-        <div className="skeleton h-5 w-4/5 rounded" />
-        <div className="skeleton h-3 w-2/3 rounded" />
+    <div className="paper flex flex-col rounded-sm shadow-paper" aria-hidden>
+      <div className="h-7 rounded-t-sm bg-surface-3 sm:h-9" />
+      <div className="skeleton aspect-square sm:aspect-[4/3]" />
+      <div className="flex flex-col gap-2 p-2 sm:p-3.5">
+        <div className="skeleton h-4 w-4/5 rounded-sm" />
+        <div className="skeleton h-3 w-2/3 rounded-sm" />
       </div>
     </div>
   );
 }
+
+export const NOTICE_GRID = "grid grid-cols-3 gap-x-2 gap-y-4 sm:gap-x-4 sm:gap-y-6 lg:gap-x-6 lg:gap-y-8";

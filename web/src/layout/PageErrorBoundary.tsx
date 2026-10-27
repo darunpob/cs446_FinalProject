@@ -1,6 +1,7 @@
 import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import { TriangleAlert } from "lucide-react";
+import { buttonClass } from "../design-system/Button";
 import { EmptyState } from "../design-system/Surface";
 import { messages } from "../i18n/locale";
 
@@ -35,7 +36,7 @@ export class PageErrorBoundary extends Component<PageErrorBoundaryProps, PageErr
         icon={<TriangleAlert className="size-7" />}
         title={t.pageError.title}
         description={t.pageError.description}
-        action={<a href="#/" className="mt-2 rounded-xl bg-brand-soft px-4 py-2 text-sm font-medium text-brand-ink transition-colors duration-150 hover:bg-brand/15">{t.common.backHome}</a>}
+        action={<a href="#/" className={buttonClass("primary", "md", "mt-2")}>{t.common.backHome}</a>}
       />
     );
   }

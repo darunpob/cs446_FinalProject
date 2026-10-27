@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import type { CategoryId } from "../../api/contract";
 import { useI18n } from "../../i18n/useI18n";
 import { CATEGORIES } from "./categories";
@@ -14,9 +13,11 @@ export function CategoryPicker({ value, onChange, invalid = false, labelledBy }:
   const { t } = useI18n();
   return (
     <div role="radiogroup" aria-labelledby={labelledBy} aria-invalid={invalid} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {CATEGORIES.map(({ id, icon: Icon, hue }) => {
+      {CATEGORIES.map(({ id, icon: Icon, stock }) => {
         const selected = value === id;
-        const ring = selected ? "border-brand ring-4 ring-brand/15 bg-brand-soft/60" : invalid ? "border-danger/60" : "border-line hover:border-line-strong";
+        const state = selected
+          ? `${stock} border-ink text-stock-ink`
+          : `bg-field text-ink ${invalid ? "border-danger" : "border-line-strong hover:border-ink-3"}`;
         return (
           <button
             key={id}
@@ -24,10 +25,10 @@ export function CategoryPicker({ value, onChange, invalid = false, labelledBy }:
             role="radio"
             aria-checked={selected}
             onClick={() => onChange(id)}
-            className={`flex cursor-pointer flex-col items-start gap-2 rounded-2xl border bg-surface p-3 text-left text-sm font-medium transition-[border-color,box-shadow,background-color] duration-150 ${ring}`}
+            className={`flex min-h-12 cursor-pointer items-center gap-2.5 rounded-md border-2 px-3 py-2 text-left text-sm font-semibold transition-[border-color,background-color,box-shadow] duration-150 ${state}`}
           >
-            <span className="tint grid size-9 place-items-center rounded-xl" style={{ "--h": hue } as CSSProperties}>
-              <Icon className="size-[18px]" />
+            <span className={`grid size-7 shrink-0 place-items-center rounded-sm ${selected ? "bg-surface/50" : stock}`}>
+              <Icon className="size-4 text-stock-ink" aria-hidden />
             </span>
             {t.categories[id]}
           </button>

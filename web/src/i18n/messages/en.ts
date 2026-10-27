@@ -65,7 +65,6 @@ export const en: Messages = {
     },
   },
   home: {
-    liveBadge: "Live updates from drop-off points across campus",
     heroTitle: "Lost something?",
     heroHighlight: "Check here first",
     heroLead: "Everything people have found on campus, in one place. Search, prove it's yours, then pick it up at the drop-off point.",
@@ -142,7 +141,6 @@ export const en: Messages = {
     choose: "Choose photo",
   },
   reportFound: {
-    eyebrow: "Report found",
     title: "Found something? Help it get home",
     description: "Takes under 2 minutes. We'll post it campus-wide and notify anyone with a matching lost report via LINE.",
     step1Title: "What did you find?",
@@ -189,7 +187,6 @@ export const en: Messages = {
     answerRequired: "Enter the correct answer (the owner won't see this field)",
   },
   reportLost: {
-    eyebrow: "Report lost",
     title: "Tell us what you lost and we'll keep watch",
     description: "We'll compare it with found reports right away and watch new ones. When something likely matches, we'll notify you.",
     step1Title: "What did you lose?",
@@ -246,7 +243,6 @@ export const en: Messages = {
     password: "Password",
   },
   admin: {
-    eyebrow: "Security dashboard",
     greeting: (name) => `Hello, ${name}`,
     metricAwaiting: "Awaiting pickup",
     metricWaiting: "Unclaimed items",

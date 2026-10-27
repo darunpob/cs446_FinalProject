@@ -65,7 +65,6 @@ export const zh: Messages = {
     },
   },
   home: {
-    liveBadge: "全校寄存点实时更新",
     heroTitle: "丢了东西？",
     heroHighlight: "先来这里看看",
     heroLead: "校内拾获的物品集中在这里。搜索、验证归属，然后到寄存点领回即可。",
@@ -142,7 +141,6 @@ export const zh: Messages = {
     choose: "选择照片",
   },
   reportFound: {
-    eyebrow: "登记拾获",
     title: "捡到别人的东西？帮它回家吧",
     description: "不到 2 分钟即可填完。系统会向全校发布，并通过 LINE 通知挂失信息匹配的同学。",
     step1Title: "捡到了什么",
@@ -189,7 +187,6 @@ export const zh: Messages = {
     answerRequired: "请填写正确答案（失主看不到此栏）",
   },
   reportLost: {
-    eyebrow: "挂失登记",
     title: "告诉我们你丢了什么，我们帮你留意",
     description: "系统会立即与已登记的拾获物品比对，并持续关注新登记的物品。一旦发现可能匹配的物品，就会通知你。",
     step1Title: "丢了什么",
@@ -246,7 +243,6 @@ export const zh: Messages = {
     password: "密码",
   },
   admin: {
-    eyebrow: "保安控制面板",
     greeting: (name) => `你好，${name}`,
     metricAwaiting: "等待失主领取",
     metricWaiting: "尚无人认领",

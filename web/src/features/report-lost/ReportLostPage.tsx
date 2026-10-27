@@ -9,7 +9,7 @@ import { useI18n } from "../../i18n/useI18n";
 import { useAuth } from "../auth/AuthProvider";
 import { CategoryPicker } from "../catalog/CategoryPicker";
 import { PlaceSelect } from "../catalog/PlaceSelect";
-import { ItemCard } from "../items/ItemCard";
+import { ItemCard, NOTICE_GRID } from "../items/ItemCard";
 import { LINE_OA_URL, LineFollowCard } from "./LineFollowCard";
 import { useLostReportForm } from "./useLostReportForm";
 
@@ -20,35 +20,37 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
   const { t } = useI18n();
   const text = t.reportLost;
   return (
-    <div className="animate-rise">
-      <Card className="relative overflow-hidden p-6 sm:p-8">
-        <div className="absolute -top-16 -right-16 size-48 rounded-full bg-brand/10 blur-2xl" aria-hidden />
-        <span className="relative grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand-ink">
-          <BellRing className="size-6" />
-        </span>
-        <h1 className="relative mt-4 font-display text-2xl font-bold sm:text-3xl">{text.receiptTitle}</h1>
-        <p className="relative mt-2 max-w-xl text-ink-2">
-          {text.receiptNumber} <strong className="text-ink">{receipt.id}</strong> · {text.receiptLead}
-        </p>
-        <div role="note" className="relative mt-5 flex max-w-2xl gap-3 rounded-2xl border border-warn/30 bg-warn-soft p-4">
+    <div>
+      <Card pinned className="overflow-hidden">
+        <div className="h-3 bg-stock-pink" aria-hidden />
+        <div className="p-6 sm:p-8">
+          <span className="grid size-12 place-items-center rounded-sm bg-stock-pink text-stock-ink">
+            <BellRing className="size-6" aria-hidden />
+          </span>
+          <h1 className="mt-4 font-display text-3xl sm:text-4xl">{text.receiptTitle}</h1>
+          <p className="mt-2 max-w-xl text-ink-2">
+            {text.receiptNumber} <strong className="text-ink tabular-nums">{receipt.id}</strong> · {text.receiptLead}
+          </p>
+          <div role="note" className="mt-5 flex max-w-2xl gap-3 rounded-md border-2 border-warn bg-warn-soft p-4">
           <MailCheck className="mt-0.5 size-5 shrink-0 text-warn" aria-hidden />
           <div>
             <p className="text-sm font-semibold text-ink">{text.confirmEmailTitle}</p>
-            <p className="mt-1 text-sm leading-relaxed text-ink-2">{text.confirmEmailBody(email)}</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-2">{text.confirmEmailBody(email)}</p>
+            </div>
           </div>
         </div>
       </Card>
       {LINE_OA_URL && <LineFollowCard reportId={receipt.id} />}
-      <div className="mt-10 mb-4 flex items-center gap-2">
-        <Sparkles className="size-5 text-accent" />
-        <h2 className="font-display text-xl font-semibold">{matches.length > 0 ? text.mightBeYours : text.noMatches}</h2>
+      <div className="mt-12 mb-5 flex items-center gap-2">
+        <Sparkles className="size-5 text-stock-yellow" aria-hidden />
+        <h2 className="font-display text-2xl">{matches.length > 0 ? text.mightBeYours : text.noMatches}</h2>
       </div>
       {matches.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
-          {matches.map((foundItem, index) => <ItemCard key={foundItem.id} foundItem={foundItem} index={index} />)}
+        <div className={NOTICE_GRID}>
+          {matches.map((foundItem) => <ItemCard key={foundItem.id} foundItem={foundItem} />)}
         </div>
       ) : (
-        <p className="text-ink-2">{text.checkBack}</p>
+        <p className="text-on-felt-2">{text.checkBack}</p>
       )}
       <ButtonLink to="/" variant="secondary" className="mt-8">{t.item.viewAll}</ButtonLink>
     </div>
@@ -71,7 +73,7 @@ export function ReportLostPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeading eyebrow={text.eyebrow} title={text.title} description={text.description} />
+      <PageHeading stock="lost" title={text.title} description={text.description} />
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
         <FormSection step={1} title={text.step1Title}>
           <Field label={text.whatLabel} error={errors.title}>

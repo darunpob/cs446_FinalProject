@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { CSSProperties } from "react";
 import { Hourglass, PackageCheck, PackageSearch, TimerReset } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../../api/client";
 import { useApiQuery } from "../../api/useApiQuery";
+import { PageHeading } from "../../design-system/FormSection";
 import { useI18n } from "../../i18n/useI18n";
 import { STALE_AFTER_DAYS } from "../catalog/categories";
 import { useAuth } from "../auth/AuthProvider";
@@ -12,14 +12,16 @@ import { StaleItems } from "./StaleItems";
 
 type AdminTab = "returns" | "stale";
 
-function Metric({ icon: Icon, label, value, hue }: { icon: LucideIcon; label: string; value: number | null; hue: number }) {
+function Metric({ icon: Icon, label, value, stock }: { icon: LucideIcon; label: string; value: number | null; stock: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
-      <span className="tint grid size-9 place-items-center rounded-xl" style={{ "--h": hue } as CSSProperties}>
-        <Icon className="size-[18px]" />
-      </span>
-      <p className="mt-3 font-display text-3xl font-bold tabular-nums">{value ?? "–"}</p>
-      <p className="text-[13px] text-ink-2">{label}</p>
+    <div className="paper rounded-sm shadow-paper">
+      <div className={`flex h-8 items-center px-3 text-stock-ink ${stock}`}>
+        <Icon className="size-4" aria-hidden />
+      </div>
+      <div className="p-4 pt-3">
+        <p className="text-3xl font-bold tabular-nums">{value ?? "–"}</p>
+        <p className="mt-0.5 text-[13px] leading-snug text-ink-2">{label}</p>
+      </div>
     </div>
   );
 }
@@ -27,9 +29,9 @@ function Metric({ icon: Icon, label, value, hue }: { icon: LucideIcon; label: st
 function TabButton({ active, count, label, onClick }: { active: boolean; count: number | null; label: string; onClick: () => void }) {
   return (
     <button type="button" role="tab" aria-selected={active} onClick={onClick}
-      className={`relative -mb-px flex cursor-pointer items-center gap-2 border-b-2 px-1 pb-3 text-[15px] font-medium transition-colors duration-150 ${active ? "border-brand text-ink" : "border-transparent text-ink-3 hover:text-ink"}`}>
+      className={`flex h-11 cursor-pointer items-center gap-2 rounded-t-md px-4 text-[15px] font-semibold transition-colors duration-150 ${active ? "paper" : "text-on-felt-2 hover:bg-felt hover:text-on-felt"}`}>
       {label}
-      {count !== null && <span className={`rounded-full px-2 py-0.5 text-xs tabular-nums ${active ? "bg-brand-soft text-brand-ink" : "bg-surface-2"}`}>{count}</span>}
+      {count !== null && <span className={`rounded-sm px-1.5 py-0.5 text-xs font-bold tabular-nums ${active ? "bg-stock-sky text-stock-ink" : "bg-felt-line text-on-felt"}`}>{count}</span>}
     </button>
   );
 }
@@ -52,26 +54,25 @@ export function AdminPage() {
   };
 
   return (
-    <div className="animate-rise">
-      <div className="mb-8">
-        <p className="text-sm font-semibold text-brand">{t.admin.eyebrow}</p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.admin.greeting(session?.user.displayName ?? "")}</h1>
+    <div>
+      <PageHeading stock="guard" title={t.admin.greeting(session?.user.displayName ?? "")} />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Metric icon={Hourglass} label={t.admin.metricAwaiting} value={statValues?.awaitingPickup ?? null} stock="bg-stock-sky" />
+        <Metric icon={PackageSearch} label={t.admin.metricWaiting} value={statValues?.waiting ?? null} stock="bg-stock-yellow" />
+        <Metric icon={TimerReset} label={t.admin.metricStale(STALE_AFTER_DAYS)} value={staleItems?.length ?? null} stock="bg-stock-orange" />
+        <Metric icon={PackageCheck} label={t.admin.metricReturned} value={statValues?.returnedThisMonth ?? null} stock="bg-stock-mint" />
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric icon={Hourglass} label={t.admin.metricAwaiting} value={statValues?.awaitingPickup ?? null} hue={38} />
-        <Metric icon={PackageSearch} label={t.admin.metricWaiting} value={statValues?.waiting ?? null} hue={254} />
-        <Metric icon={TimerReset} label={t.admin.metricStale(STALE_AFTER_DAYS)} value={staleItems?.length ?? null} hue={352} />
-        <Metric icon={PackageCheck} label={t.admin.metricReturned} value={statValues?.returnedThisMonth ?? null} hue={160} />
-      </div>
-      <div role="tablist" className="mt-10 mb-6 flex gap-6 border-b border-line">
+      <div role="tablist" className="mt-10 flex gap-1 border-b-2 border-felt-line">
         <TabButton active={tab === "returns"} count={claims?.length ?? null} label={t.admin.tabReturns} onClick={() => setTab("returns")} />
         <TabButton active={tab === "stale"} count={staleItems?.length ?? null} label={t.admin.tabStale} onClick={() => setTab("stale")} />
       </div>
-      {tab === "returns" ? (
-        <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />
-      ) : (
-        <StaleItems staleItems={staleItems} failure={stale.state.phase === "failed" ? stale.state.message : null} onRetry={stale.reload} />
-      )}
+      <div className="pt-6" role="tabpanel">
+        {tab === "returns" ? (
+          <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />
+        ) : (
+          <StaleItems staleItems={staleItems} failure={stale.state.phase === "failed" ? stale.state.message : null} onRetry={stale.reload} />
+        )}
+      </div>
     </div>
   );
 }
