@@ -20,21 +20,21 @@ export function ItemCard({ foundItem, index = 0 }: { foundItem: FoundItem; index
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <ItemVisual foundItem={foundItem} className="size-full transition-transform duration-500 group-hover:scale-[1.04]" />
-        <Badge tone={STATUS_TONES[foundItem.status]} className="absolute top-3 left-3 shadow-card backdrop-blur">
+        <Badge tone={STATUS_TONES[foundItem.status]} className="absolute top-2 left-2 px-2 py-0.5 text-[11px] shadow-card backdrop-blur sm:top-3 sm:left-3 sm:px-2.5 sm:py-1 sm:text-xs">
           {t.status[foundItem.status]}
         </Badge>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-xs font-medium text-ink-3">{t.categories[foundItem.category]}</span>
-        <h3 className="line-clamp-2 font-display text-[17px] leading-snug font-semibold transition-colors duration-150 group-hover:text-brand-ink">
+      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:gap-2 sm:p-4">
+        <span className="truncate text-[11px] font-medium text-ink-3 sm:text-xs">{t.categories[foundItem.category]}</span>
+        <h3 className="line-clamp-2 font-display text-[15px] leading-snug font-semibold transition-colors duration-150 group-hover:text-brand-ink sm:text-[17px]">
           {foundItem.title}
         </h3>
-        <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-[13px] text-ink-2">
-          <span className="flex items-center gap-1.5">
-            <MapPin className="size-3.5 text-ink-3" /> {placeName(foundItem.foundLocationId)}
+        <div className="mt-auto flex flex-col gap-1 pt-1.5 text-xs text-ink-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:pt-2 sm:text-[13px]">
+          <span className="flex min-w-0 items-center gap-1.5">
+            <MapPin className="size-3.5 shrink-0 text-ink-3" /> <span className="truncate">{placeName(foundItem.foundLocationId)}</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <Clock3 className="size-3.5 text-ink-3" /> {formatRelative(foundItem.foundAt)}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <Clock3 className="size-3.5 shrink-0 text-ink-3" /> <span className="truncate">{formatRelative(foundItem.foundAt)}</span>
           </span>
         </div>
       </div>
@@ -46,7 +46,7 @@ export function ItemCardSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-surface">
       <div className="skeleton aspect-[4/3]" />
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-col gap-3 p-3 sm:p-4">
         <div className="skeleton h-3 w-20 rounded" />
         <div className="skeleton h-5 w-4/5 rounded" />
         <div className="skeleton h-3 w-2/3 rounded" />

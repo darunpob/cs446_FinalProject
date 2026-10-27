@@ -130,7 +130,7 @@ function Results() {
 
   if (state.phase === "failed") return <ErrorNotice message={state.message} onRetry={reload} />;
   if (state.phase === "loading") {
-    return <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, slot) => <ItemCardSkeleton key={slot} />)}</div>;
+    return <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">{Array.from({ length: 6 }, (_, slot) => <ItemCardSkeleton key={slot} />)}</div>;
   }
   const foundItems = state.value;
   return (
@@ -154,7 +154,7 @@ function Results() {
           action={<ButtonLink to="/report-lost" variant="soft" className="mt-2">{t.nav.reportLost}</ButtonLink>}
         />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
           {foundItems.map((foundItem, index) => <ItemCard key={foundItem.id} foundItem={foundItem} index={index} />)}
         </div>
       )}

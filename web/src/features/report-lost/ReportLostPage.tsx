@@ -33,7 +33,7 @@ function LostReceipt({ receipt }: { receipt: LostReportReceipt }) {
         <h2 className="font-display text-xl font-semibold">{matches.length > 0 ? text.mightBeYours : text.noMatches}</h2>
       </div>
       {matches.length > 0 ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
           {matches.map((foundItem, index) => <ItemCard key={foundItem.id} foundItem={foundItem} index={index} />)}
         </div>
       ) : (
