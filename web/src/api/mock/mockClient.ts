@@ -14,8 +14,8 @@ import type {
   Session,
   StaleItem,
 } from "../contract";
-import { campusDirectoryFixture, demoAccounts } from "../../fixtures/mockData";
-import { MAX_CLAIM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
+import { campusDirectoryFixture, demoAccounts, simulatedAiLabels } from "../../fixtures/mockData";
+import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
 import type { MockDatabaseHandle, StoredFoundItem } from "./mockDatabase";
 
@@ -40,7 +40,7 @@ function matchesQuery(stored: StoredFoundItem, query: FoundItemQuery): boolean {
   if (query.location && stored.foundLocationId !== query.location) return false;
   if (query.status && stored.status !== query.status) return false;
   if (!query.q) return true;
-  const haystack = `${stored.title} ${stored.description} ${placeName(stored.foundLocationId)}`.toLowerCase();
+  const haystack = `${stored.title} ${stored.description} ${placeName(stored.foundLocationId)} ${stored.aiLabels.join(" ")}`.toLowerCase();
   return query.q.toLowerCase().trim().split(/\s+/).every((term) => haystack.includes(term));
 }
 
@@ -174,6 +174,7 @@ export class MockLostFoundApi implements LostFoundApi {
         status: "available",
         verificationQuestion: draft.verificationQuestion.trim(),
         verificationAnswer: draft.verificationAnswer.trim(),
+        aiLabels: draft.imageKey ? simulatedAiLabels[draft.category] : [],
         returnedAt: null,
       };
       this.db.foundItems.unshift(stored);
@@ -202,14 +203,18 @@ export class MockLostFoundApi implements LostFoundApi {
     const stored = this.findStored(draft.itemId);
     if (stored.status !== "available") throw new ApiError("CONFLICT", messages().errors.alreadyClaimed, 409);
     const attemptKey = `${draft.itemId}:${draft.studentId.trim()}`;
+    const itemKey = `${draft.itemId}:*`;
     const usedAttempts = this.db.failedAttempts[attemptKey] ?? 0;
-    if (usedAttempts >= MAX_CLAIM_ATTEMPTS) {
+    const itemAttempts = this.db.failedAttempts[itemKey] ?? 0;
+    if (usedAttempts >= MAX_CLAIM_ATTEMPTS || itemAttempts >= MAX_ITEM_ATTEMPTS) {
       throw new ApiError("TOO_MANY_ATTEMPTS", messages().errors.tooManyAttempts, 429);
     }
     if (!answerMatches(draft.answer, stored.verificationAnswer)) {
       this.db.failedAttempts[attemptKey] = usedAttempts + 1;
+      this.db.failedAttempts[itemKey] = itemAttempts + 1;
       this.database.persist();
-      return { status: "rejected", attemptsLeft: MAX_CLAIM_ATTEMPTS - usedAttempts - 1 };
+      const attemptsLeft = Math.min(MAX_CLAIM_ATTEMPTS - usedAttempts, MAX_ITEM_ATTEMPTS - itemAttempts) - 1;
+      return { status: "rejected", attemptsLeft };
     }
     const claim = this.recordVerifiedClaim(stored, draft);
     return { status: "verified", claimId: claim.id, pickupCode: claim.pickupCode, dropOffPointId: claim.dropOffPointId };

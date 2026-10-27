@@ -2,6 +2,9 @@ import type { FoundItem, NewLostReport } from "../contract";
 
 export const MAX_CLAIM_ATTEMPTS = 3;
 
+/** Caps guesses on one item across all student IDs, so switching IDs cannot buy more tries. */
+export const MAX_ITEM_ATTEMPTS = 6;
+
 export type RandomFill = (bytes: Uint8Array<ArrayBuffer>) => Uint8Array<ArrayBuffer>;
 
 const PICKUP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

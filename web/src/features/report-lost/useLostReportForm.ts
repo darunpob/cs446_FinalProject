@@ -11,28 +11,38 @@ export interface LostReportDraft {
   description: string;
   lastSeenLocationId: string;
   lostAtLocal: string;
+  studentId: string;
   name: string;
   lineId: string;
   phone: string;
   email: string;
 }
 
-export type LostReportErrors = Partial<Record<keyof LostReportDraft | "contact", string>>;
+export type LostReportErrors = Partial<Record<keyof LostReportDraft, string>>;
 
 const PHONE_PATTERN = /^0\d{8,9}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STUDENT_ID_PATTERN = /^\d{10}$/;
+
+type LostReportText = ReturnType<typeof messages>["reportLost"];
 
 function blankDraft(name = "", email = ""): LostReportDraft {
-  return { title: "", category: null, description: "", lastSeenLocationId: "", lostAtLocal: toLocalInputValue(new Date()), name, lineId: "", phone: "", email };
+  return { title: "", category: null, description: "", lastSeenLocationId: "", lostAtLocal: toLocalInputValue(new Date()), studentId: "", name, lineId: "", phone: "", email };
+}
+
+function emailError(email: string, text: LostReportText): string | undefined {
+  if (!email) return text.emailRequired;
+  return EMAIL_PATTERN.test(email) ? undefined : text.emailInvalid;
 }
 
 function contactErrors(draft: LostReportDraft): LostReportErrors {
   const phone = draft.phone.replace(/[\s-]/g, "");
+  const studentId = draft.studentId.trim();
   const text = messages().reportLost;
   return {
-    contact: draft.lineId.trim() || phone || draft.email.trim() ? undefined : text.contactRequired,
+    email: emailError(draft.email.trim(), text),
     phone: phone && !PHONE_PATTERN.test(phone) ? text.phoneInvalid : undefined,
-    email: draft.email.trim() && !EMAIL_PATTERN.test(draft.email.trim()) ? text.emailInvalid : undefined,
+    studentId: studentId && !STUDENT_ID_PATTERN.test(studentId) ? text.studentIdInvalid : undefined,
   };
 }
 
@@ -58,7 +68,7 @@ export function useLostReportForm(initialName: string, initialEmail: string) {
 
   const setField = <Field extends keyof LostReportDraft>(field: Field, value: LostReportDraft[Field]) => {
     setDraft((previous) => ({ ...previous, [field]: value }));
-    setErrors((previous) => ({ ...previous, [field]: undefined, contact: undefined }));
+    setErrors((previous) => ({ ...previous, [field]: undefined }));
   };
 
   const submit = async () => {
@@ -74,6 +84,7 @@ export function useLostReportForm(initialName: string, initialEmail: string) {
         category: draft.category,
         lastSeenLocationId: draft.lastSeenLocationId,
         lostAt: fromLocalInputValue(draft.lostAtLocal),
+        studentId: draft.studentId.trim(),
         contact: { name: draft.name.trim(), lineId: draft.lineId.trim(), phone: draft.phone.replace(/[\s-]/g, ""), email: draft.email.trim() },
       });
       setReceipt(issued);

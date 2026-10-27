@@ -21,7 +21,7 @@ export interface MockDatabase {
   images: Record<string, string>;
 }
 
-const STORAGE_KEY = "bu-lf-mock-db-v1";
+const STORAGE_KEY = "bu-lf-mock-db-v2";
 const HOUR_MS = 3_600_000;
 
 function seedTimestamp(now: Date, seed: FoundItemSeed): Date {
@@ -47,6 +47,7 @@ function seedFoundItem(now: Date, seed: FoundItemSeed): StoredFoundItem {
     imageUrl: null,
     status: seed.status,
     verificationQuestion: seed.verificationQuestion,
+    aiLabels: seed.aiLabels,
     verificationAnswer: seed.verificationAnswer,
     returnedAt: returnedAt ? returnedAt.toISOString() : null,
   };

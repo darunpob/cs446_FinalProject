@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, CalendarClock, Clock3, Hand, MapPin, PackageOpen, Phone, Store } from "lucide-react";
+import { ArrowLeft, CalendarClock, Clock3, Hand, MapPin, PackageOpen, Phone, Sparkles, Store } from "lucide-react";
 import { api } from "../../api/client";
 import type { FoundItem } from "../../api/contract";
 import { useApiQuery } from "../../api/useApiQuery";
@@ -13,6 +13,20 @@ import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDateTime, formatRelative } from "../catalog/thaiTime";
 import { ClaimDialog } from "./ClaimDialog";
 import { ItemVisual } from "./ItemVisual";
+
+function AiLabels({ labels }: { labels: string[] }) {
+  const { t } = useI18n();
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2" title={t.item.aiLabelsHint}>
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink-3">
+        <Sparkles className="size-3.5 text-accent" /> {t.item.aiLabelsTitle}
+      </span>
+      {labels.map((label) => (
+        <span key={label} className="rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-ink-2">{label}</span>
+      ))}
+    </div>
+  );
+}
 
 function InfoRow({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
@@ -67,6 +81,7 @@ function ItemDetail({ foundItem, onChanged }: { foundItem: FoundItem; onChanged:
           </div>
           <h1 className="mt-3 font-display text-3xl leading-tight font-bold tracking-tight sm:text-4xl">{foundItem.title}</h1>
           {foundItem.description && <p className="mt-3 leading-relaxed text-ink-2">{foundItem.description}</p>}
+          {foundItem.aiLabels.length > 0 && <AiLabels labels={foundItem.aiLabels} />}
         </div>
         <dl className="divide-y divide-line rounded-2xl border border-line bg-surface px-4">
           <InfoRow icon={<MapPin className="size-4" />} label={t.item.foundPlace}>{placeName(foundItem.foundLocationId)}</InfoRow>

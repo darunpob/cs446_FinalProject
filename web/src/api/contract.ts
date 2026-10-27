@@ -45,6 +45,8 @@ export interface FoundItem {
   imageUrl: string | null;
   status: FoundItemStatus;
   verificationQuestion: string;
+  /** Amazon Rekognition DetectLabels output (English, top 5). Empty until the photo is analysed. */
+  aiLabels: string[];
 }
 
 export interface FoundItemQuery {
@@ -88,6 +90,8 @@ export interface NewLostReport {
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  /** 10-digit student ID, or "" — lets the backend match a photographed student card to this report. */
+  studentId: string;
   contact: ContactChannels;
 }
 

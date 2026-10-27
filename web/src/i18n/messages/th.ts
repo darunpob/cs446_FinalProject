@@ -87,6 +87,8 @@ export interface Messages {
     unspecified: string;
     notFoundTitle: string;
     viewAll: string;
+    aiLabelsTitle: string;
+    aiLabelsHint: string;
   };
   claim: {
     answerRequired: string;
@@ -190,13 +192,22 @@ export interface Messages {
     mightBeYours: string;
     noMatches: string;
     checkBack: string;
-    contactRequired: string;
+    emailRequired: string;
     phoneInvalid: string;
     emailInvalid: string;
     titleTooShort: string;
     locationRequired: string;
     timeRequired: string;
     nameRequired: string;
+    studentIdLabel: string;
+    studentIdHint: string;
+    studentIdInvalid: string;
+    lineIdLabel: string;
+    lineIdHint: string;
+    lineTitle: string;
+    lineBody: (reportId: string) => string;
+    lineButton: string;
+    lineQrAlt: string;
   };
   login: {
     demoAccounts: string;
@@ -320,7 +331,7 @@ export const th: Messages = {
     stepsTitle: "ขั้นตอนรับของคืน",
     claimSteps: [
       "ตอบคำถามยืนยันที่ผู้เก็บได้ตั้งไว้",
-      "รับรหัสรับของ (ส่งเข้า LINE ด้วย)",
+      "รับรหัสรับของ (แคปหน้าจอเก็บไว้)",
       "ไปที่จุดรับฝาก แสดงรหัสพร้อมบัตรนักศึกษา",
     ],
     claimedMessage: "มีผู้ยืนยันความเป็นเจ้าของแล้ว กำลังรอมารับที่จุดรับฝาก",
@@ -332,6 +343,8 @@ export const th: Messages = {
     unspecified: "ไม่ระบุ",
     notFoundTitle: "ไม่พบรายการนี้",
     viewAll: "ดูของที่เจอทั้งหมด",
+    aiLabelsTitle: "แท็กจาก AI",
+    aiLabelsHint: "Amazon Rekognition วิเคราะห์จากรูปอัตโนมัติ",
   },
   claim: {
     answerRequired: "กรุณาตอบคำถามยืนยัน",
@@ -353,7 +366,7 @@ export const th: Messages = {
     dropOffFallback: "จุดรับฝาก",
     pickupBefore: "แสดงรหัสนี้พร้อม",
     pickupStrong: "บัตรนักศึกษา",
-    pickupAfter: "ให้เจ้าหน้าที่ที่จุดรับฝาก เราส่งรายละเอียดไปทาง LINE ด้วยแล้ว",
+    pickupAfter: "ให้เจ้าหน้าที่ที่จุดรับฝาก แนะนำให้แคปหน้าจอเก็บไว้",
     done: "เรียบร้อย",
   },
   photo: {
@@ -427,7 +440,7 @@ export const th: Messages = {
     whereLabel: "บริเวณที่น่าจะหาย",
     whenLabel: "เห็นครั้งล่าสุดเมื่อ",
     step3Title: "ติดต่อคุณทางไหน",
-    step3Description: "ใส่อย่างน้อย 1 ช่องทาง แนะนำ LINE เพื่อรับแจ้งเตือนเร็วที่สุด",
+    step3Description: "ใส่อีเมลเพื่อรับแจ้งเตือนเมื่อมีคนเจอของที่ตรงกัน ส่วน LINE ID และเบอร์โทรไว้ให้ รปภ. ติดต่อกลับ",
     nameLabel: "ชื่อ",
     phoneLabel: "เบอร์โทร",
     emailLabel: "อีเมล",
@@ -435,17 +448,26 @@ export const th: Messages = {
     submit: "แจ้งของหาย",
     receiptTitle: "รับเรื่องแล้ว เราช่วยจับตาให้",
     receiptNumber: "หมายเลขแจ้ง",
-    receiptLead: "เมื่อมีคนแจ้งเจอของที่ใกล้เคียง ระบบจะส่งแจ้งเตือนหาคุณทาง LINE / อีเมลทันที",
+    receiptLead: "เมื่อมีคนแจ้งเจอของที่ใกล้เคียง ระบบจะส่งอีเมลแจ้งคุณทันที",
     mightBeYours: "อาจเป็นของคุณ",
     noMatches: "ยังไม่มีของที่ตรงกันตอนนี้",
     checkBack: "ลองกลับมาดูหน้ารายการเป็นระยะ หรือรอรับแจ้งเตือนได้เลย",
-    contactRequired: "ใส่ช่องทางติดต่ออย่างน้อย 1 ช่องทาง",
+    emailRequired: "ใส่อีเมลเพื่อรับแจ้งเตือน",
     phoneInvalid: "เบอร์โทรไม่ถูกต้อง",
     emailInvalid: "อีเมลไม่ถูกต้อง",
     titleTooShort: "บอกว่าหายอะไร อย่างน้อย 3 ตัวอักษร",
     locationRequired: "เลือกบริเวณที่น่าจะหาย",
     timeRequired: "ระบุเวลาโดยประมาณ",
     nameRequired: "กรอกชื่อของคุณ",
+    studentIdLabel: "รหัสนักศึกษา",
+    studentIdHint: "ถ้าบัตรนักศึกษาหาย ใส่ไว้ เมื่อมีคนถ่ายรูปบัตรของคุณ AI จะจับคู่และแจ้งคุณอัตโนมัติ",
+    studentIdInvalid: "รหัสนักศึกษาต้องเป็นตัวเลข 10 หลัก",
+    lineIdLabel: "LINE ID",
+    lineIdHint: "ไว้ให้ รปภ. ติดต่อกลับ",
+    lineTitle: "รับแจ้งเตือนทาง LINE ด้วย",
+    lineBody: (reportId) => `เพิ่มเพื่อน LINE ของเรา แล้วพิมพ์ ${reportId} ในแชท เพื่อผูกการแจ้งนี้กับ LINE ของคุณ`,
+    lineButton: "เพิ่มเพื่อน LINE",
+    lineQrAlt: "QR code เพิ่มเพื่อน LINE Official Account",
   },
   login: {
     demoAccounts: "บัญชีทดลอง (โหมดข้อมูลจำลอง)",

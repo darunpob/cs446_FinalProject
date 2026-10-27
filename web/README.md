@@ -20,6 +20,7 @@ npm run build      # ได้โฟลเดอร์ dist/
 |---|---|---|
 | `USE_MOCK` | `VITE_USE_MOCK` | `true` = ใช้ข้อมูลจำลองจาก [`src/fixtures/mockData.ts`](src/fixtures/mockData.ts) (ไฟล์เดียว), `false` = เรียก API จริง |
 | `API_BASE` | `VITE_API_BASE` | ค่าเริ่มต้น `/api` |
+| `LINE_OA_URL` | `VITE_LINE_OA_URL` | ลิงก์เพิ่มเพื่อน LINE OA (เช่น `https://lin.ee/...`) — ว่างไว้ = ไม่แสดงการ์ด LINE ในหน้ายืนยันแจ้งของหาย |
 
 | คำสั่ง | อ่านค่าจาก | ใช้ทำอะไร |
 |---|---|---|

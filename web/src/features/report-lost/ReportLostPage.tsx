@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
-import { AtSign, BellRing, MessageCircle, Phone, Sparkles } from "lucide-react";
-import type { LostReportReceipt } from "../../api/contract";
+import { AtSign, BellRing, IdCard, MessageCircle, Phone, Sparkles } from "lucide-react";
+import type { CategoryId, LostReportReceipt } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
 import { Field, TextArea, TextInput } from "../../design-system/Field";
 import { FormSection, PageHeading } from "../../design-system/FormSection";
@@ -10,7 +10,10 @@ import { useAuth } from "../auth/AuthProvider";
 import { CategoryPicker } from "../catalog/CategoryPicker";
 import { PlaceSelect } from "../catalog/PlaceSelect";
 import { ItemCard } from "../items/ItemCard";
+import { LINE_OA_URL, LineFollowCard } from "./LineFollowCard";
 import { useLostReportForm } from "./useLostReportForm";
+
+const CARD_HOLDING_CATEGORIES: CategoryId[] = ["card", "wallet"];
 
 function LostReceipt({ receipt }: { receipt: LostReportReceipt }) {
   const matches = receipt.possibleMatches;
@@ -28,6 +31,7 @@ function LostReceipt({ receipt }: { receipt: LostReportReceipt }) {
           {text.receiptNumber} <strong className="text-ink">{receipt.id}</strong> · {text.receiptLead}
         </p>
       </Card>
+      {LINE_OA_URL && <LineFollowCard reportId={receipt.id} />}
       <div className="mt-10 mb-4 flex items-center gap-2">
         <Sparkles className="size-5 text-accent" />
         <h2 className="font-display text-xl font-semibold">{matches.length > 0 ? text.mightBeYours : text.noMatches}</h2>
@@ -74,6 +78,11 @@ export function ReportLostPage() {
           <Field label={text.featuresLabel} optional hint={text.featuresHint}>
             {(controlId, describedBy) => <TextArea id={controlId} aria-describedby={describedBy} value={draft.description} onChange={(event) => setField("description", event.target.value)} rows={3} />}
           </Field>
+          {draft.category && CARD_HOLDING_CATEGORIES.includes(draft.category) && (
+            <Field label={text.studentIdLabel} optional error={errors.studentId} hint={text.studentIdHint}>
+              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.studentId)} value={draft.studentId} onChange={(event) => setField("studentId", event.target.value)} inputMode="numeric" maxLength={10} leading={<IdCard className="size-4" />} />}
+            </Field>
+          )}
         </FormSection>
 
         <FormSection step={2} title={text.step2Title}>
@@ -88,21 +97,22 @@ export function ReportLostPage() {
         </FormSection>
 
         <FormSection step={3} title={text.step3Title} description={text.step3Description}>
-          <Field label={text.nameLabel} error={errors.name}>
-            {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.name)} value={draft.name} onChange={(event) => setField("name", event.target.value)} autoComplete="name" />}
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="LINE ID" optional>
-              {(controlId) => <TextInput id={controlId} leading={<MessageCircle className="size-4" />} invalid={Boolean(errors.contact)} value={draft.lineId} onChange={(event) => setField("lineId", event.target.value)} />}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={text.nameLabel} error={errors.name}>
+              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.name)} value={draft.name} onChange={(event) => setField("name", event.target.value)} autoComplete="name" />}
             </Field>
-            <Field label={text.phoneLabel} optional error={errors.phone}>
-              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} type="tel" inputMode="tel" leading={<Phone className="size-4" />} invalid={Boolean(errors.phone || errors.contact)} value={draft.phone} onChange={(event) => setField("phone", event.target.value)} />}
-            </Field>
-            <Field label={text.emailLabel} optional error={errors.email}>
-              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} type="email" leading={<AtSign className="size-4" />} invalid={Boolean(errors.email || errors.contact)} value={draft.email} onChange={(event) => setField("email", event.target.value)} autoComplete="email" />}
+            <Field label={text.emailLabel} error={errors.email}>
+              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} type="email" leading={<AtSign className="size-4" />} invalid={Boolean(errors.email)} value={draft.email} onChange={(event) => setField("email", event.target.value)} autoComplete="email" />}
             </Field>
           </div>
-          {errors.contact && <p role="alert" className="-mt-2 text-[13px] text-danger">{errors.contact}</p>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={text.lineIdLabel} optional hint={text.lineIdHint}>
+              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} leading={<MessageCircle className="size-4" />} value={draft.lineId} onChange={(event) => setField("lineId", event.target.value)} />}
+            </Field>
+            <Field label={text.phoneLabel} optional error={errors.phone}>
+              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} type="tel" inputMode="tel" leading={<Phone className="size-4" />} invalid={Boolean(errors.phone)} value={draft.phone} onChange={(event) => setField("phone", event.target.value)} />}
+            </Field>
+          </div>
         </FormSection>
 
         {failure && <ErrorNotice message={failure} />}

@@ -5,12 +5,12 @@ import type { FoundItem, NewLostReport } from "../src/api/contract";
 const walletItem: FoundItem = {
   id: "itm-1", title: "กระเป๋าสตางค์หนังสีน้ำตาล", description: "", category: "wallet",
   foundLocationId: "loc-canteen", dropOffPointId: "drop-gate1", foundAt: "2026-10-20T05:00:00.000Z",
-  reportedAt: "2026-10-20T05:30:00.000Z", imageUrl: null, status: "available", verificationQuestion: "?",
+  reportedAt: "2026-10-20T05:30:00.000Z", imageUrl: null, status: "available", verificationQuestion: "?", aiLabels: [],
 };
 
 const lostWallet: NewLostReport = {
   title: "กระเป๋าสตางค์", description: "สีน้ำตาล", category: "wallet", lastSeenLocationId: "loc-canteen",
-  lostAt: "2026-10-20T04:00:00.000Z", contact: { name: "A", lineId: "a", phone: "", email: "" },
+  lostAt: "2026-10-20T04:00:00.000Z", studentId: "", contact: { name: "A", lineId: "a", phone: "", email: "" },
 };
 
 describe("answerMatches", () => {
