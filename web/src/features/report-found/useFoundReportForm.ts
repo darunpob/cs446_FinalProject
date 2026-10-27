@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../../api/client";
 import type { CategoryId, FoundItem } from "../../api/contract";
 import { describeError } from "../../api/errors";
+import { messages } from "../../i18n/locale";
 import { fromLocalInputValue, toLocalInputValue } from "../catalog/thaiTime";
 import { compressPhoto } from "./photoCompression";
 
@@ -34,20 +35,22 @@ function blankDraft(): FoundReportDraft {
 }
 
 function foundAtError(foundAtLocal: string, now: Date): string | undefined {
-  if (!foundAtLocal) return "ระบุเวลาที่เจอ";
-  if (new Date(foundAtLocal) > now) return "เวลาที่เจอต้องไม่อยู่ในอนาคต";
+  const text = messages().reportFound;
+  if (!foundAtLocal) return text.timeRequired;
+  if (new Date(foundAtLocal) > now) return text.timeInFuture;
   return undefined;
 }
 
 export function validateFoundReport(draft: FoundReportDraft, now: Date = new Date()): FoundReportErrors {
+  const text = messages().reportFound;
   const checks: FoundReportErrors = {
-    title: draft.title.trim().length < 3 ? "บอกชื่อสิ่งของสั้น ๆ อย่างน้อย 3 ตัวอักษร" : undefined,
-    category: draft.category ? undefined : "เลือกหมวดหมู่",
-    foundLocationId: draft.foundLocationId ? undefined : "เลือกจุดที่เจอ",
+    title: draft.title.trim().length < 3 ? text.titleTooShort : undefined,
+    category: draft.category ? undefined : text.categoryRequired,
+    foundLocationId: draft.foundLocationId ? undefined : text.locationRequired,
     foundAtLocal: foundAtError(draft.foundAtLocal, now),
-    dropOffPointId: draft.dropOffPointId ? undefined : "เลือกจุดที่จะนำของไปฝาก",
-    verificationQuestion: draft.verificationQuestion.trim().length < 5 ? "ตั้งคำถามที่เจ้าของตัวจริงเท่านั้นจะตอบได้" : undefined,
-    verificationAnswer: draft.verificationAnswer.trim() ? undefined : "ใส่คำตอบที่ถูกต้อง (เจ้าของจะไม่เห็นช่องนี้)",
+    dropOffPointId: draft.dropOffPointId ? undefined : text.dropOffRequired,
+    verificationQuestion: draft.verificationQuestion.trim().length < 5 ? text.questionTooShort : undefined,
+    verificationAnswer: draft.verificationAnswer.trim() ? undefined : text.answerRequired,
   };
   return Object.fromEntries(Object.entries(checks).filter(([, message]) => message)) as FoundReportErrors;
 }

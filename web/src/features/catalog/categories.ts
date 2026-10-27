@@ -4,20 +4,19 @@ import type { CategoryId, FoundItemStatus } from "../../api/contract";
 
 export interface CategoryMeta {
   id: CategoryId;
-  label: string;
   icon: LucideIcon;
   hue: number;
 }
 
 export const CATEGORIES: CategoryMeta[] = [
-  { id: "electronics", label: "อิเล็กทรอนิกส์", icon: Smartphone, hue: 254 },
-  { id: "wallet", label: "กระเป๋าสตางค์", icon: Wallet, hue: 24 },
-  { id: "card", label: "บัตร / เอกสาร", icon: CreditCard, hue: 205 },
-  { id: "keys", label: "กุญแจ", icon: KeyRound, hue: 42 },
-  { id: "bag", label: "กระเป๋า", icon: Backpack, hue: 330 },
-  { id: "bottle", label: "ขวดน้ำ / แก้ว", icon: GlassWater, hue: 172 },
-  { id: "clothing", label: "เสื้อผ้า", icon: Shirt, hue: 280 },
-  { id: "other", label: "อื่น ๆ", icon: Package, hue: 220 },
+  { id: "electronics", icon: Smartphone, hue: 254 },
+  { id: "wallet", icon: Wallet, hue: 24 },
+  { id: "card", icon: CreditCard, hue: 205 },
+  { id: "keys", icon: KeyRound, hue: 42 },
+  { id: "bag", icon: Backpack, hue: 330 },
+  { id: "bottle", icon: GlassWater, hue: 172 },
+  { id: "clothing", icon: Shirt, hue: 280 },
+  { id: "other", icon: Package, hue: 220 },
 ];
 
 const CATEGORY_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
@@ -30,10 +29,10 @@ export function isCategoryId(candidate: string | null): candidate is CategoryId 
   return candidate !== null && CATEGORY_BY_ID.has(candidate as CategoryId);
 }
 
-export const STATUS_LABELS: Record<FoundItemStatus, { label: string; tone: "success" | "warn" | "neutral" }> = {
-  available: { label: "รอเจ้าของ", tone: "success" },
-  claimed: { label: "ยืนยันแล้ว รอรับ", tone: "warn" },
-  returned: { label: "คืนแล้ว", tone: "neutral" },
+export const STATUS_TONES: Record<FoundItemStatus, "success" | "warn" | "neutral"> = {
+  available: "success",
+  claimed: "warn",
+  returned: "neutral",
 };
 
 export const STALE_AFTER_DAYS = 30;

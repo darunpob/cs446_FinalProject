@@ -6,6 +6,7 @@ import { describeError } from "../../api/errors";
 import { Button } from "../../design-system/Button";
 import { TextInput } from "../../design-system/Field";
 import { EmptyState, ErrorNotice } from "../../design-system/Surface";
+import { useI18n } from "../../i18n/useI18n";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatRelative } from "../catalog/thaiTime";
 import { ItemVisual } from "../items/ItemVisual";
@@ -18,6 +19,7 @@ function matchesLookup(claim: Claim, lookup: string): boolean {
 
 function ClaimRow({ claim, onReturned }: { claim: Claim; onReturned: (claimId: string) => void }) {
   const { dropOffPoint } = useDirectory();
+  const { t } = useI18n();
   const [armed, setArmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -53,11 +55,11 @@ function ClaimRow({ claim, onReturned }: { claim: Claim; onReturned: (claimId: s
         {failure && <p className="mt-2 text-[13px] text-danger">{failure}</p>}
       </div>
       <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-        <span className="text-xs text-ink-3">ยืนยันเมื่อ {formatRelative(claim.createdAt)}</span>
+        <span className="text-xs text-ink-3">{t.admin.confirmedAgo(formatRelative(claim.createdAt))}</span>
         <div className="flex gap-2">
-          {armed && !saving && <Button size="sm" variant="ghost" onClick={() => setArmed(false)}>ยกเลิก</Button>}
+          {armed && !saving && <Button size="sm" variant="ghost" onClick={() => setArmed(false)}>{t.common.cancel}</Button>}
           <Button size="sm" variant={armed ? "success" : "secondary"} loading={saving} onClick={confirm} icon={<Check className="size-4" />}>
-            {armed ? "ตรวจบัตรแล้ว ยืนยัน" : "ยืนยันคืนแล้ว"}
+            {armed ? t.admin.confirmArmed : t.admin.confirm}
           </Button>
         </div>
       </div>
@@ -73,21 +75,22 @@ interface PendingReturnsProps {
 }
 
 export function PendingReturns({ claims, failure, onRetry, onReturned }: PendingReturnsProps) {
+  const { t } = useI18n();
   const [lookup, setLookup] = useState("");
   if (failure) return <ErrorNotice message={failure} onRetry={onRetry} />;
   if (!claims) return <div className="skeleton h-40 rounded-2xl" />;
   if (claims.length === 0) {
-    return <EmptyState icon={<Inbox className="size-7" />} title="ไม่มีรายการรอส่งคืน" description="เมื่อมีคนตอบคำถามยืนยันถูก รายการจะขึ้นที่นี่พร้อมรหัสรับของ" />;
+    return <EmptyState icon={<Inbox className="size-7" />} title={t.admin.emptyReturnsTitle} description={t.admin.emptyReturnsDescription} />;
   }
   const visibleClaims = claims.filter((claim) => matchesLookup(claim, lookup));
   return (
     <div className="flex flex-col gap-4">
       <div className="max-w-sm">
-        <TextInput value={lookup} onChange={(event) => setLookup(event.target.value)} placeholder="ค้นหารหัสรับของ / รหัสนักศึกษา" leading={<Search className="size-4" />} aria-label="ค้นหาคำขอรับคืน" />
+        <TextInput value={lookup} onChange={(event) => setLookup(event.target.value)} placeholder={t.admin.lookupPlaceholder} leading={<Search className="size-4" />} aria-label={t.admin.lookupLabel} />
       </div>
       <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {visibleClaims.map((claim) => <ClaimRow key={claim.id} claim={claim} onReturned={onReturned} />)}
-        {visibleClaims.length === 0 && <li className="p-6 text-center text-sm text-ink-3">ไม่พบรายการที่ตรงกับ “{lookup}”</li>}
+        {visibleClaims.length === 0 && <li className="p-6 text-center text-sm text-ink-3">{t.admin.noLookupMatch(lookup)}</li>}
       </ul>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { LoaderCircle, X } from "lucide-react";
+import { useI18n } from "../i18n/useI18n";
 
 export function Card({ className = "", children }: { className?: string; children: ReactNode }) {
   return <div className={`rounded-2xl border border-line bg-surface shadow-card ${className}`}>{children}</div>;
@@ -27,11 +28,12 @@ export function Badge({ tone = "neutral", icon, children, className = "" }: { to
   );
 }
 
-export function Spinner({ label = "กำลังโหลด" }: { label?: string }) {
+export function Spinner({ label }: { label?: string }) {
+  const { t } = useI18n();
   return (
     <div role="status" className="flex items-center justify-center gap-2 py-16 text-ink-3">
       <LoaderCircle className="size-5 animate-spin" aria-hidden />
-      <span className="text-sm">{label}…</span>
+      <span className="text-sm">{label ?? t.common.loading}…</span>
     </div>
   );
 }
@@ -55,12 +57,13 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
 }
 
 export function ErrorNotice({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useI18n();
   return (
     <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
       <span>{message}</span>
       {onRetry && (
         <button type="button" onClick={onRetry} className="cursor-pointer rounded-lg px-2 py-1 font-medium underline-offset-4 transition-colors duration-150 hover:underline">
-          ลองอีกครั้ง
+          {t.common.retry}
         </button>
       )}
     </div>
@@ -75,6 +78,7 @@ interface DialogProps {
 }
 
 export function Dialog({ open, title, onClose, children }: DialogProps) {
+  const { t } = useI18n();
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -103,7 +107,7 @@ export function Dialog({ open, title, onClose, children }: DialogProps) {
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <h2 className="font-display text-xl font-semibold">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="ปิด" className="-m-1 grid size-9 cursor-pointer place-items-center rounded-full text-ink-3 transition-colors duration-150 hover:bg-surface-2 hover:text-ink">
+          <button type="button" onClick={onClose} aria-label={t.common.close} className="-m-1 grid size-9 cursor-pointer place-items-center rounded-full text-ink-3 transition-colors duration-150 hover:bg-surface-2 hover:text-ink">
             <X className="size-5" />
           </button>
         </div>

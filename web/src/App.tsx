@@ -11,14 +11,16 @@ import { ReportLostPage } from "./features/report-lost/ReportLostPage";
 import { ButtonLink } from "./design-system/Button";
 import { EmptyState } from "./design-system/Surface";
 import { AppShell } from "./layout/AppShell";
+import { useI18n } from "./i18n/useI18n";
 
 function NotFoundPage() {
+  const { t } = useI18n();
   return (
     <EmptyState
       icon={<Compass className="size-7" />}
-      title="ไม่พบหน้านี้"
-      description="ลิงก์อาจไม่ถูกต้อง หรือหน้านี้ถูกย้ายไปแล้ว"
-      action={<ButtonLink to="/" variant="soft" className="mt-2">กลับหน้าแรก</ButtonLink>}
+      title={t.notFound.title}
+      description={t.notFound.description}
+      action={<ButtonLink to="/" variant="soft" className="mt-2">{t.common.backHome}</ButtonLink>}
     />
   );
 }

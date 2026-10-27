@@ -5,25 +5,29 @@ import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../features/auth/AuthProvider";
 import { isMockMode, resetMockData } from "../api/client";
 import { ButtonLink } from "../design-system/Button";
+import type { Messages } from "../i18n/messages/th";
+import { useI18n } from "../i18n/useI18n";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { PageErrorBoundary } from "./PageErrorBoundary";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface NavEntry {
   to: string;
-  label: string;
+  labelKey: keyof Messages["nav"];
   icon: LucideIcon;
 }
 
 const PUBLIC_NAV: NavEntry[] = [
-  { to: "/", label: "ของที่เจอ", icon: House },
-  { to: "/report-lost", label: "แจ้งของหาย", icon: Megaphone },
+  { to: "/", labelKey: "found", icon: House },
+  { to: "/report-lost", labelKey: "reportLost", icon: Megaphone },
 ];
 
-const GUARD_NAV: NavEntry = { to: "/admin", label: "แผง รปภ.", icon: ShieldCheck };
+const GUARD_NAV: NavEntry = { to: "/admin", labelKey: "guard", icon: ShieldCheck };
 
 function BrandMark() {
+  const { t } = useI18n();
   return (
-    <Link to="/" className="group flex items-center gap-2.5" aria-label="BU Lost & Found หน้าแรก">
+    <Link to="/" className="group flex items-center gap-2.5" aria-label={t.nav.homeLabel}>
       <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-accent text-white shadow-glow transition-transform duration-200 group-hover:-rotate-6">
         <Search className="size-[18px]" strokeWidth={2.6} />
       </span>
@@ -41,10 +45,11 @@ function desktopLinkClass({ isActive }: { isActive: boolean }): string {
 
 function AccountControl() {
   const { session, signOut } = useAuth();
+  const { t } = useI18n();
   if (!session) {
     return (
       <Link to="/login" className="hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink sm:flex">
-        <LogIn className="size-4" /> เข้าสู่ระบบ
+        <LogIn className="size-4" /> {t.nav.login}
       </Link>
     );
   }
@@ -56,7 +61,7 @@ function AccountControl() {
         </span>
         <span className="max-w-36 truncate">{session.user.displayName}</span>
       </span>
-      <button type="button" onClick={signOut} aria-label="ออกจากระบบ" title="ออกจากระบบ" className="grid size-10 cursor-pointer place-items-center rounded-xl text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink">
+      <button type="button" onClick={signOut} aria-label={t.nav.logout} title={t.nav.logout} className="grid size-10 cursor-pointer place-items-center rounded-xl text-ink-2 transition-colors duration-150 hover:bg-surface-2 hover:text-ink">
         <LogOut className="size-[18px]" />
       </button>
     </div>
@@ -64,23 +69,25 @@ function AccountControl() {
 }
 
 function Header({ navEntries }: { navEntries: NavEntry[] }) {
+  const { t } = useI18n();
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-[var(--glass)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
         <BrandMark />
-        <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="เมนูหลัก">
+        <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label={t.nav.mainMenu}>
           {navEntries.map((entry) => (
             <NavLink key={entry.to} to={entry.to} end className={desktopLinkClass}>
-              {entry.label}
+              {t.nav[entry.labelKey]}
             </NavLink>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-1">
+          <LanguageSwitcher />
           <ThemeToggle />
           <AccountControl />
           <span className="ml-1 hidden sm:block">
             <ButtonLink to="/report-found" size="sm" icon={<CirclePlus className="size-4" />}>
-              แจ้งเจอของ
+              {t.nav.reportFound}
             </ButtonLink>
           </span>
         </div>
@@ -91,13 +98,14 @@ function Header({ navEntries }: { navEntries: NavEntry[] }) {
 
 function MobileTabBar({ navEntries }: { navEntries: NavEntry[] }) {
   const { session } = useAuth();
+  const { t } = useI18n();
   const tabs = [...navEntries];
-  if (!session) tabs.push({ to: "/login", label: "บัญชี", icon: UserRound });
+  if (!session) tabs.push({ to: "/login", labelKey: "account", icon: UserRound });
   return (
-    <nav aria-label="เมนูมือถือ" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-[var(--glass)] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+    <nav aria-label={t.nav.mobileMenu} className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-[var(--glass)] pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
       <div className="mx-auto flex max-w-md items-center justify-around px-2">
         {tabs.slice(0, 1).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
-        <Link to="/report-found" aria-label="แจ้งเจอของ" className="-mt-5 grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-brand to-accent text-white shadow-glow transition-transform duration-200 active:scale-95">
+        <Link to="/report-found" aria-label={t.nav.reportFound} className="-mt-5 grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-brand to-accent text-white shadow-glow transition-transform duration-200 active:scale-95">
           <CirclePlus className="size-6" />
         </Link>
         {tabs.slice(1).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
@@ -107,16 +115,18 @@ function MobileTabBar({ navEntries }: { navEntries: NavEntry[] }) {
 }
 
 function MobileTab({ entry }: { entry: NavEntry }) {
+  const { t } = useI18n();
   const Icon = entry.icon;
   return (
     <NavLink to={entry.to} end className={({ isActive }) => `flex min-w-16 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium transition-colors duration-150 ${isActive ? "text-brand" : "text-ink-3"}`}>
       <Icon className="size-5" />
-      {entry.label}
+      {t.nav[entry.labelKey]}
     </NavLink>
   );
 }
 
 function Footer() {
+  const { t } = useI18n();
   const handleReset = () => {
     resetMockData();
     window.location.reload();
@@ -124,12 +134,12 @@ function Footer() {
   return (
     <footer className="mx-auto max-w-6xl px-4 pt-16 pb-28 text-sm text-ink-3 sm:px-6 md:pb-10">
       <div className="flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p>BU Lost &amp; Found · โปรเจกต์ CS446 Cloud Computing · มหาวิทยาลัยกรุงเทพ</p>
+        <p>{t.footer.credit}</p>
         {isMockMode && (
           <p className="flex items-center gap-2">
-            <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn">ข้อมูลจำลอง</span>
+            <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn">{t.footer.mockData}</span>
             <button type="button" onClick={handleReset} className="cursor-pointer underline-offset-4 transition-colors duration-150 hover:text-ink hover:underline">
-              รีเซ็ตข้อมูลตัวอย่าง
+              {t.footer.resetMock}
             </button>
           </p>
         )}

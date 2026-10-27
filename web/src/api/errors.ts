@@ -1,3 +1,5 @@
+import { messages } from "../i18n/locale";
+
 export type ApiErrorCode =
   | "NOT_FOUND"
   | "VALIDATION"
@@ -36,5 +38,5 @@ export function codeForStatus(httpStatus: number): ApiErrorCode {
 export function describeError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error) return error.message;
-  return "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+  return messages().errors.unknown;
 }

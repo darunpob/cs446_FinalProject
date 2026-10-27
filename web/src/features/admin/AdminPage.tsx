@@ -4,6 +4,7 @@ import { Hourglass, PackageCheck, PackageSearch, TimerReset } from "lucide-react
 import type { LucideIcon } from "lucide-react";
 import { api } from "../../api/client";
 import { useApiQuery } from "../../api/useApiQuery";
+import { useI18n } from "../../i18n/useI18n";
 import { STALE_AFTER_DAYS } from "../catalog/categories";
 import { useAuth } from "../auth/AuthProvider";
 import { PendingReturns } from "./PendingReturns";
@@ -35,6 +36,7 @@ function TabButton({ active, count, label, onClick }: { active: boolean; count: 
 
 export function AdminPage() {
   const { session } = useAuth();
+  const { t } = useI18n();
   const [tab, setTab] = useState<AdminTab>("returns");
   const stats = useApiQuery(() => api.getStats(), []);
   const pending = useApiQuery(() => api.listPendingReturns(), []);
@@ -52,18 +54,18 @@ export function AdminPage() {
   return (
     <div className="animate-rise">
       <div className="mb-8">
-        <p className="text-sm font-semibold text-brand">แผงควบคุม รปภ.</p>
-        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">สวัสดี, {session?.user.displayName}</h1>
+        <p className="text-sm font-semibold text-brand">{t.admin.eyebrow}</p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">{t.admin.greeting(session?.user.displayName ?? "")}</h1>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric icon={Hourglass} label="รอเจ้าของมารับ" value={statValues?.awaitingPickup ?? null} hue={38} />
-        <Metric icon={PackageSearch} label="ของที่ยังไม่มีเจ้าของ" value={statValues?.waiting ?? null} hue={254} />
-        <Metric icon={TimerReset} label={`ค้างเกิน ${STALE_AFTER_DAYS} วัน`} value={staleItems?.length ?? null} hue={352} />
-        <Metric icon={PackageCheck} label="คืนแล้วเดือนนี้" value={statValues?.returnedThisMonth ?? null} hue={160} />
+        <Metric icon={Hourglass} label={t.admin.metricAwaiting} value={statValues?.awaitingPickup ?? null} hue={38} />
+        <Metric icon={PackageSearch} label={t.admin.metricWaiting} value={statValues?.waiting ?? null} hue={254} />
+        <Metric icon={TimerReset} label={t.admin.metricStale(STALE_AFTER_DAYS)} value={staleItems?.length ?? null} hue={352} />
+        <Metric icon={PackageCheck} label={t.admin.metricReturned} value={statValues?.returnedThisMonth ?? null} hue={160} />
       </div>
       <div role="tablist" className="mt-10 mb-6 flex gap-6 border-b border-line">
-        <TabButton active={tab === "returns"} count={claims?.length ?? null} label="รอส่งคืน" onClick={() => setTab("returns")} />
-        <TabButton active={tab === "stale"} count={staleItems?.length ?? null} label="ของค้างนาน" onClick={() => setTab("stale")} />
+        <TabButton active={tab === "returns"} count={claims?.length ?? null} label={t.admin.tabReturns} onClick={() => setTab("returns")} />
+        <TabButton active={tab === "stale"} count={staleItems?.length ?? null} label={t.admin.tabStale} onClick={() => setTab("stale")} />
       </div>
       {tab === "returns" ? (
         <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />

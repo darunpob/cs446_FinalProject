@@ -1,3 +1,4 @@
+import { messages } from "../i18n/locale";
 import { ApiError, codeForStatus } from "./errors";
 import type {
   CampusDirectory,
@@ -25,10 +26,10 @@ interface ErrorBody {
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as ErrorBody;
-    return body.error?.message ?? `คำขอล้มเหลว (HTTP ${response.status})`;
+    return body.error?.message ?? messages().errors.httpFailed(response.status);
   } catch (parseError) {
     console.warn("Error body was not JSON", parseError);
-    return `คำขอล้มเหลว (HTTP ${response.status})`;
+    return messages().errors.httpFailed(response.status);
   }
 }
 
@@ -56,7 +57,7 @@ export function createHttpApi(baseUrl: string, getAccessToken: TokenSource): Los
       response = await fetch(`${root}${path}`, { ...init, headers });
     } catch (networkError) {
       console.error("Network failure", networkError);
-      throw new ApiError("NETWORK", "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองตรวจสอบอินเทอร์เน็ต");
+      throw new ApiError("NETWORK", messages().errors.network);
     }
     if (!response.ok) {
       throw new ApiError(codeForStatus(response.status), await readErrorMessage(response), response.status);
@@ -74,7 +75,7 @@ export function createHttpApi(baseUrl: string, getAccessToken: TokenSource): Los
     uploadImage: async (photo) => {
       const ticket = await post<UploadTicket>("/uploads", { contentType: photo.type || "image/jpeg" });
       const upload = await fetch(ticket.uploadUrl, { method: "PUT", body: photo, headers: { "Content-Type": photo.type } });
-      if (!upload.ok) throw new ApiError("SERVER", "อัปโหลดรูปไม่สำเร็จ", upload.status);
+      if (!upload.ok) throw new ApiError("SERVER", messages().errors.uploadFailed, upload.status);
       return { imageKey: ticket.imageKey, imageUrl: ticket.imageUrl };
     },
     createFoundItem: (draft: NewFoundItem) => post<FoundItem>("/items", draft),
