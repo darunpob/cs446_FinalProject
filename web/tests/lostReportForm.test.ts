@@ -25,6 +25,12 @@ describe("validateLostReport", () => {
     expect(Object.keys(errors)).toEqual(["email"]);
   });
 
+  it("accepts only university email domains", () => {
+    expect(validateLostReport({ ...completeDraft, email: "darunpob7093@gmail.com" })).toHaveProperty("email");
+    expect(validateLostReport({ ...completeDraft, email: "someone@bumail.net.evil.com" })).toHaveProperty("email");
+    expect(validateLostReport({ ...completeDraft, email: "Guard@BU.ac.th" })).toEqual({});
+  });
+
   it("checks the optional student ID is 10 digits when given", () => {
     expect(validateLostReport({ ...completeDraft, studentId: "12345" })).toHaveProperty("studentId");
     expect(validateLostReport({ ...completeDraft, studentId: "1650707093" })).toEqual({});

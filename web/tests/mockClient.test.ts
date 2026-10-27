@@ -72,3 +72,17 @@ describe("MockLostFoundApi", () => {
     expect(byLabel[0].aiLabels).toContain("Keychain");
   });
 });
+
+describe("MockLostFoundApi lost reports", () => {
+  it("rejects non-university emails like the real backend", async () => {
+    const api = freshApi();
+    const report = {
+      title: "บัตรนักศึกษา", description: "", category: "card" as const, lastSeenLocationId: "loc-library",
+      lostAt: "2026-10-27T02:00:00.000Z", studentId: "",
+      contact: { name: "A", lineId: "", phone: "", email: "someone@gmail.com" },
+    };
+    await expect(api.createLostReport(report)).rejects.toMatchObject({ code: "VALIDATION" });
+    const receipt = await api.createLostReport({ ...report, contact: { ...report.contact, email: "a.b@bumail.net" } });
+    expect(receipt.id).toMatch(/^lst-/);
+  });
+});

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api/client";
+import { isUniversityEmail } from "../../api/contract";
 import type { CategoryId, LostReportReceipt } from "../../api/contract";
 import { describeError } from "../../api/errors";
 import { messages } from "../../i18n/locale";
@@ -32,7 +33,8 @@ function blankDraft(name = "", email = ""): LostReportDraft {
 
 function emailError(email: string, text: LostReportText): string | undefined {
   if (!email) return text.emailRequired;
-  return EMAIL_PATTERN.test(email) ? undefined : text.emailInvalid;
+  if (!EMAIL_PATTERN.test(email)) return text.emailInvalid;
+  return isUniversityEmail(email) ? undefined : text.emailNotUniversity;
 }
 
 function contactErrors(draft: LostReportDraft): LostReportErrors {

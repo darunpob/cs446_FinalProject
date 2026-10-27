@@ -81,7 +81,15 @@ export interface ContactChannels {
   name: string;
   lineId: string;
   phone: string;
+  /** Must end with one of UNIVERSITY_EMAIL_DOMAINS — the backend rejects others with 400. */
   email: string;
+}
+
+export const UNIVERSITY_EMAIL_DOMAINS = ["bumail.net", "bu.ac.th"] as const;
+
+export function isUniversityEmail(email: string): boolean {
+  const domain = email.trim().toLowerCase().split("@")[1] ?? "";
+  return UNIVERSITY_EMAIL_DOMAINS.some((allowed) => domain === allowed);
 }
 
 export interface NewLostReport {

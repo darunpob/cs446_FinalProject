@@ -108,8 +108,8 @@ export function ReportLostPage() {
             <Field label={text.nameLabel} error={errors.name}>
               {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.name)} value={draft.name} onChange={(event) => setField("name", event.target.value)} autoComplete="name" />}
             </Field>
-            <Field label={text.emailLabel} error={errors.email}>
-              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} type="email" leading={<AtSign className="size-4" />} invalid={Boolean(errors.email)} value={draft.email} onChange={(event) => setField("email", event.target.value)} autoComplete="email" />}
+            <Field label={text.emailLabel} error={errors.email} hint={text.emailHint}>
+              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} type="email" leading={<AtSign className="size-4" />} invalid={Boolean(errors.email)} value={draft.email} onChange={(event) => setField("email", event.target.value)} autoComplete="email" placeholder="name.surn@bumail.net" />}
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

@@ -210,6 +210,8 @@ export interface Messages {
     lineQrAlt: string;
     confirmEmailTitle: string;
     confirmEmailBody: (email: string) => string;
+    emailHint: string;
+    emailNotUniversity: string;
   };
   login: {
     demoAccounts: string;
@@ -472,6 +474,8 @@ export const th: Messages = {
     lineQrAlt: "QR code เพิ่มเพื่อน LINE Official Account",
     confirmEmailTitle: "สำคัญ: ยืนยันอีเมลก่อน 1 ครั้ง",
     confirmEmailBody: (email) => `เราส่งอีเมลจาก "BU Lost & Found" ไปที่ ${email} แล้ว กดลิงก์ Confirm subscription ในอีเมลนั้น ไม่อย่างนั้นจะไม่ได้รับแจ้งเตือน (ถ้าไม่เจอ ลองดูในโฟลเดอร์สแปม)`,
+    emailHint: "ใช้อีเมลมหาวิทยาลัย @bumail.net (บุคลากรใช้ @bu.ac.th)",
+    emailNotUniversity: "ต้องเป็นอีเมลมหาวิทยาลัย @bumail.net หรือ @bu.ac.th",
   },
   login: {
     demoAccounts: "บัญชีทดลอง (โหมดข้อมูลจำลอง)",

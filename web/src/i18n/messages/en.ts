@@ -231,6 +231,8 @@ export const en: Messages = {
     lineQrAlt: "QR code to add the LINE Official Account",
     confirmEmailTitle: "Important: confirm your email once",
     confirmEmailBody: (email) => `We sent an email from "BU Lost & Found" to ${email}. Click Confirm subscription in it, or you won't receive notifications. (Check your spam folder if you can't find it.)`,
+    emailHint: "Use your university email @bumail.net (staff: @bu.ac.th)",
+    emailNotUniversity: "Must be a university email: @bumail.net or @bu.ac.th",
   },
   login: {
     demoAccounts: "Demo accounts (mock data mode)",

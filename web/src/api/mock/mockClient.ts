@@ -14,6 +14,7 @@ import type {
   Session,
   StaleItem,
 } from "../contract";
+import { isUniversityEmail } from "../contract";
 import { campusDirectoryFixture, demoAccounts, simulatedAiLabels } from "../../fixtures/mockData";
 import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
@@ -187,6 +188,7 @@ export class MockLostFoundApi implements LostFoundApi {
     return this.settle((): LostReportReceipt => {
       requireText(draft.title, messages().errors.fields.lostWhat);
       requireText(draft.contact.name, messages().errors.fields.reporterName);
+      if (!isUniversityEmail(draft.contact.email)) throw new ApiError("VALIDATION", messages().reportLost.emailNotUniversity, 400);
       const report = { ...draft, id: this.nextId("lst"), createdAt: this.now().toISOString() };
       this.db.lostReports.unshift(report);
       this.database.persist();
