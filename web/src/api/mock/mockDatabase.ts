@@ -1,5 +1,5 @@
-import type { Claim, FoundItem, NewLostReport } from "../contract";
-import { foundItemSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
+import type { Claim, FoundItem, NewLostReport, UserProfile } from "../contract";
+import { demoAccounts, foundItemSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
 import type { FoundItemSeed } from "../../fixtures/mockData";
 
 export interface StoredFoundItem extends FoundItem {
@@ -12,6 +12,11 @@ export interface StoredLostReport extends NewLostReport {
   createdAt: string;
 }
 
+/** Plain-text password is acceptable only because this database never leaves the browser. */
+export interface StoredAccount extends UserProfile {
+  password: string;
+}
+
 export interface MockDatabase {
   schemaVersion: 1;
   foundItems: StoredFoundItem[];
@@ -19,6 +24,7 @@ export interface MockDatabase {
   claims: Claim[];
   failedAttempts: Record<string, number>;
   images: Record<string, string>;
+  accounts: StoredAccount[];
 }
 
 const STORAGE_KEY = "bu-lf-mock-db-v2";
@@ -74,6 +80,10 @@ function seedClaims(now: Date, foundItems: StoredFoundItem[]): Claim[] {
   });
 }
 
+function seedAccounts(): StoredAccount[] {
+  return demoAccounts.map((account) => ({ ...account, studentId: "", phone: "", lineId: "" }));
+}
+
 export function seedDatabase(now: Date): MockDatabase {
   const foundItems = foundItemSeeds.map((seed) => seedFoundItem(now, seed));
   return {
@@ -83,6 +93,7 @@ export function seedDatabase(now: Date): MockDatabase {
     claims: seedClaims(now, foundItems),
     failedAttempts: {},
     images: {},
+    accounts: seedAccounts(),
   };
 }
 
@@ -113,7 +124,9 @@ function loadDatabase(storage: Storage | null): MockDatabase | null {
   try {
     const raw = storage.getItem(STORAGE_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : null;
-    return isMockDatabase(parsed) ? parsed : null;
+    if (!isMockDatabase(parsed)) return null;
+    if (!Array.isArray(parsed.accounts)) parsed.accounts = seedAccounts();
+    return parsed;
   } catch (storageError) {
     console.warn("Mock database could not be loaded; starting fresh", storageError);
     return null;

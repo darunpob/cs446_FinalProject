@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { AtSign, KeyRound } from "lucide-react";
 import { USE_MOCK } from "../../api/client";
 import { describeError } from "../../api/errors";
@@ -11,11 +11,7 @@ import { Card, ErrorNotice } from "../../design-system/Surface";
 import { demoAccounts } from "../../fixtures/mockData";
 import { useI18n } from "../../i18n/useI18n";
 import { useAuth } from "./AuthProvider";
-
-function safeNextPath(rawNext: string | null): string {
-  if (!rawNext || !rawNext.startsWith("/") || rawNext.startsWith("//")) return "/";
-  return rawNext;
-}
+import { safeNextPath } from "./nextPath";
 
 function DemoAccounts({ onPick }: { onPick: (email: string, password: string) => void }) {
   const { t } = useI18n();
@@ -56,7 +52,7 @@ export function LoginPage() {
     try {
       const session = await signIn(email, password);
       const fallback = session.user.role === "guard" ? "/admin" : "/";
-      navigate(params.get("next") ? safeNextPath(params.get("next")) : fallback, { replace: true });
+      navigate(safeNextPath(params.get("next"), fallback), { replace: true });
     } catch (loginError) {
       setFailure(describeError(loginError));
     } finally {
@@ -78,6 +74,12 @@ export function LoginPage() {
           </Field>
           <Button type="submit" size="lg" loading={submitting} className="mt-2 w-full">{t.login.title}</Button>
         </form>
+        {!needsGuard && (
+          <p className="mt-5 text-center text-sm text-ink-2">
+            {t.login.noAccount}{" "}
+            <Link to={{ pathname: "/register", search: params.toString() }} className="font-semibold text-ink underline transition-colors duration-150 hover:text-ink-2">{t.login.registerLink}</Link>
+          </p>
+        )}
         {USE_MOCK && <DemoAccounts onPick={(demoEmail, demoPassword) => { setEmail(demoEmail); setPassword(demoPassword); }} />}
       </Card>
     </div>

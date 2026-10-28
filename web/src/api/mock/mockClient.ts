@@ -8,23 +8,29 @@ import type {
   FoundItemQuery,
   LostFoundApi,
   LostReportReceipt,
+  NewAccount,
   NewClaim,
   NewFoundItem,
   NewLostReport,
+  PasswordChange,
+  ProfileUpdate,
   Session,
   StaleItem,
+  UserProfile,
 } from "../contract";
-import { isUniversityEmail } from "../contract";
-import { campusDirectoryFixture, demoAccounts, simulatedAiLabels } from "../../fixtures/mockData";
+import { MIN_PASSWORD_LENGTH, isUniversityEmail } from "../contract";
+import { campusDirectoryFixture, simulatedAiLabels } from "../../fixtures/mockData";
 import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
-import type { MockDatabaseHandle, StoredFoundItem } from "./mockDatabase";
+import type { MockDatabaseHandle, StoredAccount, StoredFoundItem } from "./mockDatabase";
 
 export interface MockApiOptions {
   database: MockDatabaseHandle;
   now?: () => Date;
   latencyMs?: number;
   randomBytes?: RandomFill;
+  /** Bearer token of the signed-in user, read the same way the HTTP client reads it. */
+  getAccessToken?: () => string | null;
 }
 
 function toPublicItem(stored: StoredFoundItem): FoundItem {
@@ -64,19 +70,34 @@ function isSameMonth(iso: string | null, reference: Date): boolean {
   return stamp.getFullYear() === reference.getFullYear() && stamp.getMonth() === reference.getMonth();
 }
 
-function authenticateDemoAccount(email: string, password: string): Session {
-  const normalizedEmail = email.trim().toLowerCase();
-  const account = demoAccounts.find((candidate) => candidate.email === normalizedEmail);
-  const issuedAt = Date.now();
-  if (account && account.password === password) {
-    const user = { email: account.email, displayName: account.displayName, role: account.role };
-    return { accessToken: `mock.${account.role}.${issuedAt}`, user };
-  }
-  if (!account && normalizedEmail.endsWith("@bumail.net") && password.length >= 6) {
-    const user = { email: normalizedEmail, displayName: normalizedEmail.split("@")[0], role: "student" as const };
-    return { accessToken: `mock.student.${issuedAt}`, user };
-  }
-  throw new ApiError("UNAUTHORIZED", messages().errors.badLogin, 401);
+const MOCK_TOKEN_PATTERN = /^mock\.\d+\.(.+)$/;
+const PHONE_PATTERN = /^0\d{8,9}$/;
+const STUDENT_ID_PATTERN = /^\d{10}$/;
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function issueSession(account: StoredAccount, issuedAt: number): Session {
+  const user = { email: account.email, displayName: account.displayName, role: account.role };
+  return { accessToken: `mock.${issuedAt}.${account.email}`, user };
+}
+
+function toProfile(account: StoredAccount): UserProfile {
+  const { password: _hiddenPassword, ...profile } = account;
+  return profile;
+}
+
+function requirePasswordLength(password: string): void {
+  if (password.length < MIN_PASSWORD_LENGTH) throw new ApiError("VALIDATION", messages().errors.passwordTooShort(MIN_PASSWORD_LENGTH), 400);
+}
+
+function validateProfileUpdate(update: ProfileUpdate): void {
+  requireText(update.displayName, messages().errors.fields.displayName);
+  const studentId = update.studentId.trim();
+  if (studentId && !STUDENT_ID_PATTERN.test(studentId)) throw new ApiError("VALIDATION", messages().reportLost.studentIdInvalid, 400);
+  const phone = update.phone.replace(/[\s-]/g, "");
+  if (phone && !PHONE_PATTERN.test(phone)) throw new ApiError("VALIDATION", messages().reportLost.phoneInvalid, 400);
 }
 
 export class MockLostFoundApi implements LostFoundApi {
@@ -84,6 +105,7 @@ export class MockLostFoundApi implements LostFoundApi {
   private readonly now: () => Date;
   private readonly latencyMs: number;
   private readonly randomBytes: RandomFill;
+  private readonly getAccessToken: () => string | null;
   private idCounter = Date.now() % 100_000;
 
   constructor(options: MockApiOptions) {
@@ -91,6 +113,7 @@ export class MockLostFoundApi implements LostFoundApi {
     this.now = options.now ?? (() => new Date());
     this.latencyMs = options.latencyMs ?? 350;
     this.randomBytes = options.randomBytes ?? ((bytes) => crypto.getRandomValues(bytes));
+    this.getAccessToken = options.getAccessToken ?? (() => null);
   }
 
   private get db() {
@@ -273,7 +296,64 @@ export class MockLostFoundApi implements LostFoundApi {
     );
   }
 
+  private findAccount(email: string): StoredAccount | undefined {
+    return this.db.accounts.find((candidate) => candidate.email === normalizeEmail(email));
+  }
+
+  private requireSignedIn(): StoredAccount {
+    const token = this.getAccessToken() ?? "";
+    const email = MOCK_TOKEN_PATTERN.exec(token)?.[1];
+    const account = email ? this.findAccount(email) : undefined;
+    if (!account) throw new ApiError("UNAUTHORIZED", messages().errors.sessionExpired, 401);
+    return account;
+  }
+
   login(email: string, password: string) {
-    return this.settle(() => authenticateDemoAccount(email, password));
+    return this.settle(() => {
+      const account = this.findAccount(email);
+      if (!account || account.password !== password) throw new ApiError("UNAUTHORIZED", messages().errors.badLogin, 401);
+      return issueSession(account, this.now().getTime());
+    });
+  }
+
+  register(draft: NewAccount) {
+    return this.settle(() => {
+      const email = normalizeEmail(draft.email);
+      requireText(draft.displayName, messages().errors.fields.displayName);
+      if (!isUniversityEmail(email)) throw new ApiError("VALIDATION", messages().reportLost.emailNotUniversity, 400);
+      requirePasswordLength(draft.password);
+      if (this.findAccount(email)) throw new ApiError("CONFLICT", messages().errors.emailTaken, 409);
+      const account: StoredAccount = { email, password: draft.password, displayName: draft.displayName.trim(), role: "student", studentId: "", phone: "", lineId: "" };
+      this.db.accounts.push(account);
+      this.database.persist();
+      return issueSession(account, this.now().getTime());
+    });
+  }
+
+  getProfile() {
+    return this.settle(() => toProfile(this.requireSignedIn()));
+  }
+
+  updateProfile(update: ProfileUpdate) {
+    return this.settle(() => {
+      const account = this.requireSignedIn();
+      validateProfileUpdate(update);
+      account.displayName = update.displayName.trim();
+      account.studentId = update.studentId.trim();
+      account.phone = update.phone.replace(/[\s-]/g, "");
+      account.lineId = update.lineId.trim();
+      this.database.persist();
+      return toProfile(account);
+    });
+  }
+
+  changePassword(change: PasswordChange) {
+    return this.settle(() => {
+      const account = this.requireSignedIn();
+      if (account.password !== change.currentPassword) throw new ApiError("VALIDATION", messages().errors.wrongCurrentPassword, 400);
+      requirePasswordLength(change.newPassword);
+      account.password = change.newPassword;
+      this.database.persist();
+    });
   }
 }

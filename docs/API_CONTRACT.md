@@ -57,6 +57,10 @@ graph LR
 | POST | `/api/admin/claims/{claimId}/return` | หน้า รปภ. ปุ่ม "ยืนยันคืนแล้ว" | 🔒 guard |
 | GET | `/api/admin/items/stale?days=30` | หน้า รปภ. แท็บ "ของค้างนาน" | 🔒 guard |
 | POST | `/api/auth/login` | หน้าเข้าสู่ระบบ | – |
+| POST | `/api/auth/register` | หน้าสมัครสมาชิก | – |
+| GET | `/api/me` | หน้าบัญชีของฉัน | 🔒 ทุก role |
+| PUT | `/api/me` | หน้าบัญชีของฉัน ปุ่ม "บันทึกข้อมูล" | 🔒 ทุก role |
+| POST | `/api/me/password` | หน้าบัญชีของฉัน ปุ่ม "เปลี่ยนรหัสผ่าน" | 🔒 ทุก role |
 | POST | `/api/line/webhook` | LINE Platform เรียก (ไม่ใช่หน้าเว็บ) — ไม่บังคับ ดูข้อ 2 | ลายเซ็น LINE |
 
 ## 2. การแจ้งเตือนทางอีเมล: Amazon SNS (ตกลงแล้ว)
@@ -104,7 +108,7 @@ graph LR
 | Format | JSON ทั้ง request/response, `Content-Type: application/json` |
 | เวลา | ISO 8601 UTC เช่น `2026-10-27T03:15:00.000Z` (เก็บใน RDS เป็น UTC `DATETIME`) |
 | ID | string มี prefix: `itm-` (ของที่เจอ), `lst-` (แจ้งหาย), `clm-` (คำขอรับคืน) |
-| Auth | `Authorization: Bearer <token>` — จำเป็นเฉพาะ `/api/admin/*` และต้องเป็น role `guard` |
+| Auth | `Authorization: Bearer <token>` — จำเป็นสำหรับ `/api/admin/*` (ต้องเป็น role `guard`) และ `/api/me*` (role ใดก็ได้) |
 | CORS | ไม่ต้องตั้งสำหรับ API (origin เดียวกันผ่าน CloudFront) · **bucket รูปต้องตั้ง CORS** ให้ `PUT` จาก `https://<cloudfront-domain>` |
 | Error | HTTP status ตามตาราง + body `{ "error": { "code": "NOT_FOUND", "message": "ข้อความที่แสดงให้ผู้ใช้ได้" } }` — หน้าเว็บแสดง `message` ตรง ๆ |
 
@@ -290,6 +294,36 @@ transaction: claim → `returned` + `returned_at = now`, ของ → `returned
 ```
 ตรวจรหัสผ่านกับ `users.password_hash` (bcrypt) แล้วออก JWT อายุ 8 ชั่วโมง (เก็บ secret ใน environment ของ EC2 ไม่ใช่ในโค้ด)
 
+### `POST /api/auth/register` → `201 Session`
+```json
+// request
+{ "email": "somchai.k@bumail.net", "password": "at-least-8", "displayName": "สมชาย ใจดี" }
+// response: เหมือน /api/auth/login (สมัครแล้วเข้าสู่ระบบให้เลย)
+```
+- อีเมลต้องเป็นโดเมนมหาวิทยาลัย (`bumail.net`, `bu.ac.th`) เก็บเป็นตัวพิมพ์เล็ก · รหัสผ่าน ≥ 8 ตัว · `displayName` ห้ามว่าง → ไม่ผ่าน `400`
+- อีเมลซ้ำ → `409 CONFLICT`
+- role เป็น `student` เสมอ (บัญชี `guard` สร้างด้วย SQL โดยผู้ดูแลเท่านั้น ห้ามรับ `role` จาก request)
+
+### `GET /api/me` 🔒 → `200 UserProfile`
+อ่าน email จาก JWT ไม่รับจาก query
+```json
+{ "email": "somchai.k@bumail.net", "displayName": "สมชาย ใจดี", "role": "student", "studentId": "", "phone": "", "lineId": "" }
+```
+
+### `PUT /api/me` 🔒 → `200 UserProfile`
+```json
+{ "displayName": "สมชาย ใจดี", "studentId": "1650707093", "phone": "0812345678", "lineId": "somchai.k" }
+```
+แก้ email / role ไม่ได้ · `studentId` ว่าง หรือเลข 10 หลัก · `phone` ว่าง หรือ `^0\d{8,9}$` (ตัดช่องว่าง/ขีดออกก่อนตรวจ) · ไม่ผ่าน → `400`
+
+### `POST /api/me/password` 🔒 → `200 { "ok": true }`
+```json
+{ "currentPassword": "...", "newPassword": "at-least-8" }
+```
+`currentPassword` ผิด → `400 VALIDATION` (ไม่ใช่ 401 เพื่อไม่ให้หน้าเว็บพาผู้ใช้ออกจากระบบ) · รหัสใหม่สั้นกว่า 8 → `400`
+
+ทุก endpoint 🔒: ไม่มี token / token หมดอายุ / ไม่พบผู้ใช้ → `401` แล้วหน้าเว็บจะออกจากระบบให้
+
 ## 7. RDS schema (MySQL 8)
 
 ```sql
@@ -364,7 +398,11 @@ CREATE TABLE users (
   email         VARCHAR(254) PRIMARY KEY,
   password_hash VARCHAR(100) NOT NULL,
   display_name  VARCHAR(100) NOT NULL,
-  role          ENUM('student', 'guard') NOT NULL
+  role          ENUM('student', 'guard') NOT NULL DEFAULT 'student',
+  student_id    CHAR(10)     NOT NULL DEFAULT '',
+  phone         VARCHAR(20)  NOT NULL DEFAULT '',
+  line_id       VARCHAR(50)  NOT NULL DEFAULT '',
+  created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
 ข้อมูลตั้งต้นของ `locations` คัดลอกจาก `campusDirectoryFixture` ใน [`web/src/fixtures/mockData.ts`](../web/src/fixtures/mockData.ts) ได้เลย (แก้ชื่อให้ตรงกับมหาวิทยาลัยจริง)

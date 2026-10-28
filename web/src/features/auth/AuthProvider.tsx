@@ -2,12 +2,15 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { api } from "../../api/client";
-import type { Session, UserRole } from "../../api/contract";
+import type { NewAccount, Session, SessionUser, UserRole } from "../../api/contract";
 import { readSession, writeSession } from "./sessionStore";
 
 interface AuthState {
   session: Session | null;
   signIn: (email: string, password: string) => Promise<Session>;
+  register: (draft: NewAccount) => Promise<Session>;
+  /** Keeps the header and forms in step after the user edits their profile. */
+  refreshUser: (user: SessionUser) => void;
   signOut: () => void;
 }
 
@@ -16,11 +19,23 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => readSession());
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const issued = await api.login(email, password);
+  const adopt = useCallback((issued: Session) => {
     writeSession(issued);
     setSession(issued);
     return issued;
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string) => adopt(await api.login(email, password)), [adopt]);
+
+  const register = useCallback(async (draft: NewAccount) => adopt(await api.register(draft)), [adopt]);
+
+  const refreshUser = useCallback((user: SessionUser) => {
+    setSession((current) => {
+      if (!current) return current;
+      const updated = { ...current, user: { email: user.email, displayName: user.displayName, role: user.role } };
+      writeSession(updated);
+      return updated;
+    });
   }, []);
 
   const signOut = useCallback(() => {
@@ -28,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   }, []);
 
-  const auth = useMemo(() => ({ session, signIn, signOut }), [session, signIn, signOut]);
+  const auth = useMemo(() => ({ session, signIn, register, refreshUser, signOut }), [session, signIn, register, refreshUser, signOut]);
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 }
 
@@ -44,4 +59,11 @@ export function RequireRole({ role, children }: { role: UserRole; children: Reac
   if (session?.user.role === role) return children;
   const next = encodeURIComponent(location.pathname);
   return <Navigate to={`/login?next=${next}&need=${role}`} replace />;
+}
+
+export function RequireAuth({ children }: { children: ReactNode }) {
+  const { session } = useAuth();
+  const location = useLocation();
+  if (session) return children;
+  return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
 }

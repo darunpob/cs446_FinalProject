@@ -150,13 +150,43 @@ export interface CampusStats {
 
 export type UserRole = "student" | "guard";
 
+export interface SessionUser {
+  email: string;
+  displayName: string;
+  role: UserRole;
+}
+
 export interface Session {
   accessToken: string;
-  user: {
-    email: string;
-    displayName: string;
-    role: UserRole;
-  };
+  user: SessionUser;
+}
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+/** Self-registration always creates a "student" account; guard accounts are seeded by staff. */
+export interface NewAccount {
+  email: string;
+  password: string;
+  displayName: string;
+}
+
+export interface UserProfile extends SessionUser {
+  /** 10-digit student ID, or "". */
+  studentId: string;
+  phone: string;
+  lineId: string;
+}
+
+export interface ProfileUpdate {
+  displayName: string;
+  studentId: string;
+  phone: string;
+  lineId: string;
+}
+
+export interface PasswordChange {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface LostFoundApi {
@@ -172,4 +202,8 @@ export interface LostFoundApi {
   confirmReturn(claimId: string): Promise<Claim>;
   listStaleItems(minDays: number): Promise<StaleItem[]>;
   login(email: string, password: string): Promise<Session>;
+  register(draft: NewAccount): Promise<Session>;
+  getProfile(): Promise<UserProfile>;
+  updateProfile(update: ProfileUpdate): Promise<UserProfile>;
+  changePassword(change: PasswordChange): Promise<void>;
 }

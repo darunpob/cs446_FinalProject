@@ -220,6 +220,35 @@ export interface Messages {
     subtitle: string;
     email: string;
     password: string;
+    noAccount: string;
+    registerLink: string;
+  };
+  register: {
+    title: string;
+    subtitle: string;
+    nameLabel: string;
+    passwordHint: (min: number) => string;
+    confirmLabel: string;
+    passwordMismatch: string;
+    submit: string;
+    haveAccount: string;
+    loginLink: string;
+  };
+  account: {
+    title: string;
+    subtitle: string;
+    profileTitle: string;
+    profileDescription: string;
+    nameLabel: string;
+    emailLocked: string;
+    studentIdHint: string;
+    save: string;
+    saved: string;
+    passwordTitle: string;
+    currentPassword: string;
+    newPassword: string;
+    changePassword: string;
+    passwordChanged: string;
   };
   admin: {
     greeting: (name: string) => string;
@@ -256,7 +285,11 @@ export interface Messages {
     tooManyAttempts: string;
     claimNotFound: string;
     alreadyReturned: string;
-    fields: { itemTitle: string; question: string; answer: string; lostWhat: string; reporterName: string };
+    passwordTooShort: (min: number) => string;
+    emailTaken: string;
+    wrongCurrentPassword: string;
+    sessionExpired: string;
+    fields: { itemTitle: string; question: string; answer: string; lostWhat: string; reporterName: string; displayName: string };
   };
 }
 
@@ -480,6 +513,35 @@ export const th: Messages = {
     subtitle: "ใช้อีเมลมหาวิทยาลัย @bumail.net",
     email: "อีเมล",
     password: "รหัสผ่าน",
+    noAccount: "ยังไม่มีบัญชี?",
+    registerLink: "สมัครสมาชิก",
+  },
+  register: {
+    title: "สมัครสมาชิก",
+    subtitle: "สร้างบัญชีด้วยอีเมลมหาวิทยาลัย แจ้งของหายครั้งต่อไปไม่ต้องกรอกชื่อและอีเมลซ้ำ",
+    nameLabel: "ชื่อ-นามสกุล",
+    passwordHint: (min) => `อย่างน้อย ${min} ตัวอักษร`,
+    confirmLabel: "ยืนยันรหัสผ่าน",
+    passwordMismatch: "รหัสผ่านทั้งสองช่องไม่ตรงกัน",
+    submit: "สร้างบัญชี",
+    haveAccount: "มีบัญชีอยู่แล้ว?",
+    loginLink: "เข้าสู่ระบบ",
+  },
+  account: {
+    title: "บัญชีของฉัน",
+    subtitle: "แก้ไขชื่อ ช่องทางติดต่อ และรหัสผ่านของคุณ",
+    profileTitle: "ข้อมูลส่วนตัว",
+    profileDescription: "รปภ. ใช้ข้อมูลนี้ติดต่อกลับเมื่อเจอของของคุณ",
+    nameLabel: "ชื่อที่แสดง",
+    emailLocked: "อีเมลใช้เข้าสู่ระบบ เปลี่ยนไม่ได้",
+    studentIdHint: "ตัวเลข 10 หลัก ใช้จับคู่เมื่อมีคนเจอบัตรนักศึกษาของคุณ",
+    save: "บันทึกข้อมูล",
+    saved: "บันทึกข้อมูลแล้ว",
+    passwordTitle: "เปลี่ยนรหัสผ่าน",
+    currentPassword: "รหัสผ่านปัจจุบัน",
+    newPassword: "รหัสผ่านใหม่",
+    changePassword: "เปลี่ยนรหัสผ่าน",
+    passwordChanged: "เปลี่ยนรหัสผ่านแล้ว",
   },
   admin: {
     greeting: (name) => `สวัสดี, ${name}`,
@@ -516,6 +578,10 @@ export const th: Messages = {
     tooManyAttempts: "ตอบผิดครบจำนวนครั้งแล้ว กรุณาติดต่อ รปภ. ที่จุดรับฝากโดยตรง",
     claimNotFound: "ไม่พบคำขอรับคืนนี้",
     alreadyReturned: "รายการนี้ยืนยันการคืนไปแล้ว",
-    fields: { itemTitle: "ชื่อสิ่งของ", question: "คำถามยืนยัน", answer: "คำตอบยืนยัน", lostWhat: "สิ่งที่หาย", reporterName: "ชื่อผู้แจ้ง" },
+    passwordTooShort: (min) => `รหัสผ่านต้องมีอย่างน้อย ${min} ตัวอักษร`,
+    emailTaken: "อีเมลนี้มีบัญชีอยู่แล้ว ลองเข้าสู่ระบบแทน",
+    wrongCurrentPassword: "รหัสผ่านปัจจุบันไม่ถูกต้อง",
+    sessionExpired: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
+    fields: { itemTitle: "ชื่อสิ่งของ", question: "คำถามยืนยัน", answer: "คำตอบยืนยัน", lostWhat: "สิ่งที่หาย", reporterName: "ชื่อผู้แจ้ง", displayName: "ชื่อ" },
   },
 };

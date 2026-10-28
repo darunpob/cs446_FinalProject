@@ -9,12 +9,16 @@ import type {
   FoundItemQuery,
   LostFoundApi,
   LostReportReceipt,
+  NewAccount,
   NewClaim,
   NewFoundItem,
   NewLostReport,
+  PasswordChange,
+  ProfileUpdate,
   Session,
   StaleItem,
   UploadTicket,
+  UserProfile,
 } from "./contract";
 
 type TokenSource = () => string | null;
@@ -85,5 +89,11 @@ export function createHttpApi(baseUrl: string, getAccessToken: TokenSource): Los
     confirmReturn: (claimId) => post<Claim>(`/admin/claims/${encodeURIComponent(claimId)}/return`, {}),
     listStaleItems: async (minDays) => (await call<{ items: StaleItem[] }>(`/admin/items/stale?days=${minDays}`)).items,
     login: (email, password) => post<Session>("/auth/login", { email, password }),
+    register: (draft: NewAccount) => post<Session>("/auth/register", draft),
+    getProfile: () => call<UserProfile>("/me"),
+    updateProfile: (update: ProfileUpdate) => call<UserProfile>("/me", { method: "PUT", body: JSON.stringify(update) }),
+    changePassword: async (change: PasswordChange) => {
+      await post<{ ok: true }>("/me/password", change);
+    },
   };
 }

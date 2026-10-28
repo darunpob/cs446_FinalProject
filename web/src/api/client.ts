@@ -18,13 +18,15 @@ export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 
 export const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
+const readAccessToken = () => readSession()?.accessToken ?? null;
+
 function createApi(): LostFoundApi {
   if (USE_MOCK) {
     const database = openMockDatabase(browserStorage(), () => new Date());
     resetMockData = database.reset;
-    return new MockLostFoundApi({ database });
+    return new MockLostFoundApi({ database, getAccessToken: readAccessToken });
   }
-  return createHttpApi(API_BASE, () => readSession()?.accessToken ?? null);
+  return createHttpApi(API_BASE, readAccessToken);
 }
 
 export let resetMockData: () => void = () => {

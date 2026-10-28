@@ -58,10 +58,10 @@ function AccountControl() {
   }
   return (
     <div className="flex items-center gap-1">
-      <span className="hidden max-w-36 items-center gap-2 truncate px-2 text-sm text-on-felt md:flex">
+      <NavLink to="/account" title={t.nav.account} className={({ isActive }) => `hidden h-10 max-w-44 items-center gap-2 rounded-md px-2 text-sm transition-colors duration-150 md:flex ${isActive ? "bg-board text-on-felt" : "text-on-felt hover:bg-board"}`}>
         <UserRound className="size-4 shrink-0 text-on-felt-2" aria-hidden />
         <span className="truncate">{session.user.displayName}</span>
-      </span>
+      </NavLink>
       <button type="button" onClick={signOut} aria-label={t.nav.logout} title={t.nav.logout} className={FELT_ICON_BUTTON}>
         <LogOut className="size-[18px]" />
       </button>
@@ -103,8 +103,7 @@ function Header({ navEntries }: { navEntries: NavEntry[] }) {
 function MobileTabBar({ navEntries }: { navEntries: NavEntry[] }) {
   const { session } = useAuth();
   const { t } = useI18n();
-  const tabs = [...navEntries];
-  if (!session) tabs.push({ to: "/login", labelKey: "account", icon: UserRound, stock: "account" });
+  const tabs = [...navEntries, { to: session ? "/account" : "/login", labelKey: "account" as const, icon: UserRound, stock: "account" as const }];
   return (
     <nav aria-label={t.nav.mobileMenu} className="paper fixed inset-x-0 bottom-0 z-40 border-t-4 border-stock-yellow pb-[env(safe-area-inset-bottom)] shadow-sheet md:hidden">
       <div className="mx-auto flex max-w-md items-center justify-around px-2">
