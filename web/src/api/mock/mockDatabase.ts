@@ -1,4 +1,4 @@
-import type { Claim, FoundItem, NewLostReport, UserProfile } from "../contract";
+import type { Claim, FoundItem, LostReportStatus, NewLostReport, UserProfile } from "../contract";
 import { demoAccounts, foundItemSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
 import type { FoundItemSeed } from "../../fixtures/mockData";
 
@@ -10,6 +10,15 @@ export interface StoredFoundItem extends FoundItem {
 export interface StoredLostReport extends NewLostReport {
   id: string;
   createdAt: string;
+  /** Account email taken from the session token, never from the contact form. */
+  ownerEmail: string;
+  status: LostReportStatus;
+  closedAt: string | null;
+}
+
+export interface StoredClaim extends Claim {
+  /** Account email of a signed-in claimant; null for anonymous claims. */
+  ownerEmail: string | null;
 }
 
 /** Plain-text password is acceptable only because this database never leaves the browser. */
@@ -21,7 +30,7 @@ export interface MockDatabase {
   schemaVersion: 1;
   foundItems: StoredFoundItem[];
   lostReports: StoredLostReport[];
-  claims: Claim[];
+  claims: StoredClaim[];
   failedAttempts: Record<string, number>;
   images: Record<string, string>;
   accounts: StoredAccount[];
@@ -59,7 +68,7 @@ function seedFoundItem(now: Date, seed: FoundItemSeed): StoredFoundItem {
   };
 }
 
-function seedClaims(now: Date, foundItems: StoredFoundItem[]): Claim[] {
+function seedClaims(now: Date, foundItems: StoredFoundItem[]): StoredClaim[] {
   return pendingClaimSeeds.flatMap((seed) => {
     const claimedItem = foundItems.find((candidate) => candidate.id === seed.itemId);
     if (!claimedItem) return [];
@@ -76,6 +85,7 @@ function seedClaims(now: Date, foundItems: StoredFoundItem[]): Claim[] {
       status: "verified" as const,
       createdAt: new Date(now.getTime() - seed.hoursAgo * HOUR_MS).toISOString(),
       returnedAt: null,
+      ownerEmail: null,
     }];
   });
 }
@@ -119,6 +129,12 @@ export function openMockDatabase(storage: Storage | null, now: () => Date): Mock
   return handle;
 }
 
+/** Databases saved before reports had owners keep loading; their reports simply belong to no one. */
+function upgradeOwnership(db: MockDatabase): void {
+  db.lostReports = db.lostReports.map((report) => ({ ...report, ownerEmail: report.ownerEmail ?? "", status: report.status ?? "searching", closedAt: report.closedAt ?? null }));
+  db.claims = db.claims.map((claim) => ({ ...claim, ownerEmail: claim.ownerEmail ?? null }));
+}
+
 function loadDatabase(storage: Storage | null): MockDatabase | null {
   if (!storage) return null;
   try {
@@ -126,6 +142,7 @@ function loadDatabase(storage: Storage | null): MockDatabase | null {
     const parsed: unknown = raw ? JSON.parse(raw) : null;
     if (!isMockDatabase(parsed)) return null;
     if (!Array.isArray(parsed.accounts)) parsed.accounts = seedAccounts();
+    upgradeOwnership(parsed);
     return parsed;
   } catch (storageError) {
     console.warn("Mock database could not be loaded; starting fresh", storageError);

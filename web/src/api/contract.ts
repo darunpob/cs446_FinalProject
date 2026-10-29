@@ -109,6 +109,53 @@ export interface LostReportReceipt {
   possibleMatches: FoundItem[];
 }
 
+export type LostReportStatus = "searching" | "found" | "cancelled";
+
+export type LostReportCloseReason = Exclude<LostReportStatus, "searching">;
+
+/** A lost report as its owner sees it. `possibleMatches` is recomputed on every read and is [] once closed. */
+export interface MyLostReport {
+  id: string;
+  title: string;
+  description: string;
+  category: CategoryId;
+  lastSeenLocationId: string;
+  lostAt: string;
+  createdAt: string;
+  status: LostReportStatus;
+  closedAt: string | null;
+  possibleMatches: FoundItem[];
+}
+
+/** A verified claim made while signed in, so the pickup code can be looked up again after the dialog closes. */
+export interface MyClaim {
+  claimId: string;
+  itemId: string;
+  itemTitle: string;
+  itemCategory: CategoryId;
+  pickupCode: string;
+  dropOffPointId: string;
+  status: ClaimStatus;
+  createdAt: string;
+}
+
+export interface MyLostReports {
+  reports: MyLostReport[];
+  claims: MyClaim[];
+}
+
+/**
+ * All the public "still looking for" board may show. Description, student ID and contact are left out
+ * on purpose: an owner's description often holds the answer to a finder's verification question.
+ */
+export interface PublicLostReport {
+  id: string;
+  title: string;
+  category: CategoryId;
+  lastSeenLocationId: string;
+  lostAt: string;
+}
+
 export interface NewClaim {
   itemId: string;
   answer: string;
@@ -197,6 +244,9 @@ export interface LostFoundApi {
   uploadImage(photo: Blob): Promise<UploadedImage>;
   createFoundItem(draft: NewFoundItem): Promise<FoundItem>;
   createLostReport(draft: NewLostReport): Promise<LostReportReceipt>;
+  listMyLostReports(): Promise<MyLostReports>;
+  closeLostReport(reportId: string, reason: LostReportCloseReason): Promise<MyLostReport>;
+  listOpenLostReports(): Promise<PublicLostReport[]>;
   submitClaim(draft: NewClaim): Promise<ClaimOutcome>;
   listPendingReturns(): Promise<Claim[]>;
   confirmReturn(claimId: string): Promise<Claim>;

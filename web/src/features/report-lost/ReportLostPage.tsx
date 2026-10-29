@@ -1,4 +1,5 @@
 import type { FormEvent } from "react";
+import { Link } from "react-router";
 import { AtSign, BellRing, IdCard, MailCheck, MessageCircle, Phone, Sparkles } from "lucide-react";
 import type { CategoryId, LostReportReceipt } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
@@ -52,7 +53,10 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
       ) : (
         <p className="text-on-felt-2">{text.checkBack}</p>
       )}
-      <ButtonLink to="/" variant="secondary" className="mt-8">{t.item.viewAll}</ButtonLink>
+      <div className="mt-8 flex flex-wrap gap-2">
+        <ButtonLink to="/my-reports">{text.myReportsLink}</ButtonLink>
+        <ButtonLink to="/" variant="secondary">{t.item.viewAll}</ButtonLink>
+      </div>
     </div>
   );
 }
@@ -125,9 +129,12 @@ export function ReportLostPage() {
         </FormSection>
 
         {failure && <ErrorNotice message={failure} />}
-        <Button type="submit" size="lg" loading={submitting} className="w-full sm:w-auto sm:self-end sm:px-10">
-          {submitting ? text.submitting : text.submit}
-        </Button>
+        <div className="flex flex-col-reverse items-center gap-4 sm:flex-row sm:justify-between">
+          <Link to="/my-reports" className="rounded text-sm font-semibold text-on-felt-2 underline underline-offset-4 transition-colors duration-150 hover:text-on-felt">{text.myReportsLink}</Link>
+          <Button type="submit" size="lg" loading={submitting} className="w-full sm:w-auto sm:px-10">
+            {submitting ? text.submitting : text.submit}
+          </Button>
+        </div>
       </form>
     </div>
   );

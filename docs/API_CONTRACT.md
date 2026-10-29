@@ -1,4 +1,10 @@
-# BU Lost & Found — API Contract (v3)
+# BU Lost & Found — API Contract (v4)
+
+> **มีอะไรใหม่ใน v4 (ฝั่ง backend ต้องทำ):**
+> 1. `POST /api/lost-reports` **เปลี่ยนเป็น 🔒 ต้องล็อกอิน** — เจ้าของรายงานอ่านจาก JWT ห้ามใช้ `contact.email` ในฟอร์ม
+> 2. เพิ่ม `GET /api/lost-reports/mine` 🔒, `POST /api/lost-reports/{id}/close` 🔒 และบอร์ดสาธารณะ `GET /api/lost-reports`
+> 3. `POST /api/items/{id}/claims` ถ้ามี token ให้บันทึกเจ้าของ claim ด้วย (ยังไม่บังคับล็อกอิน)
+> 4. schema: `lost_reports` เพิ่ม `owner_email` + index, เปลี่ยน `status` เป็น `searching/found/cancelled`, เพิ่ม `closed_at` · `claims` เพิ่ม `owner_email` + index — SQL สำหรับแก้ตารางเดิมอยู่ท้ายข้อ 7
 
 ข้อตกลงระหว่างหน้าเว็บ (`web/`) กับ backend
 Type ฝั่งหน้าเว็บอยู่ที่ [`web/src/api/contract.ts`](../web/src/api/contract.ts) — **ถ้าแก้เอกสารนี้ต้องแก้ไฟล์นั้นด้วย**
@@ -51,8 +57,11 @@ graph LR
 | GET | `/api/items/{id}` | หน้ารายละเอียด | – |
 | POST | `/api/uploads` | แจ้งเจอของ (ขอ presigned URL รูป) | – |
 | POST | `/api/items` | แจ้งเจอของ | – |
-| POST | `/api/lost-reports` | แจ้งของหาย | – |
-| POST | `/api/items/{id}/claims` | ปุ่ม "นี่ของฉัน" | – |
+| POST | `/api/lost-reports` | แจ้งของหาย | 🔒 ทุก role (**ใหม่ใน v4**) |
+| GET | `/api/lost-reports/mine` | หน้า "ของที่ฉันแจ้งหาย" | 🔒 ทุก role |
+| POST | `/api/lost-reports/{id}/close` | หน้า "ของที่ฉันแจ้งหาย" ปุ่ม "ได้ของคืนแล้ว / ยกเลิกประกาศ" | 🔒 เจ้าของรายงาน |
+| GET | `/api/lost-reports` | หน้า "ประกาศตามหา" (บอร์ดสาธารณะ) | – |
+| POST | `/api/items/{id}/claims` | ปุ่ม "นี่ของฉัน" | – (ถ้ามี token จะผูก claim กับบัญชี) |
 | GET | `/api/admin/claims?status=verified` | หน้า รปภ. แท็บ "รอส่งคืน" | 🔒 guard |
 | POST | `/api/admin/claims/{claimId}/return` | หน้า รปภ. ปุ่ม "ยืนยันคืนแล้ว" | 🔒 guard |
 | GET | `/api/admin/items/stale?days=30` | หน้า รปภ. แท็บ "ของค้างนาน" | 🔒 guard |
@@ -86,7 +95,7 @@ graph LR
      Message: `${item.title}\nฝากไว้ที่: ${dropOff.name} (${dropOff.hours})\nดูรายละเอียด: https://<cloudfront-domain>/#/items/${item.id}`,
    });
    ```
-3. **ปิดเรื่อง** (คืนของแล้ว) → `lost_reports.status = 'closed'` แล้วไม่ต้อง publish อีก ไม่ต้องลบ topic
+3. **ปิดเรื่อง** (คืนของแล้ว หรือเจ้าของกดปิดเองที่ `POST /api/lost-reports/{id}/close`) → `lost_reports.status` เป็น `'found'` หรือ `'cancelled'` แล้วไม่ต้อง publish อีก ไม่ต้องลบ topic · publish เฉพาะรายงานที่ `status = 'searching'`
 
 **LINE (ไม่บังคับ):** ส่ง push ได้เฉพาะ `userId` ของคนที่แอด LINE OA แล้ว — ผู้ใช้แอดเพื่อนจากการ์ดในหน้ายืนยัน แล้วพิมพ์รหัสแจ้ง เช่น `lst-8f2a` ในแชท → LINE เรียก `POST /api/line/webhook` → ตรวจ `x-line-signature` → บันทึก `event.source.userId` ลง `lost_reports.line_user_id` → ตอนมีของตรงกันส่ง push เพิ่มจากอีเมล · `contact.lineId`, `contact.phone` ในฟอร์มมีไว้ให้ รปภ. ติดต่อกลับเท่านั้น
 
@@ -95,7 +104,7 @@ graph LR
 ทำใน handler ของ `POST /api/items` ทันทีหลังบันทึก (ถ้ามี `imageKey`) — ใช้เวลาราว 1 วินาที:
 1. **`DetectLabels`** (`Image.S3Object` = bucket รูป + `imageKey`, `MaxLabels: 5`, `MinConfidence: 80`) → เก็บชื่อ label ภาษาอังกฤษลง `ai_labels` · หน้าเว็บแสดงเป็นชิป "แท็กจาก AI" และ `q` ค้นใน `aiLabels` ด้วย
 2. **ถ้าเป็นบัตร** (`category = "card"` หรือ labels มี `ID Cards` / `Document`) → **`DetectText`** → หาเลข 10 หลักด้วย `/\b\d{10}\b/`
-3. หา `lost_reports` ที่ `student_id` ตรงกันและ `status = 'open'` → publish SNS (ข้อ 2) "มีคนเจอบัตรของคุณ ฝากไว้ที่ …"
+3. หา `lost_reports` ที่ `student_id` ตรงกันและ `status = 'searching'` → publish SNS (ข้อ 2) "มีคนเจอบัตรของคุณ ฝากไว้ที่ …"
 4. **ห้าม**เก็บเลขที่อ่านได้ลงฟิลด์สาธารณะ (`title`, `description`, `ai_labels`) และห้ามส่งออกใน response
 
 ถ้า Rekognition error ให้บันทึกของต่อไปตามปกติด้วย `aiLabels: []` (log error ไว้) — อย่าให้การแจ้งเจอของล้มเพราะ AI
@@ -108,7 +117,7 @@ graph LR
 | Format | JSON ทั้ง request/response, `Content-Type: application/json` |
 | เวลา | ISO 8601 UTC เช่น `2026-10-27T03:15:00.000Z` (เก็บใน RDS เป็น UTC `DATETIME`) |
 | ID | string มี prefix: `itm-` (ของที่เจอ), `lst-` (แจ้งหาย), `clm-` (คำขอรับคืน) |
-| Auth | `Authorization: Bearer <token>` — จำเป็นสำหรับ `/api/admin/*` (ต้องเป็น role `guard`) และ `/api/me*` (role ใดก็ได้) |
+| Auth | `Authorization: Bearer <token>` — จำเป็นสำหรับ `/api/admin/*` (ต้องเป็น role `guard`), `/api/me*`, `POST /api/lost-reports`, `/api/lost-reports/mine` และ `/api/lost-reports/{id}/close` (role ใดก็ได้) · `POST /api/items/{id}/claims` รับ token แบบไม่บังคับ |
 | CORS | ไม่ต้องตั้งสำหรับ API (origin เดียวกันผ่าน CloudFront) · **bucket รูปต้องตั้ง CORS** ให้ `PUT` จาก `https://<cloudfront-domain>` |
 | Error | HTTP status ตามตาราง + body `{ "error": { "code": "NOT_FOUND", "message": "ข้อความที่แสดงให้ผู้ใช้ได้" } }` — หน้าเว็บแสดง `message` ตรง ๆ |
 
@@ -155,6 +164,40 @@ interface Claim {
   status: "verified" | "returned";
   createdAt: string;
   returnedAt: string | null;
+}
+
+type LostReportStatus = "searching" | "found" | "cancelled";   // DB: lost_reports.status
+
+interface MyLostReport {          // เห็นเฉพาะเจ้าของรายงาน
+  id: string;
+  title: string;
+  description: string;
+  category: CategoryId;
+  lastSeenLocationId: string;
+  lostAt: string;
+  createdAt: string;
+  status: LostReportStatus;
+  closedAt: string | null;
+  possibleMatches: FoundItem[];   // คำนวณใหม่ทุกครั้งที่เรียก · [] ถ้า status ไม่ใช่ "searching"
+}
+
+interface MyClaim {               // claim ที่ทำตอนล็อกอินอยู่ — ให้เจ้าของเปิดดูรหัสรับของซ้ำได้
+  claimId: string;
+  itemId: string;
+  itemTitle: string;
+  itemCategory: CategoryId;
+  pickupCode: string;
+  dropOffPointId: string;
+  status: "verified" | "returned";
+  createdAt: string;
+}
+
+interface PublicLostReport {      // บอร์ดสาธารณะ — มีแค่ 5 ฟิลด์นี้เท่านั้น
+  id: string;
+  title: string;
+  category: CategoryId;
+  lastSeenLocationId: string;
+  lostAt: string;
 }
 ```
 
@@ -228,7 +271,8 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 - response คือ `FoundItem` **ที่ไม่มี** `verificationAnswer`
 - หลังบันทึก: หา lost report ที่ตรงกัน (กติกาจับคู่ด้านล่าง + บัตรนักศึกษาจากข้อ 3) แล้ว publish SNS ตามข้อ 2
 
-### `POST /api/lost-reports` — แจ้งของหาย → `201`
+### `POST /api/lost-reports` 🔒 — แจ้งของหาย → `201`
+**ต้องล็อกอิน (ใหม่ใน v4)** — ไม่มี token → `401` · บันทึก `owner_email` = email ใน JWT **ห้ามใช้ `contact.email`** (นั่นคืออีเมลที่ใช้รับแจ้งเตือน SNS ซึ่งอาจไม่ใช่อีเมลบัญชี และใครจะพิมพ์อะไรก็ได้)
 ```json
 // request
 {
@@ -249,6 +293,39 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 - `possibleMatches` = ของสถานะ `available` ที่ตรงที่สุด ไม่เกิน 3 ชิ้น
 - **กติกาจับคู่** (เหมือนใน mock): หมวดตรง +2, สถานที่ตรง +1, คำในชื่อซ้ำกัน +1 ต่อคำ → ได้ ≥ 2 คะแนนถือว่าตรง เรียงคะแนนมากไปน้อย
 - สร้าง topic + subscribe อีเมลตามข้อ 2 **ก่อนตอบกลับ** · ถ้า SNS error ให้บันทึกรายงานต่อไปได้ (log error ไว้)
+
+### `GET /api/lost-reports/mine` 🔒 — หน้า "ของที่ฉันแจ้งหาย" → `200`
+อ่าน email จาก JWT แล้ว `SELECT ... FROM lost_reports WHERE owner_email = ? ORDER BY created_at DESC` (ใช้ index `idx_lost_owner`)
+```json
+{
+  "reports": [MyLostReport, ...],
+  "claims":  [MyClaim, ...]
+}
+```
+- **`possibleMatches` ต้องคำนวณใหม่ทุกครั้งที่เรียก** ด้วยกติกาจับคู่เดียวกับตอนแจ้ง — ห้ามเอารายการเดิมที่เก็บไว้ตอน `POST` เพราะมีของเจอเข้ามาเพิ่มเรื่อย ๆ · รายงานที่ `status` ไม่ใช่ `searching` ให้ส่ง `[]`
+- `claims` = `SELECT ... FROM claims JOIN found_items ... WHERE claims.owner_email = ? ORDER BY created_at DESC` — หน้าเว็บโชว์รหัสรับของและจุดรับฝากให้ดูซ้ำได้ (เดิมโชว์ครั้งเดียวใน dialog ถ้าปิดไปก็หายเลย)
+- `possibleMatches` เป็น `FoundItem` → **ห้ามมี `verificationAnswer`**
+
+### `POST /api/lost-reports/{id}/close` 🔒 — ปุ่ม "ได้ของคืนแล้ว / ยกเลิกประกาศ" → `200 MyLostReport`
+```json
+{ "reason": "found" }       // หรือ "cancelled"
+```
+```sql
+UPDATE lost_reports SET status = ?, closed_at = NOW()
+WHERE id = ? AND owner_email = ? AND status = 'searching'
+```
+- `reason` ไม่ใช่ `found` / `cancelled` → `400`
+- **ไม่พบ id หรือคนเรียกไม่ใช่เจ้าของ → `404`** (ห้ามตอบ 403 เพราะจะบอกใบ้ว่ามี id นี้อยู่จริง)
+- ปิดไปแล้ว → `409`
+- response คือรายงานหลังปิด (`possibleMatches: []`) · หลังปิดแล้วไม่ต้อง publish SNS ให้รายงานนี้อีก
+
+### `GET /api/lost-reports` — บอร์ด "ประกาศตามหา" (สาธารณะ) → `200`
+```json
+{ "reports": [{ "id": "lst-8f2a", "title": "บัตรนักศึกษา", "category": "card", "lastSeenLocationId": "loc-canteen", "lostAt": "2026-10-26T05:00:00.000Z" }] }
+```
+- เฉพาะ `status = 'searching'` เรียงจาก `lost_at` ใหม่สุด
+- ⚠️ **SELECT แค่ 5 คอลัมน์นี้เท่านั้น** ห้ามส่ง `description`, `student_id`, `contact_*`, `owner_email` เด็ดขาด — ถ้าเจ้าของเขียนว่า "กระเป๋ามีสติกเกอร์โดราเอมอน" แล้วคนเก็บได้ตั้งคำถามยืนยันว่า "บนกระเป๋ามีสติกเกอร์อะไร" มิจฉาชีพแค่เปิดบอร์ดก็ได้คำตอบไปเคลมของทันที
+- ปุ่ม "ฉันเจอของชิ้นนี้" ในหน้าเว็บพาไปหน้าแจ้งเจอของ (`/report-found?title=&category=&location=`) — ไม่มีช่องทางติดต่อเจ้าของโดยตรง backend ไม่ต้องทำอะไรเพิ่ม
 
 ### `POST /api/items/{id}/claims` — ปุ่ม "นี่ของฉัน" → `200`
 ```json
@@ -271,13 +348,15 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 
 ตอบถูก → ใช้ transaction: `UPDATE found_items SET status='claimed' WHERE id=? AND status='available'` (ถ้าแถวที่แก้ = 0 → `409`) แล้ว `INSERT` claim · รหัสรับของแสดงบนหน้าจอ (หน้าเว็บบอกให้แคปหน้าจอเก็บไว้)
 
+**token ไม่บังคับ:** ถ้ามี `Authorization` และ token ถูกต้อง ให้ใส่ `claims.owner_email` = email ใน JWT (ไม่มี token → `NULL`) เพื่อให้ `GET /api/lost-reports/mine` แสดงรหัสรับของซ้ำได้ · token ผิด/หมดอายุ ให้ถือว่าไม่มี token (อย่าตอบ 401 ที่ endpoint นี้)
+
 ### `GET /api/admin/claims?status=verified` 🔒
 ```json
 { "claims": [Claim, ...] }
 ```
 
 ### `POST /api/admin/claims/{claimId}/return` 🔒 → `200 Claim`
-transaction: claim → `returned` + `returned_at = now`, ของ → `returned` + `returned_at`, lost report ที่เกี่ยวข้อง (ถ้ามี) → `closed` · `409` ถ้าคืนไปแล้ว
+transaction: claim → `returned` + `returned_at = now`, ของ → `returned` + `returned_at`, lost report ที่เกี่ยวข้อง (ถ้ามี) → `status = 'found'`, `closed_at = now` · `409` ถ้าคืนไปแล้ว
 
 ### `GET /api/admin/items/stale?days=30` 🔒
 ของ `available` ที่ `found_at` เก่ากว่า `days` วัน เรียงจากค้างนานสุด
@@ -366,12 +445,16 @@ CREATE TABLE lost_reports (
   contact_email         VARCHAR(254) NOT NULL,
   contact_line_id       VARCHAR(50)  NOT NULL DEFAULT '',
   contact_phone         VARCHAR(20)  NOT NULL DEFAULT '',
+  owner_email           VARCHAR(254) NOT NULL REFERENCES users(email),  -- จาก JWT ไม่ใช่ contact_email
   sns_topic_arn         VARCHAR(255) NULL,
   line_user_id          VARCHAR(64)  NULL,
-  status                ENUM('open', 'closed') NOT NULL DEFAULT 'open',
+  status                ENUM('searching', 'found', 'cancelled') NOT NULL DEFAULT 'searching',
   created_at            DATETIME     NOT NULL,
+  closed_at             DATETIME     NULL,
+  INDEX idx_lost_owner (owner_email, created_at),
   INDEX idx_lost_student (student_id, status),
-  INDEX idx_lost_category (category, status)
+  INDEX idx_lost_category (category, status),
+  INDEX idx_lost_board (status, lost_at)
 );
 
 CREATE TABLE claims (
@@ -381,10 +464,12 @@ CREATE TABLE claims (
   student_id     CHAR(10)     NOT NULL,
   contact        VARCHAR(200) NOT NULL,
   pickup_code    CHAR(6)      NOT NULL,
+  owner_email    VARCHAR(254) NULL,          -- จาก JWT ถ้าเคลมตอนล็อกอินอยู่
   status         ENUM('verified', 'returned') NOT NULL DEFAULT 'verified',
   created_at     DATETIME     NOT NULL,
   returned_at    DATETIME     NULL,
-  INDEX idx_claims_status (status)
+  INDEX idx_claims_status (status),
+  INDEX idx_claims_owner (owner_email, created_at)
 );
 
 CREATE TABLE claim_attempts (
@@ -405,6 +490,26 @@ CREATE TABLE users (
   created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 ```
+**แก้ตารางที่สร้างไว้แล้วจาก v3 → v4** (รายงานเก่าที่ไม่มีเจ้าของ ลบทิ้งหรือใส่บัญชีทดสอบก่อนเพิ่ม `NOT NULL`):
+```sql
+ALTER TABLE lost_reports
+  ADD COLUMN owner_email VARCHAR(254) NULL AFTER contact_phone,
+  ADD COLUMN closed_at   DATETIME     NULL AFTER created_at,
+  MODIFY status ENUM('open', 'closed', 'searching', 'found', 'cancelled') NOT NULL DEFAULT 'searching';
+UPDATE lost_reports SET status = IF(status = 'closed', 'found', 'searching');
+UPDATE lost_reports SET owner_email = contact_email WHERE owner_email IS NULL;   -- เฉพาะข้อมูลทดสอบเก่า
+ALTER TABLE lost_reports
+  MODIFY owner_email VARCHAR(254) NOT NULL,
+  MODIFY status ENUM('searching', 'found', 'cancelled') NOT NULL DEFAULT 'searching',
+  ADD INDEX idx_lost_owner (owner_email, created_at),
+  ADD INDEX idx_lost_board (status, lost_at);
+
+ALTER TABLE claims
+  ADD COLUMN owner_email VARCHAR(254) NULL AFTER pickup_code,
+  ADD INDEX idx_claims_owner (owner_email, created_at);
+```
+> ถ้าย้ายไปใช้ DynamoDB ภายหลัง: ทำ GSI partition key = `ownerEmail`, sort key = `createdAt` บนตาราง lost reports และ claims แทน index ข้างบน
+
 ข้อมูลตั้งต้นของ `locations` คัดลอกจาก `campusDirectoryFixture` ใน [`web/src/fixtures/mockData.ts`](../web/src/fixtures/mockData.ts) ได้เลย (แก้ชื่อให้ตรงกับมหาวิทยาลัยจริง)
 
 ## 8. ทดสอบกับหน้าเว็บ

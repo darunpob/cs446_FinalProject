@@ -7,13 +7,18 @@ import type {
   FoundItem,
   FoundItemQuery,
   LostFoundApi,
+  LostReportCloseReason,
   LostReportReceipt,
+  MyClaim,
+  MyLostReport,
+  MyLostReports,
   NewAccount,
   NewClaim,
   NewFoundItem,
   NewLostReport,
   PasswordChange,
   ProfileUpdate,
+  PublicLostReport,
   Session,
   StaleItem,
   UserProfile,
@@ -22,7 +27,7 @@ import { MIN_PASSWORD_LENGTH, isUniversityEmail } from "../contract";
 import { campusDirectoryFixture, simulatedAiLabels } from "../../fixtures/mockData";
 import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
-import type { MockDatabaseHandle, StoredAccount, StoredFoundItem } from "./mockDatabase";
+import type { MockDatabaseHandle, StoredAccount, StoredClaim, StoredFoundItem, StoredLostReport } from "./mockDatabase";
 
 export interface MockApiOptions {
   database: MockDatabaseHandle;
@@ -37,6 +42,29 @@ function toPublicItem(stored: StoredFoundItem): FoundItem {
   const { verificationAnswer: _hiddenAnswer, returnedAt: _returnedAt, ...publicFields } = stored;
   return publicFields;
 }
+
+function toPublicClaim(stored: StoredClaim): Claim {
+  const { ownerEmail: _ownerEmail, ...claim } = stored;
+  return claim;
+}
+
+function toMyClaim(stored: StoredClaim): MyClaim {
+  const { id, itemId, itemTitle, itemCategory, pickupCode, dropOffPointId, status, createdAt } = stored;
+  return { claimId: id, itemId, itemTitle, itemCategory, pickupCode, dropOffPointId, status, createdAt };
+}
+
+function toMyLostReport(report: StoredLostReport, candidates: FoundItem[]): MyLostReport {
+  const { id, title, description, category, lastSeenLocationId, lostAt, createdAt, status, closedAt } = report;
+  const possibleMatches = status === "searching" ? findPossibleMatches(report, candidates) : [];
+  return { id, title, description, category, lastSeenLocationId, lostAt, createdAt, status, closedAt, possibleMatches };
+}
+
+function toPublicLostReport(report: StoredLostReport): PublicLostReport {
+  const { id, title, category, lastSeenLocationId, lostAt } = report;
+  return { id, title, category, lastSeenLocationId, lostAt };
+}
+
+const CLOSE_REASONS: LostReportCloseReason[] = ["found", "cancelled"];
 
 function placeName(placeId: string): string {
   return campusDirectoryFixture.foundLocations.find((place) => place.id === placeId)?.name ?? "";
@@ -209,15 +237,50 @@ export class MockLostFoundApi implements LostFoundApi {
 
   createLostReport(draft: NewLostReport) {
     return this.settle((): LostReportReceipt => {
+      const owner = this.requireSignedIn();
       requireText(draft.title, messages().errors.fields.lostWhat);
       requireText(draft.contact.name, messages().errors.fields.reporterName);
       if (!isUniversityEmail(draft.contact.email)) throw new ApiError("VALIDATION", messages().reportLost.emailNotUniversity, 400);
-      const report = { ...draft, id: this.nextId("lst"), createdAt: this.now().toISOString() };
+      const report: StoredLostReport = { ...draft, id: this.nextId("lst"), createdAt: this.now().toISOString(), ownerEmail: owner.email, status: "searching", closedAt: null };
       this.db.lostReports.unshift(report);
       this.database.persist();
       const candidates = this.db.foundItems.map(toPublicItem);
       return { id: report.id, createdAt: report.createdAt, possibleMatches: findPossibleMatches(draft, candidates) };
     });
+  }
+
+  listMyLostReports() {
+    return this.settle((): MyLostReports => {
+      const owner = this.requireSignedIn();
+      const candidates = this.db.foundItems.map(toPublicItem);
+      return {
+        reports: this.db.lostReports.filter((report) => report.ownerEmail === owner.email).map((report) => toMyLostReport(report, candidates)),
+        claims: this.db.claims.filter((claim) => claim.ownerEmail === owner.email).map(toMyClaim),
+      };
+    });
+  }
+
+  closeLostReport(reportId: string, reason: LostReportCloseReason) {
+    return this.settle(() => {
+      const owner = this.requireSignedIn();
+      if (!CLOSE_REASONS.includes(reason)) throw new ApiError("VALIDATION", messages().errors.closeReasonInvalid, 400);
+      const report = this.db.lostReports.find((candidate) => candidate.id === reportId && candidate.ownerEmail === owner.email);
+      if (!report) throw new ApiError("NOT_FOUND", messages().errors.lostReportNotFound, 404);
+      if (report.status !== "searching") throw new ApiError("CONFLICT", messages().errors.lostReportClosed, 409);
+      report.status = reason;
+      report.closedAt = this.now().toISOString();
+      this.database.persist();
+      return toMyLostReport(report, []);
+    });
+  }
+
+  listOpenLostReports() {
+    return this.settle(() =>
+      this.db.lostReports
+        .filter((report) => report.status === "searching")
+        .sort((left, right) => right.lostAt.localeCompare(left.lostAt))
+        .map(toPublicLostReport),
+    );
   }
 
   submitClaim(draft: NewClaim) {
@@ -246,7 +309,7 @@ export class MockLostFoundApi implements LostFoundApi {
   }
 
   private recordVerifiedClaim(stored: StoredFoundItem, draft: NewClaim): Claim {
-    const claim: Claim = {
+    const claim: StoredClaim = {
       id: this.nextId("clm"),
       itemId: stored.id,
       itemTitle: stored.title,
@@ -259,6 +322,7 @@ export class MockLostFoundApi implements LostFoundApi {
       status: "verified",
       createdAt: this.now().toISOString(),
       returnedAt: null,
+      ownerEmail: this.signedInAccount()?.email ?? null,
     };
     stored.status = "claimed";
     this.db.claims.unshift(claim);
@@ -267,7 +331,7 @@ export class MockLostFoundApi implements LostFoundApi {
   }
 
   listPendingReturns() {
-    return this.settle(() => this.db.claims.filter((claim) => claim.status === "verified").map((claim) => ({ ...claim })));
+    return this.settle(() => this.db.claims.filter((claim) => claim.status === "verified").map(toPublicClaim));
   }
 
   confirmReturn(claimId: string) {
@@ -282,7 +346,7 @@ export class MockLostFoundApi implements LostFoundApi {
       stored.status = "returned";
       stored.returnedAt = returnedAt;
       this.database.persist();
-      return { ...claim };
+      return toPublicClaim(claim);
     });
   }
 
@@ -300,10 +364,14 @@ export class MockLostFoundApi implements LostFoundApi {
     return this.db.accounts.find((candidate) => candidate.email === normalizeEmail(email));
   }
 
-  private requireSignedIn(): StoredAccount {
+  private signedInAccount(): StoredAccount | undefined {
     const token = this.getAccessToken() ?? "";
     const email = MOCK_TOKEN_PATTERN.exec(token)?.[1];
-    const account = email ? this.findAccount(email) : undefined;
+    return email ? this.findAccount(email) : undefined;
+  }
+
+  private requireSignedIn(): StoredAccount {
+    const account = this.signedInAccount();
     if (!account) throw new ApiError("UNAUTHORIZED", messages().errors.sessionExpired, 401);
     return account;
   }

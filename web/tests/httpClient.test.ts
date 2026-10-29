@@ -46,6 +46,25 @@ describe("createHttpApi follows docs/API_CONTRACT.md", () => {
     expect(calls[0]).toMatchObject({ url: "/api/admin/claims?status=verified", authorization: "Bearer token-123" });
   });
 
+  it("reads my lost reports from /api/lost-reports/mine with the bearer token", async () => {
+    const calls = stubFetch(200, { reports: [], claims: [] });
+    await expect(createHttpApi("/api", () => "token-123").listMyLostReports()).resolves.toEqual({ reports: [], claims: [] });
+    expect(calls[0]).toMatchObject({ url: "/api/lost-reports/mine", method: "GET", authorization: "Bearer token-123" });
+  });
+
+  it("closes a lost report with the reason in the body", async () => {
+    const calls = stubFetch(200, { id: "lst-8f2a", status: "found" });
+    await createHttpApi("/api", () => "token-123").closeLostReport("lst-8f2a", "found");
+    expect(calls[0]).toMatchObject({ url: "/api/lost-reports/lst-8f2a/close", method: "POST", body: { reason: "found" }, authorization: "Bearer token-123" });
+  });
+
+  it("unwraps the public lost board from /api/lost-reports", async () => {
+    const notice = { id: "lst-1", title: "ร่ม", category: "other", lastSeenLocationId: "loc-library", lostAt: "2026-10-28T09:00:00.000Z" };
+    const calls = stubFetch(200, { reports: [notice] });
+    await expect(createHttpApi("/api", () => null).listOpenLostReports()).resolves.toEqual([notice]);
+    expect(calls[0]).toMatchObject({ url: "/api/lost-reports", method: "GET", authorization: null });
+  });
+
   it("turns the error envelope into an ApiError with the server message", async () => {
     stubFetch(409, { error: { code: "CONFLICT", message: "มีผู้ยืนยันแล้ว" } });
     const failure = await createHttpApi("/api", () => null).getFoundItem("itm-1").catch((caught: unknown) => caught);

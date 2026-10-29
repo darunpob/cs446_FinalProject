@@ -1,17 +1,30 @@
 import type { FormEvent } from "react";
-import { CircleCheckBig, Clock3, EyeOff, Lightbulb, Lock, ShieldCheck, Store } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { CircleCheckBig, Clock3, EyeOff, HandHelping, Lightbulb, Lock, ShieldCheck, Store } from "lucide-react";
 import type { FoundItem } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
 import { Field, TextArea, TextInput } from "../../design-system/Field";
 import { FormSection, PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice, StatusStamp } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
+import { isCategoryId } from "../catalog/categories";
 import { CategoryPicker } from "../catalog/CategoryPicker";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { PlaceSelect } from "../catalog/PlaceSelect";
 import { ItemVisual } from "../items/ItemVisual";
 import { PhotoPicker } from "./PhotoPicker";
 import { useFoundReportForm } from "./useFoundReportForm";
+import type { FoundReportPrefill } from "./useFoundReportForm";
+
+function readPrefill(params: URLSearchParams): FoundReportPrefill {
+  const category = params.get("category");
+  const prefill: FoundReportPrefill = {
+    title: params.get("title")?.slice(0, 200),
+    category: isCategoryId(category) ? category : undefined,
+    foundLocationId: params.get("location") ?? undefined,
+  };
+  return Object.fromEntries(Object.entries(prefill).filter(([, value]) => value)) as FoundReportPrefill;
+}
 
 function DropOffPicker({ value, onChange, error }: { value: string; onChange: (dropOffId: string) => void; error?: string }) {
   const { directory } = useDirectory();
@@ -93,7 +106,10 @@ function FoundSuccess({ foundItem, onAnother }: { foundItem: FoundItem; onAnothe
 }
 
 export function ReportFoundPage() {
-  const { draft, errors, setField, submit, submitting, failure, setFailure, created, reset } = useFoundReportForm();
+  const [params] = useSearchParams();
+  const prefill = readPrefill(params);
+  const { draft, errors, setField, submit, submitting, failure, setFailure, created, reset } = useFoundReportForm(prefill);
+  const prefilled = Object.keys(prefill).length > 0;
   const { t } = useI18n();
   const text = t.reportFound;
 
@@ -108,6 +124,11 @@ export function ReportFoundPage() {
   return (
     <>
       <PageHeading stock="reportFound" title={text.title} description={text.description} />
+      {prefilled && (
+        <p role="note" className="paper mb-6 flex max-w-3xl gap-3 rounded-md border-2 border-stock-mint p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
+          <HandHelping className="mt-0.5 size-5 shrink-0 text-ink" aria-hidden /> {text.prefillNote}
+        </p>
+      )}
       <form onSubmit={handleSubmit} noValidate className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-6">
           <FormSection step={1} title={text.step1Title} description={text.step1Description}>

@@ -10,6 +10,7 @@ import { PageHeading } from "../../design-system/FormSection";
 import { Badge, Card, ErrorNotice, Spinner } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { useAuth } from "../auth/AuthProvider";
+import { MyReportsLinkCard } from "../report-lost/MyReportsPage";
 import { PasswordForm } from "./PasswordForm";
 import { ProfileForm } from "./ProfileForm";
 
@@ -63,6 +64,7 @@ export function AccountPage() {
       {state.phase === "ready" && (
         <div className="flex flex-col gap-6">
           <ProfileSummary profile={{ ...state.value, displayName: session?.user.displayName ?? state.value.displayName }} onSignOut={handleSignOut} />
+          <MyReportsLinkCard />
           <ProfileForm key={state.value.email} profile={state.value} onSaved={refreshUser} />
           <PasswordForm />
         </div>

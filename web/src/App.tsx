@@ -9,6 +9,8 @@ import { DirectoryProvider } from "./features/catalog/DirectoryProvider";
 import { HomePage } from "./features/items/HomePage";
 import { ItemDetailPage } from "./features/items/ItemDetailPage";
 import { ReportFoundPage } from "./features/report-found/ReportFoundPage";
+import { LostBoardPage } from "./features/report-lost/LostBoardPage";
+import { MyReportsPage } from "./features/report-lost/MyReportsPage";
 import { ReportLostPage } from "./features/report-lost/ReportLostPage";
 import { ButtonLink } from "./design-system/Button";
 import { EmptyState } from "./design-system/Surface";
@@ -37,7 +39,9 @@ export function App() {
               <Route index element={<HomePage />} />
               <Route path="items/:itemId" element={<ItemDetailPage />} />
               <Route path="report-found" element={<ReportFoundPage />} />
-              <Route path="report-lost" element={<ReportLostPage />} />
+              <Route path="report-lost" element={<RequireAuth><ReportLostPage /></RequireAuth>} />
+              <Route path="my-reports" element={<RequireAuth><MyReportsPage /></RequireAuth>} />
+              <Route path="looking-for" element={<LostBoardPage />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />
               <Route path="account" element={<RequireAuth><AccountPage /></RequireAuth>} />

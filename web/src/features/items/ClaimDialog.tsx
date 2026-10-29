@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Link } from "react-router";
 import { CircleHelp, Clock3, MapPin, Phone, ShieldAlert } from "lucide-react";
 import { api } from "../../api/client";
 import type { ClaimOutcome, FoundItem } from "../../api/contract";
@@ -116,6 +117,7 @@ export function ClaimDialog({ foundItem, open, onClose, onVerified }: ClaimDialo
 function PickupTicket({ pickupCode, dropOffPointId, onDone }: { pickupCode: string; dropOffPointId: string; onDone: () => void }) {
   const { dropOffPoint } = useDirectory();
   const point = dropOffPoint(dropOffPointId);
+  const { session } = useAuth();
   const { t } = useI18n();
   return (
     <div className="flex flex-col gap-5">
@@ -132,6 +134,11 @@ function PickupTicket({ pickupCode, dropOffPointId, onDone }: { pickupCode: stri
       <p className="text-sm leading-relaxed text-ink-2">
         {t.claim.pickupBefore} <strong className="text-ink">{t.claim.pickupStrong}</strong> {t.claim.pickupAfter}
       </p>
+      {session && (
+        <p className="text-sm text-ink-2">
+          {t.claim.ticketSaved} <Link to="/my-reports" onClick={onDone} className="font-semibold text-ink underline underline-offset-2">{t.claim.ticketSavedLink}</Link>
+        </p>
+      )}
       <Button onClick={onDone} variant="secondary" size="lg" className="w-full">{t.claim.done}</Button>
     </div>
   );

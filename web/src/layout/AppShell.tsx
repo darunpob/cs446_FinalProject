@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { useEffect } from "react";
-import { CirclePlus, House, LogIn, LogOut, Megaphone, ShieldCheck, UserRound } from "lucide-react";
+import { CirclePlus, House, LogIn, LogOut, Megaphone, SearchCheck, ShieldCheck, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../features/auth/AuthProvider";
 import { USE_MOCK, resetMockData } from "../api/client";
@@ -23,6 +23,7 @@ interface NavEntry {
 const PUBLIC_NAV: NavEntry[] = [
   { to: "/", labelKey: "found", icon: House, stock: "found" },
   { to: "/report-lost", labelKey: "reportLost", icon: Megaphone, stock: "lost" },
+  { to: "/looking-for", labelKey: "lostBoard", icon: SearchCheck, stock: "lost" },
 ];
 
 const GUARD_NAV: NavEntry = { to: "/admin", labelKey: "guard", icon: ShieldCheck, stock: "guard" };
@@ -104,14 +105,15 @@ function MobileTabBar({ navEntries }: { navEntries: NavEntry[] }) {
   const { session } = useAuth();
   const { t } = useI18n();
   const tabs = [...navEntries, { to: session ? "/account" : "/login", labelKey: "account" as const, icon: UserRound, stock: "account" as const }];
+  const splitAt = Math.floor(tabs.length / 2);
   return (
     <nav aria-label={t.nav.mobileMenu} className="paper fixed inset-x-0 bottom-0 z-40 border-t-4 border-stock-yellow pb-[env(safe-area-inset-bottom)] shadow-sheet md:hidden">
       <div className="mx-auto flex max-w-md items-center justify-around px-2">
-        {tabs.slice(0, 1).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
+        {tabs.slice(0, splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
         <Link to="/report-found" aria-label={t.nav.reportFound} className="-mt-6 grid size-14 place-items-center rounded-lg bg-stock-mint text-stock-ink shadow-lifted transition-[translate] duration-150 active:translate-y-px">
           <CirclePlus className="size-6" aria-hidden />
         </Link>
-        {tabs.slice(1).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
+        {tabs.slice(splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
       </div>
     </nav>
   );

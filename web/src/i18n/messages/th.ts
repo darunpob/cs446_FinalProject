@@ -37,6 +37,7 @@ export interface Messages {
     mainMenu: string;
     mobileMenu: string;
     homeLabel: string;
+    lostBoard: string;
   };
   footer: { credit: string; mockData: string; resetMock: string };
   theme: { toLight: string; toDark: string };
@@ -111,6 +112,8 @@ export interface Messages {
     pickupStrong: string;
     pickupAfter: string;
     done: string;
+    ticketSaved: string;
+    ticketSavedLink: string;
   };
   photo: {
     onlyImages: string;
@@ -156,6 +159,7 @@ export interface Messages {
     itemRef: string;
     viewPost: string;
     reportAnother: string;
+    prefillNote: string;
     timeRequired: string;
     timeInFuture: string;
     titleTooShort: string;
@@ -209,6 +213,7 @@ export interface Messages {
     confirmEmailBody: (email: string) => string;
     emailHint: string;
     emailNotUniversity: string;
+    myReportsLink: string;
   };
   login: {
     demoAccounts: string;
@@ -249,6 +254,41 @@ export interface Messages {
     newPassword: string;
     changePassword: string;
     passwordChanged: string;
+    myReportsTitle: string;
+    myReportsDescription: string;
+    myReportsOpen: string;
+  };
+  myReports: {
+    title: string;
+    subtitle: string;
+    newReport: string;
+    claimsTitle: string;
+    claimsHint: string;
+    claimWaiting: string;
+    claimReturned: string;
+    reportsTitle: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    status: { searching: string; found: string; cancelled: string };
+    lostAtPlace: (place: string, date: string) => string;
+    closedAgo: (relative: string) => string;
+    matchesTitle: (count: number) => string;
+    noMatchesYet: string;
+    markFound: string;
+    cancelReport: string;
+    confirmFound: string;
+    confirmCancel: string;
+    keepOpen: string;
+  };
+  lostBoard: {
+    title: string;
+    subtitle: string;
+    privacyNote: string;
+    lostNear: (place: string) => string;
+    iFoundIt: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    listLabel: string;
   };
   admin: {
     greeting: (name: string) => string;
@@ -289,6 +329,9 @@ export interface Messages {
     emailTaken: string;
     wrongCurrentPassword: string;
     sessionExpired: string;
+    closeReasonInvalid: string;
+    lostReportNotFound: string;
+    lostReportClosed: string;
     fields: { itemTitle: string; question: string; answer: string; lostWhat: string; reporterName: string; displayName: string };
   };
 }
@@ -314,6 +357,7 @@ export const th: Messages = {
     mainMenu: "เมนูหลัก",
     mobileMenu: "เมนูมือถือ",
     homeLabel: "BU Lost & Found หน้าแรก",
+    lostBoard: "ประกาศตามหา",
   },
   footer: {
     credit: "BU Lost & Found · โปรเจกต์ CS446 Cloud Computing · มหาวิทยาลัยกรุงเทพ",
@@ -400,6 +444,8 @@ export const th: Messages = {
     pickupStrong: "บัตรนักศึกษา",
     pickupAfter: "ให้เจ้าหน้าที่ที่จุดรับฝาก แนะนำให้แคปหน้าจอเก็บไว้",
     done: "เรียบร้อย",
+    ticketSaved: "รหัสนี้เก็บไว้ในบัญชีแล้ว เปิดดูอีกครั้งได้ที่",
+    ticketSavedLink: "ของที่ฉันแจ้งหาย",
   },
   photo: {
     onlyImages: "รองรับเฉพาะไฟล์รูปภาพ",
@@ -449,6 +495,7 @@ export const th: Messages = {
     itemRef: "รหัสรายการ",
     viewPost: "ดูประกาศ",
     reportAnother: "แจ้งชิ้นต่อไป",
+    prefillNote: "กรอกชื่อ หมวด และบริเวณจากประกาศตามหาไว้ให้แล้ว แก้ให้ตรงกับของที่คุณเก็บได้จริง และตั้งคำถามยืนยันจากสิ่งที่เห็นบนของเอง",
     timeRequired: "ระบุเวลาที่เจอ",
     timeInFuture: "เวลาที่เจอต้องไม่อยู่ในอนาคต",
     titleTooShort: "บอกชื่อสิ่งของสั้น ๆ อย่างน้อย 3 ตัวอักษร",
@@ -502,6 +549,7 @@ export const th: Messages = {
     confirmEmailBody: (email) => `เราส่งอีเมลจาก "BU Lost & Found" ไปที่ ${email} แล้ว กดลิงก์ Confirm subscription ในอีเมลนั้น ไม่อย่างนั้นจะไม่ได้รับแจ้งเตือน (ถ้าไม่เจอ ลองดูในโฟลเดอร์สแปม)`,
     emailHint: "ใช้อีเมลมหาวิทยาลัย @bumail.net (บุคลากรใช้ @bu.ac.th)",
     emailNotUniversity: "ต้องเป็นอีเมลมหาวิทยาลัย @bumail.net หรือ @bu.ac.th",
+    myReportsLink: "ดูของที่ฉันแจ้งหาย",
   },
   login: {
     demoAccounts: "บัญชีทดลอง (โหมดข้อมูลจำลอง)",
@@ -542,6 +590,41 @@ export const th: Messages = {
     newPassword: "รหัสผ่านใหม่",
     changePassword: "เปลี่ยนรหัสผ่าน",
     passwordChanged: "เปลี่ยนรหัสผ่านแล้ว",
+    myReportsTitle: "ของที่ฉันแจ้งหาย",
+    myReportsDescription: "ติดตามประกาศ ดูของที่อาจตรงกัน และเปิดรหัสรับของย้อนหลัง",
+    myReportsOpen: "เปิดดู",
+  },
+  myReports: {
+    title: "ของที่ฉันแจ้งหาย",
+    subtitle: "ประกาศของคุณ ของที่อาจตรงกัน (คำนวณใหม่ทุกครั้งที่เปิดหน้านี้) และรหัสรับของทั้งหมดอยู่ที่นี่",
+    newReport: "แจ้งของหายเพิ่ม",
+    claimsTitle: "รหัสรับของ",
+    claimsHint: "แสดงรหัสนี้พร้อมบัตรนักศึกษาที่จุดรับฝาก",
+    claimWaiting: "รอรับที่จุดรับฝาก",
+    claimReturned: "รับของแล้ว",
+    reportsTitle: "ประกาศของฉัน",
+    emptyTitle: "ยังไม่มีประกาศของหาย",
+    emptyDescription: "เมื่อแจ้งของหาย รายการจะขึ้นที่นี่พร้อมของที่อาจตรงกัน",
+    status: { searching: "กำลังตามหา", found: "ได้คืนแล้ว", cancelled: "ยกเลิก" },
+    lostAtPlace: (place, date) => `หายที่ ${place} · ${date}`,
+    closedAgo: (relative) => `ปิดประกาศ ${relative}`,
+    matchesTitle: (count) => `ของที่อาจตรงกัน ${count} ชิ้น`,
+    noMatchesYet: "ยังไม่มีของที่ตรงกัน ลองกลับมาดูใหม่ภายหลัง",
+    markFound: "ได้ของคืนแล้ว",
+    cancelReport: "ยกเลิกประกาศ",
+    confirmFound: "ยืนยัน ได้คืนแล้ว",
+    confirmCancel: "ยืนยันยกเลิก",
+    keepOpen: "ยังตามหาอยู่",
+  },
+  lostBoard: {
+    title: "ประกาศตามหา",
+    subtitle: "ของที่เพื่อน ๆ กำลังตามหาอยู่ ถ้าคุณเก็บได้ กด “ฉันเจอของชิ้นนี้” แล้วแจ้งเจอของตามปกติ ระบบจะแจ้งเจ้าของให้เอง",
+    privacyNote: "บอร์ดนี้แสดงแค่ชื่อของ หมวด บริเวณที่หาย และวันที่ ไม่แสดงรายละเอียดหรือช่องทางติดต่อของเจ้าของ เพื่อไม่ให้ใครเอาไปตอบคำถามยืนยันแทนเจ้าของตัวจริง",
+    lostNear: (place) => `หายแถว ${place}`,
+    iFoundIt: "ฉันเจอของชิ้นนี้",
+    emptyTitle: "ยังไม่มีใครตามหาของ",
+    emptyDescription: "เมื่อมีคนแจ้งของหาย ประกาศจะขึ้นที่นี่",
+    listLabel: "รายการประกาศตามหา",
   },
   admin: {
     greeting: (name) => `สวัสดี, ${name}`,
@@ -582,6 +665,9 @@ export const th: Messages = {
     emailTaken: "อีเมลนี้มีบัญชีอยู่แล้ว ลองเข้าสู่ระบบแทน",
     wrongCurrentPassword: "รหัสผ่านปัจจุบันไม่ถูกต้อง",
     sessionExpired: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
+    closeReasonInvalid: "เหตุผลการปิดประกาศไม่ถูกต้อง",
+    lostReportNotFound: "ไม่พบประกาศนี้",
+    lostReportClosed: "ประกาศนี้ปิดไปแล้ว",
     fields: { itemTitle: "ชื่อสิ่งของ", question: "คำถามยืนยัน", answer: "คำตอบยืนยัน", lostWhat: "สิ่งที่หาย", reporterName: "ชื่อผู้แจ้ง", displayName: "ชื่อ" },
   },
 };

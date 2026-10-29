@@ -20,7 +20,10 @@ export interface FoundReportDraft {
 
 export type FoundReportErrors = Partial<Record<keyof FoundReportDraft, string>>;
 
-function blankDraft(): FoundReportDraft {
+/** Fields the public lost board may hand over when a finder taps "I found this". */
+export type FoundReportPrefill = Partial<Pick<FoundReportDraft, "title" | "category" | "foundLocationId">>;
+
+function blankDraft(prefill: FoundReportPrefill = {}): FoundReportDraft {
   return {
     photo: null,
     title: "",
@@ -31,6 +34,7 @@ function blankDraft(): FoundReportDraft {
     dropOffPointId: "",
     verificationQuestion: "",
     verificationAnswer: "",
+    ...prefill,
   };
 }
 
@@ -55,8 +59,8 @@ export function validateFoundReport(draft: FoundReportDraft, now: Date = new Dat
   return Object.fromEntries(Object.entries(checks).filter(([, message]) => message)) as FoundReportErrors;
 }
 
-export function useFoundReportForm() {
-  const [draft, setDraft] = useState<FoundReportDraft>(blankDraft);
+export function useFoundReportForm(prefill: FoundReportPrefill = {}) {
+  const [draft, setDraft] = useState<FoundReportDraft>(() => blankDraft(prefill));
   const [errors, setErrors] = useState<FoundReportErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
