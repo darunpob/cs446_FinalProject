@@ -1,12 +1,13 @@
 import type { FormEvent } from "react";
-import { useSearchParams } from "react-router";
-import { CircleCheckBig, Clock3, EyeOff, HandHelping, Lightbulb, Lock, ShieldCheck, Store } from "lucide-react";
+import { Link, useLocation, useSearchParams } from "react-router";
+import { CircleCheckBig, Clock3, EyeOff, Gift, HandHelping, Lightbulb, Lock, ShieldCheck, Store } from "lucide-react";
 import type { FoundItem } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
 import { Field, TextArea, TextInput } from "../../design-system/Field";
 import { FormSection, PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice, StatusStamp } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
+import { useAuth } from "../auth/AuthProvider";
 import { isCategoryId } from "../catalog/categories";
 import { CategoryPicker } from "../catalog/CategoryPicker";
 import { useDirectory } from "../catalog/DirectoryProvider";
@@ -106,6 +107,8 @@ function FoundSuccess({ foundItem, onAnother }: { foundItem: FoundItem; onAnothe
 }
 
 export function ReportFoundPage() {
+  const { session } = useAuth();
+  const location = useLocation();
   const [params] = useSearchParams();
   const prefill = readPrefill(params);
   const { draft, errors, setField, submit, submitting, failure, setFailure, created, reset } = useFoundReportForm(prefill);
@@ -124,6 +127,13 @@ export function ReportFoundPage() {
   return (
     <>
       <PageHeading stock="reportFound" title={text.title} description={text.description} />
+      {!session && (
+        <p role="note" className="paper mb-6 flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1 rounded-md p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
+          <Gift className="size-5 shrink-0 text-ink" aria-hidden />
+          <span className="min-w-0 flex-1">{t.reward.finderLoginNote}</span>
+          <Link to={`/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`} className="font-semibold text-ink underline underline-offset-2">{t.reward.finderLoginLink}</Link>
+        </p>
+      )}
       {prefilled && (
         <p role="note" className="paper mb-6 flex max-w-3xl gap-3 rounded-md border-2 border-stock-mint p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
           <HandHelping className="mt-0.5 size-5 shrink-0 text-ink" aria-hidden /> {text.prefillNote}

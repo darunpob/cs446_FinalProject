@@ -12,6 +12,8 @@ import { CategoryPicker } from "../catalog/CategoryPicker";
 import { PlaceSelect } from "../catalog/PlaceSelect";
 import { ItemCard, NOTICE_GRID } from "../items/ItemCard";
 import { LINE_OA_URL, LineFollowCard } from "./LineFollowCard";
+import { RewardPanel } from "./RewardPanel";
+import { RewardPicker } from "./RewardPicker";
 import { useLostReportForm } from "./useLostReportForm";
 
 const CARD_HOLDING_CATEGORIES: CategoryId[] = ["card", "wallet"];
@@ -41,6 +43,12 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
           </div>
         </div>
       </Card>
+      {receipt.reward && (
+        <Card className="mt-6 p-5 sm:p-6">
+          <h2 className="mb-3 text-lg font-semibold">{t.reward.payPrompt(receipt.reward.amount)}</h2>
+          <RewardPanel reportId={receipt.id} reward={receipt.reward} />
+        </Card>
+      )}
       {LINE_OA_URL && <LineFollowCard reportId={receipt.id} />}
       <div className="mt-12 mb-5 flex items-center gap-2">
         <Sparkles className="size-5 text-stock-yellow" aria-hidden />
@@ -126,6 +134,10 @@ export function ReportLostPage() {
               {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} type="tel" inputMode="tel" leading={<Phone className="size-4" />} invalid={Boolean(errors.phone)} value={draft.phone} onChange={(event) => setField("phone", event.target.value)} />}
             </Field>
           </div>
+        </FormSection>
+
+        <FormSection step={4} title={t.reward.sectionTitle} description={t.reward.sectionDescription}>
+          <RewardPicker value={draft.reward} onChange={(reward) => setField("reward", reward)} error={errors.reward} />
         </FormSection>
 
         {failure && <ErrorNotice message={failure} />}

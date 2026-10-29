@@ -35,7 +35,7 @@ describe("createHttpApi follows docs/API_CONTRACT.md", () => {
 
   it("posts claims to /api/items/{id}/claims without repeating the id in the body", async () => {
     const calls = stubFetch(200, { status: "rejected", attemptsLeft: 2 });
-    const claimForm = { answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" };
+    const claimForm = { answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line", lostReportId: "" };
     await createHttpApi("/api/", () => null).submitClaim({ itemId: "itm-1003", ...claimForm });
     expect(calls[0]).toMatchObject({ url: "/api/items/itm-1003/claims", method: "POST", body: claimForm });
   });
@@ -63,6 +63,21 @@ describe("createHttpApi follows docs/API_CONTRACT.md", () => {
     const calls = stubFetch(200, { reports: [notice] });
     await expect(createHttpApi("/api", () => null).listOpenLostReports()).resolves.toEqual([notice]);
     expect(calls[0]).toMatchObject({ url: "/api/lost-reports", method: "GET", authorization: null });
+  });
+
+  it("starts a reward checkout for the owner's report", async () => {
+    const calls = stubFetch(200, { checkoutUrl: "https://checkout.stripe.com/c/pay/cs_test_1" });
+    await expect(createHttpApi("/api", () => "token-123").startRewardCheckout("lst-8f2a")).resolves.toEqual({ checkoutUrl: "https://checkout.stripe.com/c/pay/cs_test_1" });
+    expect(calls[0]).toMatchObject({ url: "/api/lost-reports/lst-8f2a/reward/checkout", method: "POST", authorization: "Bearer token-123" });
+  });
+
+  it("lists and confirms reward payouts under /api/admin/payouts", async () => {
+    const calls = stubFetch(200, { payouts: [] });
+    await expect(createHttpApi("/api", () => "guard-token").listPendingPayouts()).resolves.toEqual([]);
+    expect(calls[0].url).toBe("/api/admin/payouts?status=pending_payout");
+    const confirmCalls = stubFetch(200, { rewardId: "rwd-1" });
+    await createHttpApi("/api", () => "guard-token").confirmPayout("rwd-1");
+    expect(confirmCalls[0]).toMatchObject({ url: "/api/admin/payouts/rwd-1/paid", method: "POST", authorization: "Bearer guard-token" });
   });
 
   it("turns the error envelope into an ApiError with the server message", async () => {

@@ -101,17 +101,73 @@ export interface NewLostReport {
   /** 10-digit student ID, or "" — lets the backend match a photographed student card to this report. */
   studentId: string;
   contact: ContactChannels;
+  /** Whole baht; 0 = no reward, otherwise REWARD_MIN_BAHT..REWARD_MAX_BAHT. */
+  rewardAmount: number;
+}
+
+/** Payments run in the gateway's test mode only: taking real money needs a registered business. */
+export const REWARD_MIN_BAHT = 20;
+export const REWARD_MAX_BAHT = 500;
+export const REWARD_FEE_RATE = 0.1;
+export const REWARD_HOLD_DAYS = 30;
+
+export function rewardFee(amount: number): number {
+  return Math.round(amount * REWARD_FEE_RATE);
+}
+
+/**
+ * awaiting_payment → held (escrow) → pending_payout (guard confirmed the return) → paid_out (admin marked the transfer).
+ * A held reward is refunded when the owner closes the report, after REWARD_HOLD_DAYS, or when no eligible finder exists.
+ */
+export type RewardStatus = "awaiting_payment" | "held" | "pending_payout" | "paid_out" | "refunded" | "voided";
+
+export interface Reward {
+  id: string;
+  amount: number;
+  fee: number;
+  status: RewardStatus;
+  paidAt: string | null;
+  /** When the hold ends and an unclaimed reward is refunded; null until paid. */
+  expiresAt: string | null;
+  settledAt: string | null;
+}
+
+export interface RewardCheckout {
+  checkoutUrl: string;
+}
+
+/** A reward released to the signed-in user as the finder. `netAmount` is after the fee. */
+export interface EarnedReward {
+  rewardId: string;
+  itemTitle: string;
+  netAmount: number;
+  status: Extract<RewardStatus, "pending_payout" | "paid_out">;
+  releasedAt: string;
+}
+
+export interface RewardPayout {
+  rewardId: string;
+  lostReportId: string;
+  itemTitle: string;
+  finderName: string;
+  finderEmail: string;
+  finderStudentId: string;
+  grossAmount: number;
+  fee: number;
+  netAmount: number;
+  releasedAt: string;
 }
 
 export interface LostReportReceipt {
   id: string;
   createdAt: string;
   possibleMatches: FoundItem[];
+  reward: Reward | null;
 }
 
 export type LostReportStatus = "searching" | "found" | "cancelled";
 
-export type LostReportCloseReason = Exclude<LostReportStatus, "searching">;
+export type LostReportCloseReason = "found" | "cancelled";
 
 /** A lost report as its owner sees it. `possibleMatches` is recomputed on every read and is [] once closed. */
 export interface MyLostReport {
@@ -125,6 +181,7 @@ export interface MyLostReport {
   status: LostReportStatus;
   closedAt: string | null;
   possibleMatches: FoundItem[];
+  reward: Reward | null;
 }
 
 /** A verified claim made while signed in, so the pickup code can be looked up again after the dialog closes. */
@@ -142,6 +199,7 @@ export interface MyClaim {
 export interface MyLostReports {
   reports: MyLostReport[];
   claims: MyClaim[];
+  earnedRewards: EarnedReward[];
 }
 
 /**
@@ -154,6 +212,8 @@ export interface PublicLostReport {
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  /** Only whether a reward is held — never the amount, so the board does not price stolen goods. */
+  hasReward: boolean;
 }
 
 export interface NewClaim {
@@ -162,6 +222,8 @@ export interface NewClaim {
   claimantName: string;
   studentId: string;
   contact: string;
+  /** The claimant's own open lost report this item answers, or "" — links the reward to the return. */
+  lostReportId: string;
 }
 
 export type ClaimOutcome =
@@ -247,6 +309,9 @@ export interface LostFoundApi {
   listMyLostReports(): Promise<MyLostReports>;
   closeLostReport(reportId: string, reason: LostReportCloseReason): Promise<MyLostReport>;
   listOpenLostReports(): Promise<PublicLostReport[]>;
+  startRewardCheckout(reportId: string): Promise<RewardCheckout>;
+  listPendingPayouts(): Promise<RewardPayout[]>;
+  confirmPayout(rewardId: string): Promise<RewardPayout>;
   submitClaim(draft: NewClaim): Promise<ClaimOutcome>;
   listPendingReturns(): Promise<Claim[]>;
   confirmReturn(claimId: string): Promise<Claim>;

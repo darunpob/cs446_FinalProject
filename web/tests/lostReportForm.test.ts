@@ -13,6 +13,7 @@ const completeDraft: LostReportDraft = {
   lineId: "",
   phone: "",
   email: "thanaphon.j@bumail.net",
+  reward: "",
 };
 
 describe("validateLostReport", () => {

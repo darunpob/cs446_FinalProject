@@ -1,6 +1,15 @@
-# BU Lost & Found — API Contract (v4)
+# BU Lost & Found — API Contract (v5)
 
-> **มีอะไรใหม่ใน v4 (ฝั่ง backend ต้องทำ):**
+> **มีอะไรใหม่ใน v5 — รางวัลแบบพักเงิน (escrow) · โหมดทดสอบเท่านั้น (ฝั่ง backend ต้องทำ):**
+> 1. `POST /api/lost-reports` รับ `rewardAmount` (บาท, `0` = ไม่ตั้ง) · response และ `GET /api/lost-reports/mine` มี `reward`
+> 2. เพิ่ม `POST /api/lost-reports/{id}/reward/checkout` 🔒 → สร้าง Stripe Checkout Session (test mode)
+> 3. เพิ่ม Lambda รับ webhook จาก Stripe (`checkout.session.completed`) และ Lambda ที่ EventBridge Scheduler เรียกทุกวันเพื่อคืนเงินรางวัลที่ครบ 30 วัน — ข้อ 2b
+> 4. `POST /api/items` บันทึก `finder_email` จาก JWT (token ไม่บังคับ) · `POST /api/items/{id}/claims` รับ `lostReportId` · `POST /api/admin/claims/{id}/return` ปล่อยรางวัล · `POST /api/lost-reports/{id}/close` คืนเงิน
+> 5. เพิ่ม `GET /api/admin/payouts?status=pending_payout` 🔒 และ `POST /api/admin/payouts/{rewardId}/paid` 🔒 (รายการ "รอโอน" ที่แอดมินกดยืนยัน ไม่มีการโอนจริง)
+> 6. บอร์ดสาธารณะเพิ่ม `hasReward` (true/false เท่านั้น **ห้ามส่งจำนวนเงิน**) · `GET /api/lost-reports/mine` เพิ่ม `earnedRewards`
+> 7. schema: ตารางใหม่ `rewards`, `found_items.finder_email`, `claims.lost_report_id` — SQL อยู่ท้ายข้อ 7
+
+> **v4:**
 > 1. `POST /api/lost-reports` **เปลี่ยนเป็น 🔒 ต้องล็อกอิน** — เจ้าของรายงานอ่านจาก JWT ห้ามใช้ `contact.email` ในฟอร์ม
 > 2. เพิ่ม `GET /api/lost-reports/mine` 🔒, `POST /api/lost-reports/{id}/close` 🔒 และบอร์ดสาธารณะ `GET /api/lost-reports`
 > 3. `POST /api/items/{id}/claims` ถ้ามี token ให้บันทึกเจ้าของ claim ด้วย (ยังไม่บังคับล็อกอิน)
@@ -26,6 +35,13 @@ graph LR
   ASG --> REK[Rekognition]
   ASG --> SNS[SNS → อีเมล]
   LINE[LINE Platform] -.->|webhook ไม่บังคับ| CF
+  ASG -->|สร้าง Checkout Session / refund| PAY[Stripe test mode]
+  U -->|จ่ายด้วยบัตรทดสอบ| PAY
+  PAY -->|webhook| LW[Lambda: payment webhook<br/>Function URL]
+  LW --> RDS
+  EB[EventBridge Scheduler<br/>ทุกวัน] --> LR[Lambda: refund หมดอายุ]
+  LR --> RDS
+  LR -->|refund| PAY
 ```
 
 | ส่วน | ใช้อะไร | หมายเหตุ |
@@ -36,6 +52,7 @@ graph LR
 | รูป | S3 (bucket แยกจากหน้าเว็บ) + presigned URL | ผ่าน CloudFront ได้ถ้าต้องการ |
 | AI | Rekognition `DetectLabels`, `DetectText` | ข้อ 3 |
 | อีเมล | SNS | ข้อ 2 |
+| รางวัล | Stripe **test mode** + Lambda (webhook, refund) + EventBridge Scheduler | ข้อ 2b · Lambda ต้องอยู่ใน VPC/subnet เดียวกับ RDS และใช้ role `LabRole` |
 
 **ทำไม CloudFront ต้องส่ง `/api/*` ไป ALB:** ALB ใน Learner Lab ไม่มี HTTPS (ใช้ ACM ต้องมีโดเมน) หน้าเว็บที่เปิดผ่าน HTTPS เรียก `http://…elb.amazonaws.com` ตรง ๆ ไม่ได้ (mixed content) ให้สร้าง behavior `/api/*` → origin = ALB (origin protocol HTTP), cache policy `CachingDisabled`, origin request policy `AllViewerExceptHostHeader`, allowed methods ทั้งหมด (GET…DELETE) — หน้าเว็บกับ API จะอยู่ origin เดียวกันและไม่ต้องตั้ง CORS ฝั่ง API
 
@@ -44,7 +61,7 @@ graph LR
 - สร้าง IAM role เองไม่ได้ → launch template ของ EC2 ใช้ instance profile **`LabInstanceProfile`** แล้ว AWS SDK บนเครื่องจะได้สิทธิ์ S3 / SNS / Rekognition เอง ไม่ต้องใส่ access key ในโค้ด
 - ปิด lab แล้ว resource อาจถูกหยุด → ก่อน demo ให้ start lab แล้วเช็กว่า EC2, RDS และ target health เป็นปกติ
 
-**Service ที่นับคะแนนได้ (ไม่นับสีม่วง):** EC2, EC2 Auto Scaling, Elastic Load Balancing, RDS, S3, CloudFront, EBS (ดิสก์ของ EC2), Rekognition, SNS
+**Service ที่นับคะแนนได้ (ไม่นับสีม่วง):** EC2, EC2 Auto Scaling, Elastic Load Balancing, RDS, S3, CloudFront, EBS (ดิสก์ของ EC2), Rekognition, SNS · v5 เพิ่ม Lambda และ EventBridge (ตรวจกับเกณฑ์อีกครั้งว่านับคะแนนหรือไม่)
 
 ## 1. สรุป endpoint
 
@@ -65,6 +82,10 @@ graph LR
 | GET | `/api/admin/claims?status=verified` | หน้า รปภ. แท็บ "รอส่งคืน" | 🔒 guard |
 | POST | `/api/admin/claims/{claimId}/return` | หน้า รปภ. ปุ่ม "ยืนยันคืนแล้ว" | 🔒 guard |
 | GET | `/api/admin/items/stale?days=30` | หน้า รปภ. แท็บ "ของค้างนาน" | 🔒 guard |
+| POST | `/api/lost-reports/{id}/reward/checkout` | ปุ่ม "ชำระรางวัล" | 🔒 เจ้าของรายงาน |
+| GET | `/api/admin/payouts?status=pending_payout` | หน้า รปภ. แท็บ "รอโอนรางวัล" | 🔒 guard |
+| POST | `/api/admin/payouts/{rewardId}/paid` | หน้า รปภ. ปุ่ม "ยืนยันโอนแล้ว" | 🔒 guard |
+| POST | Lambda Function URL (ไม่ผ่าน `/api`) | Stripe เรียก webhook | ลายเซ็น `Stripe-Signature` |
 | POST | `/api/auth/login` | หน้าเข้าสู่ระบบ | – |
 | POST | `/api/auth/register` | หน้าสมัครสมาชิก | – |
 | GET | `/api/me` | หน้าบัญชีของฉัน | 🔒 ทุก role |
@@ -98,6 +119,60 @@ graph LR
 3. **ปิดเรื่อง** (คืนของแล้ว หรือเจ้าของกดปิดเองที่ `POST /api/lost-reports/{id}/close`) → `lost_reports.status` เป็น `'found'` หรือ `'cancelled'` แล้วไม่ต้อง publish อีก ไม่ต้องลบ topic · publish เฉพาะรายงานที่ `status = 'searching'`
 
 **LINE (ไม่บังคับ):** ส่ง push ได้เฉพาะ `userId` ของคนที่แอด LINE OA แล้ว — ผู้ใช้แอดเพื่อนจากการ์ดในหน้ายืนยัน แล้วพิมพ์รหัสแจ้ง เช่น `lst-8f2a` ในแชท → LINE เรียก `POST /api/line/webhook` → ตรวจ `x-line-signature` → บันทึก `event.source.userId` ลง `lost_reports.line_user_id` → ตอนมีของตรงกันส่ง push เพิ่มจากอีเมล · `contact.lineId`, `contact.phone` ในฟอร์มมีไว้ให้ รปภ. ติดต่อกลับเท่านั้น
+
+## 2b. รางวัลแบบพักเงิน (escrow) — โหมดทดสอบเท่านั้น
+
+> ⚠️ **ห้ามรับเงินจริง** การรับชำระออนไลน์ต้องจดทะเบียนธุรกิจ และการถือเงินคนอื่นไว้ก่อนโอนต่อมีกฎของแบงก์ชาติกำกับ → ใช้ Stripe **test mode** (`sk_test_…`) และบัตรทดสอบเท่านั้น การโอนให้คนเก็บได้เป็นแค่รายการ "รอโอน" ที่แอดมินกดยืนยัน ไม่มีการโอนจริง
+> อ้างอิงตอนนำเสนอ: ป.พ.พ. มาตรา 1323–1324 ให้สิทธิ์คนเก็บของตกได้เรียกรางวัลจากเจ้าของอยู่แล้ว แอปแค่ทำให้ง่ายและโปร่งใสขึ้น (ถ้าจะอ้างเปอร์เซ็นต์ในสไลด์ ให้ตรวจตัวบทอีกครั้ง)
+
+```mermaid
+stateDiagram-v2
+  [*] --> awaiting_payment: แจ้งหาย + rewardAmount > 0
+  awaiting_payment --> held: webhook checkout.session.completed
+  awaiting_payment --> voided: เจ้าของปิดประกาศ / คืนของแล้วยังไม่จ่าย
+  held --> pending_payout: รปภ. ยืนยันคืน + คนเก็บได้ล็อกอินและไม่ใช่เจ้าของ
+  held --> refunded: เจ้าของปิดประกาศ / ครบ 30 วัน / คนเก็บได้ไม่ได้ล็อกอิน
+  pending_payout --> paid_out: แอดมินกด "ยืนยันโอนแล้ว"
+```
+
+| กติกา | ค่า |
+|---|---|
+| จำนวนรางวัล | จำนวนเต็ม `20`–`500` บาท (`REWARD_MIN_BAHT`, `REWARD_MAX_BAHT`) หรือ `0` = ไม่ตั้ง |
+| ค่าธรรมเนียม | `fee = round(amount × 0.10)` · คนเก็บได้ได้ `amount − fee` |
+| ระยะพักเงิน | 30 วันนับจาก `paid_at` (`expires_at`) แล้วคืนเงินอัตโนมัติ — **ประกาศยังเปิดอยู่** แค่ไม่มีรางวัลแล้ว |
+
+**กันคนขโมยของแล้วมาอ้างว่าเก็บได้:**
+- บอร์ดสาธารณะส่งแค่ `hasReward` (true เมื่อ `status = 'held'`) **ห้ามส่งจำนวนเงิน** ทุก endpoint สาธารณะ
+- จำกัดสูงสุด 500 บาท
+- ปล่อยเงิน**หลัง รปภ. ยืนยันคืนเท่านั้น** (`POST /api/admin/claims/{id}/return`) ไม่มี endpoint อื่นที่เปลี่ยนเป็น `pending_payout`
+- คนรับรางวัลต้องเป็นบัญชีมหาวิทยาลัยที่ล็อกอินตอนแจ้งเจอของ (`found_items.finder_email`) และต้องไม่ใช่เจ้าของรายงาน ไม่งั้นคืนเงินเจ้าของ
+
+**ขั้นตอนฝั่ง AWS + Stripe:**
+1. `POST /api/lost-reports/{id}/reward/checkout` (EC2) →
+   ```js
+   const session = await stripe.checkout.sessions.create({
+     mode: "payment",
+     line_items: [{ price_data: { currency: "thb", unit_amount: reward.amount * 100, product_data: { name: `รางวัล: ${report.title}` } }, quantity: 1 }],
+     metadata: { rewardId: reward.id, lostReportId: report.id },
+     success_url: "https://<cloudfront-domain>/#/my-reports?paid=1",
+     cancel_url: "https://<cloudfront-domain>/#/my-reports",
+   });
+   // UPDATE rewards SET checkout_session_id = session.id → ตอบ { "checkoutUrl": session.url }
+   ```
+   secret key (`sk_test_…`) เก็บใน environment ของ EC2 / Lambda ห้ามใส่ในโค้ดหรือหน้าเว็บ
+2. **Lambda `payment-webhook`** (Function URL, auth type `NONE` — ความปลอดภัยมาจากลายเซ็น) ตั้งเป็น webhook endpoint ใน Stripe dashboard (test mode)
+   ```js
+   const event = stripe.webhooks.constructEvent(rawBody, headers["stripe-signature"], process.env.STRIPE_WEBHOOK_SECRET); // ผิด → 400
+   if (event.type === "checkout.session.completed") {
+     // UPDATE rewards SET status='held', payment_intent_id=?, paid_at=NOW(), expires_at=NOW() + INTERVAL 30 DAY
+     // WHERE id = metadata.rewardId AND status='awaiting_payment'   ← ทำซ้ำได้ (Stripe ส่ง event ซ้ำได้)
+   }
+   ```
+   Function URL ส่ง body มาเป็น base64 ได้ (`isBase64Encoded`) ต้อง decode ก่อนตรวจลายเซ็น · Lambda อยู่ใน VPC เดียวกับ RDS และ SG ของ RDS ต้องเปิด 3306 ให้ SG ของ Lambda
+3. **EventBridge Scheduler** (`rate(1 day)`, role `LabRole`) → **Lambda `refund-expired`**: `SELECT … FROM rewards WHERE status='held' AND expires_at <= NOW()` แล้ว `stripe.refunds.create({ payment_intent })` และ `status='refunded'`, `settled_at=NOW()`
+4. คืนเงินตอนเจ้าของปิดประกาศ / ตอนคืนของแล้วไม่มีคนเก็บได้ที่มีสิทธิ์ ทำใน EC2 ทันทีด้วย `stripe.refunds.create` แบบเดียวกัน
+
+หน้าเว็บโหมด mock จำลองหน้าจ่ายเงินที่ `/#/test-checkout/{sessionId}` (บัตร `4242 4242 4242 4242` สำเร็จ, `4000 0000 0000 0002` ถูกปฏิเสธ) และจำลอง EventBridge ด้วยการเช็กหมดอายุทุกครั้งที่อ่านรายการ
 
 ## 3. AI: Amazon Rekognition
 
@@ -192,12 +267,46 @@ interface MyClaim {               // claim ที่ทำตอนล็อก�
   createdAt: string;
 }
 
-interface PublicLostReport {      // บอร์ดสาธารณะ — มีแค่ 5 ฟิลด์นี้เท่านั้น
+interface PublicLostReport {      // บอร์ดสาธารณะ — มีแค่ 6 ฟิลด์นี้เท่านั้น
   id: string;
   title: string;
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  hasReward: boolean;             // true เมื่อรางวัล status = "held" · ห้ามส่งจำนวนเงิน
+}
+
+type RewardStatus = "awaiting_payment" | "held" | "pending_payout" | "paid_out" | "refunded" | "voided";
+
+interface Reward {                // อยู่ใน MyLostReport.reward และ LostReportReceipt.reward (null = ไม่ตั้งรางวัล)
+  id: string;                     // prefix rwd-
+  amount: number;                 // บาท (จำนวนเต็ม)
+  fee: number;                    // round(amount × 0.10)
+  status: RewardStatus;
+  paidAt: string | null;
+  expiresAt: string | null;       // paidAt + 30 วัน
+  settledAt: string | null;       // เวลาที่ออกจากการพักเงิน (ปล่อยให้คนเก็บได้ หรือคืนเงิน)
+}
+
+interface EarnedReward {          // GET /api/lost-reports/mine → earnedRewards (ฉันเป็นคนเก็บได้)
+  rewardId: string;
+  itemTitle: string;
+  netAmount: number;              // amount − fee
+  status: "pending_payout" | "paid_out";
+  releasedAt: string;
+}
+
+interface RewardPayout {          // หน้า รปภ. แท็บ "รอโอนรางวัล"
+  rewardId: string;
+  lostReportId: string;
+  itemTitle: string;
+  finderName: string;
+  finderEmail: string;
+  finderStudentId: string;        // จาก users.student_id ("" ถ้ายังไม่กรอกในโปรไฟล์)
+  grossAmount: number;
+  fee: number;
+  netAmount: number;
+  releasedAt: string;
 }
 ```
 
@@ -269,6 +378,7 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 - `imageKey` เป็น `null` ได้ (ไม่มีรูป)
 - backend ตั้ง `status = "available"`, `reportedAt = now`, `aiLabels` ตามข้อ 3
 - response คือ `FoundItem` **ที่ไม่มี** `verificationAnswer`
+- token ไม่บังคับ: ถ้ามี token ที่ถูกต้อง ให้บันทึก `finder_email` = email ใน JWT (คนเดียวที่รับรางวัลได้ ดูข้อ 2b) · **ห้ามส่ง `finder_email` ออกใน response ใด ๆ**
 - หลังบันทึก: หา lost report ที่ตรงกัน (กติกาจับคู่ด้านล่าง + บัตรนักศึกษาจากข้อ 3) แล้ว publish SNS ตามข้อ 2
 
 ### `POST /api/lost-reports` 🔒 — แจ้งของหาย → `201`
@@ -282,7 +392,8 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
   "lastSeenLocationId": "loc-canteen",
   "lostAt": "2026-10-26T05:00:00.000Z",
   "studentId": "1650707093",
-  "contact": { "name": "ธนพล", "email": "thanaphon.j@bumail.net", "lineId": "thanaphon.j", "phone": "" }
+  "contact": { "name": "ธนพล", "email": "thanaphon.j@bumail.net", "lineId": "thanaphon.j", "phone": "" },
+  "rewardAmount": 100
 }
 // response 201
 { "id": "lst-8f2a", "createdAt": "2026-10-27T03:20:00.000Z", "possibleMatches": [FoundItem, ...] }
@@ -290,6 +401,7 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 - **`contact.email` บังคับ และต้องเป็นอีเมลมหาวิทยาลัย** — ส่วนหลัง `@` ต้องเท่ากับ `bumail.net` หรือ `bu.ac.th` พอดี (ไม่สนตัวพิมพ์เล็ก/ใหญ่) ไม่ใช่แค่ลงท้าย เช่น `x@bumail.net.evil.com` ต้องถูกปฏิเสธ · ไม่ผ่าน → `400 VALIDATION` (หน้าเว็บตรวจแล้ว แต่ backend ต้องตรวจซ้ำ)
 - `lineId`, `phone` ไม่บังคับ ส่งมาเป็น `""` ถ้าไม่กรอก
 - `studentId` ไม่บังคับ (`""` ได้) — หน้าเว็บให้กรอกเฉพาะหมวด `card` / `wallet` · ถ้ามีต้องเป็นเลข 10 หลัก
+- `rewardAmount` = `0` หรือจำนวนเต็ม 20–500 ไม่งั้น `400` · ถ้า > 0 ให้ `INSERT rewards (status='awaiting_payment', fee=round(amount×0.1))` แล้วส่ง `reward` กลับ (ไม่งั้น `"reward": null`) — หน้าเว็บจะโชว์ปุ่ม "ชำระรางวัล"
 - `possibleMatches` = ของสถานะ `available` ที่ตรงที่สุด ไม่เกิน 3 ชิ้น
 - **กติกาจับคู่** (เหมือนใน mock): หมวดตรง +2, สถานที่ตรง +1, คำในชื่อซ้ำกัน +1 ต่อคำ → ได้ ≥ 2 คะแนนถือว่าตรง เรียงคะแนนมากไปน้อย
 - สร้าง topic + subscribe อีเมลตามข้อ 2 **ก่อนตอบกลับ** · ถ้า SNS error ให้บันทึกรายงานต่อไปได้ (log error ไว้)
@@ -299,9 +411,11 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 ```json
 {
   "reports": [MyLostReport, ...],
-  "claims":  [MyClaim, ...]
+  "claims":  [MyClaim, ...],
+  "earnedRewards": [EarnedReward, ...]
 }
 ```
+- `reports[].reward` = แถวใน `rewards` ของรายงานนั้น (`null` ถ้าไม่ตั้ง) · `earnedRewards` = `rewards WHERE finder_email = ? AND status IN ('pending_payout','paid_out')`
 - **`possibleMatches` ต้องคำนวณใหม่ทุกครั้งที่เรียก** ด้วยกติกาจับคู่เดียวกับตอนแจ้ง — ห้ามเอารายการเดิมที่เก็บไว้ตอน `POST` เพราะมีของเจอเข้ามาเพิ่มเรื่อย ๆ · รายงานที่ `status` ไม่ใช่ `searching` ให้ส่ง `[]`
 - `claims` = `SELECT ... FROM claims JOIN found_items ... WHERE claims.owner_email = ? ORDER BY created_at DESC` — หน้าเว็บโชว์รหัสรับของและจุดรับฝากให้ดูซ้ำได้ (เดิมโชว์ครั้งเดียวใน dialog ถ้าปิดไปก็หายเลย)
 - `possibleMatches` เป็น `FoundItem` → **ห้ามมี `verificationAnswer`**
@@ -317,11 +431,19 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 - `reason` ไม่ใช่ `found` / `cancelled` → `400`
 - **ไม่พบ id หรือคนเรียกไม่ใช่เจ้าของ → `404`** (ห้ามตอบ 403 เพราะจะบอกใบ้ว่ามี id นี้อยู่จริง)
 - ปิดไปแล้ว → `409`
+- รางวัล: `held` → refund ทาง Stripe แล้ว `refunded` · `awaiting_payment` → `voided` (response มี `reward` สถานะใหม่)
+
+### `POST /api/lost-reports/{id}/reward/checkout` 🔒 → `200`
+```json
+{ "checkoutUrl": "https://checkout.stripe.com/c/pay/cs_test_..." }
+```
+- ไม่พบ id / ไม่ใช่เจ้าของ → `404` · ประกาศปิดแล้วหรือรางวัลไม่ใช่ `awaiting_payment` → `409`
+- สร้าง Checkout Session ตามข้อ 2b (กดซ้ำได้ สร้าง session ใหม่ทับ `checkout_session_id` เดิม) · หน้าเว็บ redirect ไปที่ `checkoutUrl`
 - response คือรายงานหลังปิด (`possibleMatches: []`) · หลังปิดแล้วไม่ต้อง publish SNS ให้รายงานนี้อีก
 
 ### `GET /api/lost-reports` — บอร์ด "ประกาศตามหา" (สาธารณะ) → `200`
 ```json
-{ "reports": [{ "id": "lst-8f2a", "title": "บัตรนักศึกษา", "category": "card", "lastSeenLocationId": "loc-canteen", "lostAt": "2026-10-26T05:00:00.000Z" }] }
+{ "reports": [{ "id": "lst-8f2a", "title": "บัตรนักศึกษา", "category": "card", "lastSeenLocationId": "loc-canteen", "lostAt": "2026-10-26T05:00:00.000Z", "hasReward": true }] }
 ```
 - เฉพาะ `status = 'searching'` เรียงจาก `lost_at` ใหม่สุด
 - ⚠️ **SELECT แค่ 5 คอลัมน์นี้เท่านั้น** ห้ามส่ง `description`, `student_id`, `contact_*`, `owner_email` เด็ดขาด — ถ้าเจ้าของเขียนว่า "กระเป๋ามีสติกเกอร์โดราเอมอน" แล้วคนเก็บได้ตั้งคำถามยืนยันว่า "บนกระเป๋ามีสติกเกอร์อะไร" มิจฉาชีพแค่เปิดบอร์ดก็ได้คำตอบไปเคลมของทันที
@@ -330,7 +452,7 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 ### `POST /api/items/{id}/claims` — ปุ่ม "นี่ของฉัน" → `200`
 ```json
 // request
-{ "answer": "Honda", "claimantName": "ธนพล ใจดี", "studentId": "1650707093", "contact": "LINE: thanaphon.j" }
+{ "answer": "Honda", "claimantName": "ธนพล ใจดี", "studentId": "1650707093", "contact": "LINE: thanaphon.j", "lostReportId": "lst-8f2a" }
 
 // response — ตอบถูก
 { "status": "verified", "claimId": "clm-91c", "pickupCode": "K7Q2MX", "dropOffPointId": "drop-gate2" }
@@ -356,7 +478,18 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 ```
 
 ### `POST /api/admin/claims/{claimId}/return` 🔒 → `200 Claim`
-transaction: claim → `returned` + `returned_at = now`, ของ → `returned` + `returned_at`, lost report ที่เกี่ยวข้อง (ถ้ามี) → `status = 'found'`, `closed_at = now` · `409` ถ้าคืนไปแล้ว
+transaction: claim → `returned` + `returned_at = now`, ของ → `returned` + `returned_at`, lost report ที่เกี่ยวข้อง (`claims.lost_report_id`, ถ้ามีและยัง `searching`) → `status = 'found'`, `closed_at = now` · `409` ถ้าคืนไปแล้ว
+
+**ปล่อยรางวัล (ใน transaction เดียวกัน):** ถ้ารายงานนั้นมีรางวัล `held` และ `found_items.finder_email` ไม่ว่างและ ≠ `lost_reports.owner_email` → `rewards.status = 'pending_payout'`, `finder_email`, `settled_at = now` · ไม่เข้าเงื่อนไข → refund แล้ว `refunded` · รางวัล `awaiting_payment` → `voided`
+
+### `GET /api/admin/payouts?status=pending_payout` 🔒 guard
+```json
+{ "payouts": [RewardPayout, ...] }
+```
+`JOIN users ON users.email = rewards.finder_email` เพื่อเอาชื่อและรหัสนักศึกษาให้แอดมินตรวจก่อนโอน
+
+### `POST /api/admin/payouts/{rewardId}/paid` 🔒 guard → `200 RewardPayout`
+แอดมินบันทึกว่าโอนแล้ว (โหมดทดสอบ: ไม่มีการโอนจริง) → `status = 'paid_out'`, `paid_out_at = now`, `paid_out_by = email ของแอดมิน` · ไม่พบ → `404` · ไม่ใช่ `pending_payout` → `409`
 
 ### `GET /api/admin/items/stale?days=30` 🔒
 ของ `available` ที่ `found_at` เก่ากว่า `days` วัน เรียงจากค้างนานสุด
@@ -508,6 +641,31 @@ ALTER TABLE claims
   ADD COLUMN owner_email VARCHAR(254) NULL AFTER pickup_code,
   ADD INDEX idx_claims_owner (owner_email, created_at);
 ```
+**v4 → v5 (รางวัล):**
+```sql
+CREATE TABLE rewards (
+  id                  VARCHAR(32)  PRIMARY KEY,               -- rwd-
+  lost_report_id      VARCHAR(32)  NOT NULL UNIQUE REFERENCES lost_reports(id),
+  amount              INT          NOT NULL,                   -- บาท 20–500
+  fee                 INT          NOT NULL,
+  status              ENUM('awaiting_payment', 'held', 'pending_payout', 'paid_out', 'refunded', 'voided') NOT NULL DEFAULT 'awaiting_payment',
+  checkout_session_id VARCHAR(255) NULL,
+  payment_intent_id   VARCHAR(255) NULL,                       -- ใช้ตอน refund
+  finder_email        VARCHAR(254) NULL,
+  paid_at             DATETIME     NULL,
+  expires_at          DATETIME     NULL,
+  settled_at          DATETIME     NULL,
+  paid_out_at         DATETIME     NULL,
+  paid_out_by         VARCHAR(254) NULL,
+  INDEX idx_rewards_status_expiry (status, expires_at),        -- Lambda refund-expired
+  INDEX idx_rewards_finder (finder_email, status),
+  INDEX idx_rewards_session (checkout_session_id)              -- webhook
+);
+
+ALTER TABLE found_items ADD COLUMN finder_email VARCHAR(254) NULL;   -- จาก JWT ตอน POST /api/items (ห้ามส่งออกใน response)
+ALTER TABLE claims      ADD COLUMN lost_report_id VARCHAR(32) NULL;  -- ต้องเป็นรายงาน searching ของคนที่ล็อกอินอยู่ ไม่งั้น 400
+```
+
 > ถ้าย้ายไปใช้ DynamoDB ภายหลัง: ทำ GSI partition key = `ownerEmail`, sort key = `createdAt` บนตาราง lost reports และ claims แทน index ข้างบน
 
 ข้อมูลตั้งต้นของ `locations` คัดลอกจาก `campusDirectoryFixture` ใน [`web/src/fixtures/mockData.ts`](../web/src/fixtures/mockData.ts) ได้เลย (แก้ชื่อให้ตรงกับมหาวิทยาลัยจริง)

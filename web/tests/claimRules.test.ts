@@ -10,7 +10,7 @@ const walletItem: FoundItem = {
 
 const lostWallet: NewLostReport = {
   title: "กระเป๋าสตางค์", description: "สีน้ำตาล", category: "wallet", lastSeenLocationId: "loc-canteen",
-  lostAt: "2026-10-20T04:00:00.000Z", studentId: "", contact: { name: "A", lineId: "a", phone: "", email: "" },
+  lostAt: "2026-10-20T04:00:00.000Z", studentId: "", contact: { name: "A", lineId: "a", phone: "", email: "" }, rewardAmount: 0,
 };
 
 describe("answerMatches", () => {

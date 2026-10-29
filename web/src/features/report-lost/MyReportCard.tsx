@@ -10,6 +10,7 @@ import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDate, formatRelative } from "../catalog/thaiTime";
 import { ItemCard, NOTICE_GRID } from "../items/ItemCard";
+import { RewardPanel } from "./RewardPanel";
 
 const STATUS_TONE: Record<LostReportStatus, "stamp" | "success" | "neutral"> = {
   searching: "stamp",
@@ -94,6 +95,7 @@ export function MyReportCard({ report, onClosed }: { report: MyLostReport; onClo
           </div>
           <Badge tone={STATUS_TONE[report.status]}>{t.myReports.status[report.status]}</Badge>
         </header>
+        {report.reward && <RewardPanel reportId={report.id} reward={report.reward} />}
         {searching && <PossibleMatches report={report} />}
         {searching && <CloseActions reportId={report.id} onClosed={onClosed} />}
       </div>

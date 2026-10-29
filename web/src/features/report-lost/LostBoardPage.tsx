@@ -1,4 +1,4 @@
-import { HandHelping, MapPin, SearchX, ShieldCheck } from "lucide-react";
+import { Gift, HandHelping, MapPin, SearchX, ShieldCheck } from "lucide-react";
 import { api } from "../../api/client";
 import type { PublicLostReport } from "../../api/contract";
 import { useApiQuery } from "../../api/useApiQuery";
@@ -29,6 +29,11 @@ function LostNotice({ report }: { report: PublicLostReport }) {
       <div className={`flex h-9 items-center gap-2 rounded-t-sm px-3 text-sm font-bold text-stock-ink ${category.stock}`}>
         <category.icon className="size-4 shrink-0" aria-hidden />
         <span className="truncate">{t.categories[category.id]}</span>
+        {report.hasReward && (
+          <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-sm bg-ink px-2 py-0.5 text-xs text-surface">
+            <Gift className="size-3.5" aria-hidden /> {t.reward.boardBadge}
+          </span>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h3 className="line-clamp-2 text-base leading-snug font-semibold">{report.title}</h3>

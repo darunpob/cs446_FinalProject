@@ -7,10 +7,11 @@ import { PageHeading } from "../../design-system/FormSection";
 import { useI18n } from "../../i18n/useI18n";
 import { STALE_AFTER_DAYS } from "../catalog/categories";
 import { useAuth } from "../auth/AuthProvider";
+import { PendingPayouts } from "./PendingPayouts";
 import { PendingReturns } from "./PendingReturns";
 import { StaleItems } from "./StaleItems";
 
-type AdminTab = "returns" | "stale";
+type AdminTab = "returns" | "payouts" | "stale";
 
 function Metric({ icon: Icon, label, value, stock }: { icon: LucideIcon; label: string; value: number | null; stock: string }) {
   return (
@@ -43,14 +44,17 @@ export function AdminPage() {
   const stats = useApiQuery(() => api.getStats(), []);
   const pending = useApiQuery(() => api.listPendingReturns(), []);
   const stale = useApiQuery(() => api.listStaleItems(STALE_AFTER_DAYS), []);
+  const payouts = useApiQuery(() => api.listPendingPayouts(), []);
 
   const statValues = stats.state.phase === "ready" ? stats.state.value : null;
   const claims = pending.state.phase === "ready" ? pending.state.value : null;
   const staleItems = stale.state.phase === "ready" ? stale.state.value : null;
+  const payoutList = payouts.state.phase === "ready" ? payouts.state.value : null;
 
   const handleReturned = () => {
     pending.reload();
     stats.reload();
+    payouts.reload();
   };
 
   return (
@@ -64,14 +68,13 @@ export function AdminPage() {
       </div>
       <div role="tablist" className="mt-10 flex gap-1 border-b-2 border-felt-line">
         <TabButton active={tab === "returns"} count={claims?.length ?? null} label={t.admin.tabReturns} onClick={() => setTab("returns")} />
+        <TabButton active={tab === "payouts"} count={payoutList?.length ?? null} label={t.reward.tabPayouts} onClick={() => setTab("payouts")} />
         <TabButton active={tab === "stale"} count={staleItems?.length ?? null} label={t.admin.tabStale} onClick={() => setTab("stale")} />
       </div>
       <div className="pt-6" role="tabpanel">
-        {tab === "returns" ? (
-          <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />
-        ) : (
-          <StaleItems staleItems={staleItems} failure={stale.state.phase === "failed" ? stale.state.message : null} onRetry={stale.reload} />
-        )}
+        {tab === "returns" && <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />}
+        {tab === "payouts" && <PendingPayouts payouts={payoutList} failure={payouts.state.phase === "failed" ? payouts.state.message : null} onRetry={payouts.reload} onPaid={payouts.reload} />}
+        {tab === "stale" && <StaleItems staleItems={staleItems} failure={stale.state.phase === "failed" ? stale.state.message : null} onRetry={stale.reload} />}
       </div>
     </div>
   );

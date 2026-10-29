@@ -12,6 +12,8 @@ import { ReportFoundPage } from "./features/report-found/ReportFoundPage";
 import { LostBoardPage } from "./features/report-lost/LostBoardPage";
 import { MyReportsPage } from "./features/report-lost/MyReportsPage";
 import { ReportLostPage } from "./features/report-lost/ReportLostPage";
+import { TestCheckoutPage } from "./features/report-lost/TestCheckoutPage";
+import { USE_MOCK } from "./api/client";
 import { ButtonLink } from "./design-system/Button";
 import { EmptyState } from "./design-system/Surface";
 import { AppShell } from "./layout/AppShell";
@@ -42,6 +44,7 @@ export function App() {
               <Route path="report-lost" element={<RequireAuth><ReportLostPage /></RequireAuth>} />
               <Route path="my-reports" element={<RequireAuth><MyReportsPage /></RequireAuth>} />
               <Route path="looking-for" element={<LostBoardPage />} />
+              {USE_MOCK && <Route path="test-checkout/:sessionId" element={<RequireAuth><TestCheckoutPage /></RequireAuth>} />}
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />
               <Route path="account" element={<RequireAuth><AccountPage /></RequireAuth>} />

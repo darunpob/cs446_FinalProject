@@ -1,10 +1,18 @@
-import type { Claim, FoundItem, LostReportStatus, NewLostReport, UserProfile } from "../contract";
+import type { Claim, FoundItem, LostReportStatus, NewLostReport, Reward, UserProfile } from "../contract";
 import { demoAccounts, foundItemSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
 import type { FoundItemSeed } from "../../fixtures/mockData";
 
 export interface StoredFoundItem extends FoundItem {
   verificationAnswer: string;
   returnedAt: string | null;
+  /** Account of a signed-in finder — the only person a reward can be released to. */
+  finderEmail: string | null;
+}
+
+export interface StoredReward extends Reward {
+  checkoutSessionId: string | null;
+  finderEmail: string | null;
+  itemTitle: string | null;
 }
 
 export interface StoredLostReport extends NewLostReport {
@@ -14,11 +22,13 @@ export interface StoredLostReport extends NewLostReport {
   ownerEmail: string;
   status: LostReportStatus;
   closedAt: string | null;
+  reward: StoredReward | null;
 }
 
 export interface StoredClaim extends Claim {
   /** Account email of a signed-in claimant; null for anonymous claims. */
   ownerEmail: string | null;
+  lostReportId: string | null;
 }
 
 /** Plain-text password is acceptable only because this database never leaves the browser. */
@@ -65,6 +75,7 @@ function seedFoundItem(now: Date, seed: FoundItemSeed): StoredFoundItem {
     aiLabels: seed.aiLabels,
     verificationAnswer: seed.verificationAnswer,
     returnedAt: returnedAt ? returnedAt.toISOString() : null,
+    finderEmail: null,
   };
 }
 
@@ -86,6 +97,7 @@ function seedClaims(now: Date, foundItems: StoredFoundItem[]): StoredClaim[] {
       createdAt: new Date(now.getTime() - seed.hoursAgo * HOUR_MS).toISOString(),
       returnedAt: null,
       ownerEmail: null,
+      lostReportId: null,
     }];
   });
 }
@@ -129,10 +141,18 @@ export function openMockDatabase(storage: Storage | null, now: () => Date): Mock
   return handle;
 }
 
-/** Databases saved before reports had owners keep loading; their reports simply belong to no one. */
+/** Databases saved before reports had owners or rewards keep loading; old reports belong to no one and carry no reward. */
 function upgradeOwnership(db: MockDatabase): void {
-  db.lostReports = db.lostReports.map((report) => ({ ...report, ownerEmail: report.ownerEmail ?? "", status: report.status ?? "searching", closedAt: report.closedAt ?? null }));
-  db.claims = db.claims.map((claim) => ({ ...claim, ownerEmail: claim.ownerEmail ?? null }));
+  db.lostReports = db.lostReports.map((report) => ({
+    ...report,
+    ownerEmail: report.ownerEmail ?? "",
+    status: report.status ?? "searching",
+    closedAt: report.closedAt ?? null,
+    rewardAmount: report.rewardAmount ?? 0,
+    reward: report.reward ?? null,
+  }));
+  db.claims = db.claims.map((claim) => ({ ...claim, ownerEmail: claim.ownerEmail ?? null, lostReportId: claim.lostReportId ?? null }));
+  db.foundItems = db.foundItems.map((stored) => ({ ...stored, finderEmail: stored.finderEmail ?? null }));
 }
 
 function loadDatabase(storage: Storage | null): MockDatabase | null {

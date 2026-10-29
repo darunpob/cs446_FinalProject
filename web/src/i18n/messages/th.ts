@@ -290,6 +290,51 @@ export interface Messages {
     emptyDescription: string;
     listLabel: string;
   };
+  reward: {
+    sectionTitle: string;
+    sectionDescription: string;
+    none: string;
+    customLabel: string;
+    amount: (baht: number) => string;
+    breakdown: (fee: number, net: number) => string;
+    ruleRefund: (days: number) => string;
+    ruleBoard: string;
+    ruleCap: (max: number) => string;
+    testModeNote: string;
+    payNow: string;
+    payPrompt: (amount: number) => string;
+    payPromptBody: string;
+    status: { awaiting_payment: string; held: string; pending_payout: string; paid_out: string; refunded: string; voided: string };
+    heldUntil: (date: string) => string;
+    paidNotice: string;
+    boardBadge: string;
+    earnedTitle: string;
+    earnedHint: string;
+    earnedStatus: { pending_payout: string; paid_out: string };
+    finderLoginNote: string;
+    finderLoginLink: string;
+    claimLinkLabel: string;
+    claimLinkNone: string;
+    claimLinkHint: string;
+    tabPayouts: string;
+    payoutsEmptyTitle: string;
+    payoutsEmptyDescription: string;
+    payoutsNote: string;
+    payoutAmounts: (gross: number, fee: number, net: number) => string;
+    payoutConfirm: string;
+    payoutConfirmArmed: string;
+    checkoutTitle: string;
+    checkoutFor: (title: string) => string;
+    cardNumber: string;
+    expiry: string;
+    cvc: string;
+    payButton: (amount: number) => string;
+    testCardsTitle: string;
+    testCardOk: string;
+    testCardDeclined: string;
+    checkoutGone: string;
+    backToReports: string;
+  };
   admin: {
     greeting: (name: string) => string;
     metricAwaiting: string;
@@ -332,6 +377,14 @@ export interface Messages {
     closeReasonInvalid: string;
     lostReportNotFound: string;
     lostReportClosed: string;
+    rewardInvalid: (min: number, max: number) => string;
+    rewardNotPayable: string;
+    payoutNotFound: string;
+    payoutDone: string;
+    lostReportLinkInvalid: string;
+    checkoutNotFound: string;
+    cardDeclined: string;
+    testCardOnly: string;
     fields: { itemTitle: string; question: string; answer: string; lostWhat: string; reporterName: string; displayName: string };
   };
 }
@@ -626,6 +679,51 @@ export const th: Messages = {
     emptyDescription: "เมื่อมีคนแจ้งของหาย ประกาศจะขึ้นที่นี่",
     listLabel: "รายการประกาศตามหา",
   },
+  reward: {
+    sectionTitle: "ตั้งรางวัลให้คนเก็บได้",
+    sectionDescription: "ไม่บังคับ เงินจะถูกพักไว้ในระบบ และปล่อยให้คนเก็บได้หลัง รปภ. ยืนยันว่าคืนของแล้วเท่านั้น",
+    none: "ไม่ตั้งรางวัล",
+    customLabel: "จำนวนอื่น (บาท)",
+    amount: (baht) => `${baht.toLocaleString("th-TH")} บาท`,
+    breakdown: (fee, net) => `คนเก็บได้จะได้รับ ${net} บาท (หักค่าธรรมเนียม ${fee} บาท)`,
+    ruleRefund: (days) => `คืนเงินอัตโนมัติถ้ายกเลิกประกาศ หรือครบ ${days} วันแล้วยังไม่มีใครเจอ`,
+    ruleBoard: "บอร์ดสาธารณะโชว์แค่ป้าย “มีรางวัล” ไม่บอกจำนวนเงิน",
+    ruleCap: (max) => `ตั้งได้สูงสุด ${max} บาท`,
+    testModeNote: "โหมดทดสอบ: ใช้บัตรทดสอบเท่านั้น ไม่มีการตัดเงินจริง",
+    payNow: "ชำระรางวัล",
+    payPrompt: (amount) => `ชำระรางวัล ${amount} บาท เพื่อเปิดใช้งาน`,
+    payPromptBody: "หลังชำระแล้ว ประกาศของคุณจะขึ้นป้าย “มีรางวัล” บนบอร์ดประกาศตามหา",
+    status: { awaiting_payment: "รอชำระเงิน", held: "พักเงินไว้แล้ว", pending_payout: "รอโอนให้คนเก็บได้", paid_out: "โอนให้คนเก็บได้แล้ว", refunded: "คืนเงินแล้ว", voided: "ยกเลิกรางวัล" },
+    heldUntil: (date) => `ถ้ายังไม่มีใครเจอ จะคืนเงินอัตโนมัติวันที่ ${date}`,
+    paidNotice: "ชำระเงินแล้ว รางวัลถูกพักไว้ในระบบ ถ้าสถานะยังไม่เปลี่ยน รอสักครู่แล้วรีเฟรช",
+    boardBadge: "มีรางวัล",
+    earnedTitle: "รางวัลที่ฉันได้รับ",
+    earnedHint: "จากของที่คุณเก็บได้และเจ้าของรับคืนแล้ว (หักค่าธรรมเนียมแล้ว)",
+    earnedStatus: { pending_payout: "รอแอดมินโอน", paid_out: "โอนแล้ว" },
+    finderLoginNote: "เข้าสู่ระบบก่อนแจ้ง ถ้าเจ้าของตั้งรางวัลไว้ คุณจะได้รับรางวัลหลังเจ้าของรับของคืน",
+    finderLoginLink: "เข้าสู่ระบบ",
+    claimLinkLabel: "ของชิ้นนี้ตรงกับประกาศไหนของคุณ",
+    claimLinkNone: "ไม่เกี่ยวกับประกาศของฉัน",
+    claimLinkHint: "ถ้าประกาศนั้นมีรางวัล ระบบจะปล่อยให้คนเก็บได้หลัง รปภ. ยืนยันคืนของ",
+    tabPayouts: "รอโอนรางวัล",
+    payoutsEmptyTitle: "ไม่มีรางวัลรอโอน",
+    payoutsEmptyDescription: "เมื่อ รปภ. ยืนยันคืนของที่มีรางวัล รายการจะขึ้นที่นี่",
+    payoutsNote: "โหมดทดสอบ: ไม่มีการโอนเงินจริง กดยืนยันหลังบันทึกการโอนแล้ว",
+    payoutAmounts: (gross, fee, net) => `${gross} − ค่าธรรมเนียม ${fee} = โอน ${net} บาท`,
+    payoutConfirm: "ยืนยันโอนแล้ว",
+    payoutConfirmArmed: "โอนแล้ว ยืนยัน",
+    checkoutTitle: "ชำระรางวัล",
+    checkoutFor: (title) => `รางวัลสำหรับประกาศ “${title}”`,
+    cardNumber: "หมายเลขบัตร",
+    expiry: "วันหมดอายุ (ดด/ปป)",
+    cvc: "CVC",
+    payButton: (amount) => `จ่าย ${amount} บาท`,
+    testCardsTitle: "บัตรทดสอบ (แตะเพื่อกรอก)",
+    testCardOk: "ชำระสำเร็จ",
+    testCardDeclined: "บัตรถูกปฏิเสธ",
+    checkoutGone: "ลิงก์ชำระเงินนี้ใช้ไม่ได้แล้ว อาจชำระไปแล้วหรือประกาศถูกปิด",
+    backToReports: "กลับไปที่ของที่ฉันแจ้งหาย",
+  },
   admin: {
     greeting: (name) => `สวัสดี, ${name}`,
     metricAwaiting: "รอเจ้าของมารับ",
@@ -668,6 +766,14 @@ export const th: Messages = {
     closeReasonInvalid: "เหตุผลการปิดประกาศไม่ถูกต้อง",
     lostReportNotFound: "ไม่พบประกาศนี้",
     lostReportClosed: "ประกาศนี้ปิดไปแล้ว",
+    rewardInvalid: (min, max) => `รางวัลต้องเป็นจำนวนเต็ม ${min}–${max} บาท`,
+    rewardNotPayable: "ประกาศนี้ไม่มีรางวัลที่รอชำระ",
+    payoutNotFound: "ไม่พบรายการรางวัลนี้",
+    payoutDone: "รางวัลนี้ยืนยันการโอนไปแล้ว",
+    lostReportLinkInvalid: "เลือกได้เฉพาะประกาศที่ยังเปิดอยู่ของคุณเอง",
+    checkoutNotFound: "ลิงก์ชำระเงินนี้ใช้ไม่ได้แล้ว",
+    cardDeclined: "บัตรถูกปฏิเสธ ลองใช้บัตรอื่น",
+    testCardOnly: "โหมดทดสอบรับเฉพาะบัตรทดสอบ 4242 4242 4242 4242",
     fields: { itemTitle: "ชื่อสิ่งของ", question: "คำถามยืนยัน", answer: "คำตอบยืนยัน", lostWhat: "สิ่งที่หาย", reporterName: "ชื่อผู้แจ้ง", displayName: "ชื่อ" },
   },
 };

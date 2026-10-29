@@ -1,7 +1,8 @@
 import { useCallback } from "react";
-import { Megaphone, Plus, Ticket } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { CircleCheckBig, Gift, Megaphone, Plus, Ticket } from "lucide-react";
 import { api } from "../../api/client";
-import type { MyClaim } from "../../api/contract";
+import type { EarnedReward, MyClaim } from "../../api/contract";
 import { ApiError } from "../../api/errors";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ButtonLink } from "../../design-system/Button";
@@ -50,10 +51,36 @@ function ClaimTickets({ claims }: { claims: MyClaim[] }) {
   );
 }
 
+function EarnedRewards({ rewards }: { rewards: EarnedReward[] }) {
+  const { t } = useI18n();
+  return (
+    <section aria-labelledby="earned-rewards-title" className="flex flex-col gap-3">
+      <h2 id="earned-rewards-title" className="flex items-center gap-2 font-display text-2xl text-on-felt">
+        <Gift className="size-5 text-stock-yellow" aria-hidden /> {t.reward.earnedTitle}
+      </h2>
+      <p className="-mt-1 text-sm text-on-felt-2">{t.reward.earnedHint}</p>
+      <ul className="paper divide-y divide-line overflow-hidden rounded-sm shadow-paper">
+        {rewards.map((earned) => (
+          <li key={earned.rewardId} className="flex flex-wrap items-center gap-3 p-4 sm:p-5">
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">{earned.itemTitle}</p>
+              <p className="text-xs text-ink-3">{formatRelative(earned.releasedAt)}</p>
+            </div>
+            <span className="font-semibold tabular-nums">{t.reward.amount(earned.netAmount)}</span>
+            <Badge tone={earned.status === "paid_out" ? "success" : "verify"}>{t.reward.earnedStatus[earned.status]}</Badge>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function MyReportsPage() {
   const { session, signOut } = useAuth();
   const { t } = useI18n();
   const text = t.myReports;
+  const [params] = useSearchParams();
+  const justPaid = params.has("paid");
 
   const loadMine = useCallback(async () => {
     try {
@@ -69,11 +96,17 @@ export function MyReportsPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeading stock="lost" title={text.title} description={text.subtitle} />
+      {justPaid && (
+        <p role="status" className="paper mb-6 flex gap-3 rounded-md border-2 border-success p-4 text-sm font-medium text-ink shadow-paper">
+          <CircleCheckBig className="size-5 shrink-0 text-success" aria-hidden /> {t.reward.paidNotice}
+        </p>
+      )}
       {state.phase === "loading" && <Spinner />}
       {state.phase === "failed" && <ErrorNotice message={state.message} onRetry={reload} />}
       {state.phase === "ready" && (
         <div className="flex flex-col gap-10">
           {state.value.claims.length > 0 && <ClaimTickets claims={state.value.claims} />}
+          {state.value.earnedRewards.length > 0 && <EarnedRewards rewards={state.value.earnedRewards} />}
           <section aria-labelledby="my-reports-title" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="my-reports-title" className="font-display text-2xl text-on-felt">{text.reportsTitle}</h2>

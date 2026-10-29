@@ -22,6 +22,7 @@ const lostKeys: NewLostReport = {
   lostAt: "2026-10-28T09:00:00.000Z",
   studentId: "1650707093",
   contact: { name: "ธนพล", email: "someone.else@bumail.net", lineId: "thanaphon.j", phone: "0812345678" },
+  rewardAmount: 0,
 };
 
 const lostUmbrella: NewLostReport = { ...lostKeys, title: "ร่มสีดำ", description: "", category: "other", studentId: "" };
@@ -92,9 +93,9 @@ describe("closing a lost report", () => {
 describe("pickup codes stay reachable after the claim dialog closes", () => {
   it("lists claims made while signed in, and only those", async () => {
     const { api, tokenHolder, signInAs } = freshApi();
-    await api.submitClaim({ itemId: "itm-1001", answer: "แมว", claimantName: "Anon", studentId: "1650000009", contact: "x" });
+    await api.submitClaim({ itemId: "itm-1001", answer: "แมว", claimantName: "Anon", studentId: "1650000009", contact: "x", lostReportId: "" });
     await signInAs("student@bumail.net", "student1234");
-    const outcome = await api.submitClaim({ itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" });
+    const outcome = await api.submitClaim({ itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line", lostReportId: "" });
     if (outcome.status !== "verified") throw new Error("expected a verified claim");
 
     const { claims } = await api.listMyLostReports();
@@ -115,12 +116,12 @@ describe("public lost board", () => {
     await api.closeLostReport(withdrawn.id, "cancelled");
 
     const board = await api.listOpenLostReports();
-    expect(board).toEqual([{ id: kept.id, title: lostKeys.title, category: "keys", lastSeenLocationId: "loc-parking", lostAt: lostKeys.lostAt }]);
+    expect(board).toEqual([{ id: kept.id, title: lostKeys.title, category: "keys", lastSeenLocationId: "loc-parking", lostAt: lostKeys.lostAt, hasReward: false }]);
     expect(JSON.stringify(board)).not.toMatch(/โดราเอมอน|1650707093|bumail|0812345678|thanaphon/);
   });
 
   it("hands the found form only what the board already shows", () => {
-    const path = foundReportPrefillPath({ id: "lst-1", title: "ร่ม & กุญแจ", category: "keys", lastSeenLocationId: "loc-parking", lostAt: "2026-10-28T09:00:00.000Z" });
+    const path = foundReportPrefillPath({ id: "lst-1", title: "ร่ม & กุญแจ", category: "keys", lastSeenLocationId: "loc-parking", lostAt: "2026-10-28T09:00:00.000Z", hasReward: false });
     const params = new URLSearchParams(path.split("?")[1]);
     expect(path.startsWith("/report-found?")).toBe(true);
     expect(Object.fromEntries(params)).toEqual({ title: "ร่ม & กุญแจ", category: "keys", location: "loc-parking" });
