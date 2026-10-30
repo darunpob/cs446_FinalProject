@@ -128,6 +128,13 @@ export interface Messages {
     pickLabel: string;
     previewAlt: (position: number) => string;
     removeAt: (position: number) => string;
+    viewerLabel: string;
+    openViewer: (count: number) => string;
+    previous: string;
+    next: string;
+    zoomIn: string;
+    zoomOut: string;
+    counter: (position: number, total: number) => string;
     cover: string;
     addMore: string;
     limit: (max: number) => string;
@@ -531,6 +538,13 @@ export const th: Messages = {
     pickLabel: "เลือกรูปถ่าย",
     previewAlt: (position) => `รูปที่ ${position}`,
     removeAt: (position) => `ลบรูปที่ ${position}`,
+    viewerLabel: "ดูรูป",
+    openViewer: (count) => `ดูรูปทั้งหมด ${count} รูป`,
+    previous: "รูปก่อนหน้า",
+    next: "รูปถัดไป",
+    zoomIn: "ซูมเข้า",
+    zoomOut: "ซูมออก",
+    counter: (position, total) => `${position} / ${total}`,
     cover: "รูปปก",
     addMore: "เพิ่มรูป",
     limit: (max) => `ใส่รูปได้สูงสุด ${max} รูป`,
