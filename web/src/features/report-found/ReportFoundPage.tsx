@@ -24,6 +24,7 @@ function readPrefill(params: URLSearchParams): FoundReportPrefill {
     title: params.get("title")?.slice(0, TITLE_MAX_LENGTH),
     category: isCategoryId(category) ? category : undefined,
     foundLocationId: params.get("location") ?? undefined,
+    answersLostReportId: params.get("answers") ?? undefined,
   };
   return Object.fromEntries(Object.entries(prefill).filter(([, value]) => value)) as FoundReportPrefill;
 }
@@ -112,7 +113,7 @@ export function ReportFoundPage() {
   const location = useLocation();
   const [params] = useSearchParams();
   const prefill = readPrefill(params);
-  const { draft, errors, setField, submit, submitting, failure, setFailure, created, reset } = useFoundReportForm(prefill);
+  const { draft, errors, setField, submit, submitting, failure, created, reset } = useFoundReportForm(prefill);
   const prefilled = Object.keys(prefill).length > 0;
   const { t } = useI18n();
   const text = t.reportFound;
@@ -143,7 +144,7 @@ export function ReportFoundPage() {
       <form onSubmit={handleSubmit} noValidate className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-6">
           <FormSection step={1} title={text.step1Title} description={text.step1Description}>
-            <PhotoPicker photos={draft.photos} onChange={(photos) => setField("photos", photos)} onReject={setFailure} />
+            <PhotoPicker photos={draft.photos} onChange={(photos) => setField("photos", photos)} />
             {draft.photos.length > 0 && draft.category && CARD_HOLDING_CATEGORIES.includes(draft.category) && (
               <p role="note" className="-mt-2 flex gap-2 rounded-sm bg-verify-soft px-3 py-2 text-[13px] leading-relaxed text-ink">
                 <IdCard className="mt-0.5 size-4 shrink-0 text-verify" aria-hidden /> {text.cardMaskNote}

@@ -1,4 +1,4 @@
-import type { EarnedReward, Reward, RewardPayout } from "../contract";
+import type { EarnedReward, Reward, RewardPayout, RewardReviewDecision, RewardReviewReason } from "../contract";
 import { REWARD_HOLD_DAYS, REWARD_MAX_BAHT, REWARD_MIN_BAHT, rewardFee } from "../contract";
 import type { StoredAccount, StoredFoundItem, StoredLostReport, StoredReward } from "./mockDatabase";
 
@@ -27,7 +27,7 @@ export function openReward(rewardId: string, amount: number): StoredReward | nul
 
 export function toReward(stored: StoredReward | null): Reward | null {
   if (!stored) return null;
-  const { checkoutSessionId: _session, finderEmail: _finder, itemTitle: _itemTitle, ...reward } = stored;
+  const { checkoutSessionId: _session, finderEmail: _finder, itemTitle: _itemTitle, review: _review, ...reward } = stored;
   return reward;
 }
 
@@ -60,10 +60,29 @@ export function releaseOnReturn(report: StoredLostReport, returnedItem: StoredFo
   reward.settledAt = now.toISOString();
 }
 
-/** Stands in for the scheduled EventBridge job: refunds held rewards whose hold period has ended. */
-export function refundExpiredRewards(reports: StoredLostReport[], now: Date): boolean {
+/** Freezes a held reward instead of refunding it, so a guard can compare the returned item with the notice. */
+export function holdForReview(reward: StoredReward, returnedItem: StoredFoundItem, reason: RewardReviewReason, now: Date): void {
+  reward.status = "in_review";
+  reward.finderEmail = returnedItem.finderEmail;
+  reward.itemTitle = returnedItem.title;
+  reward.review = { itemId: returnedItem.id, reason, flaggedAt: now.toISOString() };
+}
+
+/** The guard's verdict on a frozen reward: pay the finder as if the claim had been linked, or refund the owner. */
+export function resolveReview(reward: StoredReward, decision: RewardReviewDecision, now: Date): void {
+  reward.status = decision === "release" ? "pending_payout" : "refunded";
+  if (decision === "refund") reward.finderEmail = null;
+  reward.settledAt = now.toISOString();
+  reward.review = null;
+}
+
+/**
+ * Stands in for the scheduled EventBridge job: settles held rewards whose hold period has ended.
+ * `settle` decides between a refund and a review, because only the caller can see claims and found items.
+ */
+export function refundExpiredRewards(reports: StoredLostReport[], now: Date, settle: (report: StoredLostReport) => void): boolean {
   const expired = reports.filter((report) => report.reward?.status === "held" && report.reward.expiresAt !== null && report.reward.expiresAt <= now.toISOString());
-  expired.forEach((report) => settleWithoutFinder(report.reward, now));
+  expired.forEach(settle);
   return expired.length > 0;
 }
 

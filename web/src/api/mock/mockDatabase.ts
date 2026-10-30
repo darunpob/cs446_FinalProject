@@ -1,4 +1,4 @@
-import type { Claim, FoundItem, LostReportStatus, NewLostReport, Reward, UserProfile } from "../contract";
+import type { Claim, FoundItem, LostReportStatus, NewLostReport, Reward, RewardReviewReason, UserProfile } from "../contract";
 import { demoAccounts, foundItemSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
 import type { FoundItemSeed } from "../../fixtures/mockData";
 
@@ -7,12 +7,16 @@ export interface StoredFoundItem extends FoundItem {
   returnedAt: string | null;
   /** Account of a signed-in finder — the only person a reward can be released to. */
   finderEmail: string | null;
+  /** Lost notice the finder answered from the public board; optional so databases saved before v7 still load. */
+  answersLostReportId?: string | null;
 }
 
 export interface StoredReward extends Reward {
   checkoutSessionId: string | null;
   finderEmail: string | null;
   itemTitle: string | null;
+  /** Set while the reward is in_review: which returned item the guard must compare with the notice, and why. */
+  review?: { itemId: string; reason: RewardReviewReason; flaggedAt: string } | null;
 }
 
 export interface StoredLostReport extends NewLostReport {

@@ -124,13 +124,38 @@ describe("public lost board", () => {
     expect(JSON.stringify(board)).not.toMatch(/1650707093|bumail|0812345678|thanaphon/);
   });
 
-  it("hands the found form only what the board already shows", () => {
+  it("filters by search text, category and where it was lost", async () => {
+    const { api, signInAs } = freshApi();
+    await signInAs("student@bumail.net", "student1234");
+    const keys = await api.createLostReport(lostKeys);
+    const umbrella = await api.createLostReport({ ...lostUmbrella, lastSeenLocationId: "loc-library" });
+    const ids = async (query: Parameters<typeof api.listOpenLostReports>[0]) => (await api.listOpenLostReports(query)).map((report) => report.id);
+
+    expect(await ids({ q: "โดราเอมอน" })).toEqual([keys.id]);
+    expect(await ids({ category: "other" })).toEqual([umbrella.id]);
+    expect(await ids({ location: "loc-parking" })).toEqual([keys.id]);
+    expect(await ids({ q: "ร่ม", category: "keys" })).toEqual([]);
+  });
+
+  it("counts open notices and the ones found this month", async () => {
+    const { api, signInAs } = freshApi();
+    await signInAs("student@bumail.net", "student1234");
+    await api.createLostReport(lostKeys);
+    const found = await api.createLostReport(lostUmbrella);
+    const before = await api.getStats();
+    await api.closeLostReport(found.id, "found");
+    const after = await api.getStats();
+    expect(after.lostSearching).toBe(before.lostSearching - 1);
+    expect(after.lostFoundThisMonth).toBe(before.lostFoundThisMonth + 1);
+  });
+
+  it("hands the found form only what the board already shows, plus the notice id", () => {
     const path = foundReportPrefillPath({
       id: "lst-1", title: "ร่ม & กุญแจ", description: "สีดำ", category: "keys", lastSeenLocationId: "loc-parking",
       lostAt: "2026-10-28T09:00:00.000Z", imageUrls: [], hasReward: false,
     });
     const params = new URLSearchParams(path.split("?")[1]);
     expect(path.startsWith("/report-found?")).toBe(true);
-    expect(Object.fromEntries(params)).toEqual({ title: "ร่ม & กุญแจ", category: "keys", location: "loc-parking" });
+    expect(Object.fromEntries(params)).toEqual({ title: "ร่ม & กุญแจ", category: "keys", location: "loc-parking", answers: "lst-1" });
   });
 });

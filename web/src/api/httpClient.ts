@@ -7,6 +7,7 @@ import type {
   ClaimOutcome,
   FoundItem,
   FoundItemQuery,
+  LostReportQuery,
   LostFoundApi,
   LostReportCloseReason,
   LostReportReceipt,
@@ -21,6 +22,8 @@ import type {
   PublicLostReport,
   RewardCheckout,
   RewardPayout,
+  RewardReview,
+  RewardReviewDecision,
   Session,
   StaleItem,
   UploadTicket,
@@ -43,7 +46,7 @@ async function readErrorMessage(response: Response): Promise<string> {
   }
 }
 
-function toQueryString(query: FoundItemQuery): string {
+function toQueryString(query: FoundItemQuery | LostReportQuery): string {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
     if (value) params.set(key, String(value));
@@ -92,10 +95,14 @@ export function createHttpApi(baseUrl: string, getAccessToken: TokenSource): Los
     createLostReport: (draft: NewLostReport) => post<LostReportReceipt>("/lost-reports", draft),
     listMyLostReports: () => call<MyLostReports>("/lost-reports/mine"),
     closeLostReport: (reportId, reason: LostReportCloseReason) => post<MyLostReport>(`/lost-reports/${encodeURIComponent(reportId)}/close`, { reason }),
-    listOpenLostReports: async () => (await call<{ reports: PublicLostReport[] }>("/lost-reports")).reports,
+    listOpenLostReports: async (query = {}) => (await call<{ reports: PublicLostReport[] }>(`/lost-reports${toQueryString(query)}`)).reports,
     startRewardCheckout: (reportId) => post<RewardCheckout>(`/lost-reports/${encodeURIComponent(reportId)}/reward/checkout`, {}),
     listPendingPayouts: async () => (await call<{ payouts: RewardPayout[] }>("/admin/payouts?status=pending_payout")).payouts,
     confirmPayout: (rewardId) => post<RewardPayout>(`/admin/payouts/${encodeURIComponent(rewardId)}/paid`, {}),
+    listRewardReviews: async () => (await call<{ reviews: RewardReview[] }>("/admin/reward-reviews")).reviews,
+    resolveRewardReview: async (rewardId, decision: RewardReviewDecision) => {
+      await post<{ ok: true }>(`/admin/reward-reviews/${encodeURIComponent(rewardId)}`, { decision });
+    },
     submitClaim: ({ itemId, ...answerForm }: NewClaim) => post<ClaimOutcome>(`/items/${encodeURIComponent(itemId)}/claims`, answerForm),
     listPendingReturns: async () => (await call<{ claims: Claim[] }>("/admin/claims?status=verified")).claims,
     confirmReturn: (claimId) => post<Claim>(`/admin/claims/${encodeURIComponent(claimId)}/return`, {}),

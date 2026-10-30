@@ -1,4 +1,4 @@
-import type { CategoryId, FoundItemStatus } from "../../api/contract";
+import type { CategoryId, FoundItemStatus, RewardReviewReason } from "../../api/contract";
 
 interface PlaceText {
   name: string;
@@ -314,6 +314,14 @@ export interface Messages {
     emptyDescription: string;
     listLabel: string;
     morePhotos: (count: number) => string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    locationLabel: string;
+    allLocations: string;
+    statSearching: string;
+    statFound: string;
+    noMatchTitle: string;
+    noMatchDescription: string;
   };
   reward: {
     sectionTitle: string;
@@ -329,7 +337,7 @@ export interface Messages {
     payNow: string;
     payPrompt: (amount: number) => string;
     payPromptBody: string;
-    status: { awaiting_payment: string; held: string; pending_payout: string; paid_out: string; refunded: string; voided: string };
+    status: { awaiting_payment: string; held: string; in_review: string; pending_payout: string; paid_out: string; refunded: string; voided: string };
     heldUntil: (date: string) => string;
     paidNotice: string;
     boardBadge: string;
@@ -348,6 +356,19 @@ export interface Messages {
     payoutAmounts: (gross: number, fee: number, net: number) => string;
     payoutConfirm: string;
     payoutConfirmArmed: string;
+    inReviewNote: string;
+    claimLinkForced: string;
+    tabReviews: string;
+    reviewsEmptyTitle: string;
+    reviewsEmptyDescription: string;
+    reviewsNote: string;
+    reviewReason: Record<RewardReviewReason, string>;
+    reviewNotice: string;
+    reviewItem: string;
+    reviewFinder: (name: string) => string;
+    reviewRelease: string;
+    reviewRefund: string;
+    reviewArmed: string;
     checkoutTitle: string;
     checkoutFor: (title: string) => string;
     cardNumber: string;
@@ -410,6 +431,9 @@ export interface Messages {
     rewardNotPayable: string;
     payoutNotFound: string;
     payoutDone: string;
+    reviewNotFound: string;
+    reviewDone: string;
+    reviewDecisionInvalid: string;
     lostReportLinkInvalid: string;
     checkoutNotFound: string;
     cardDeclined: string;
@@ -732,6 +756,14 @@ export const th: Messages = {
     emptyDescription: "เมื่อมีคนแจ้งของหาย ประกาศจะขึ้นที่นี่",
     listLabel: "รายการประกาศตามหา",
     morePhotos: (count) => `+${count} รูป`,
+    searchLabel: "ค้นหาประกาศตามหา",
+    searchPlaceholder: "ลองพิมพ์ เช่น AirPods, บัตรนักศึกษา, ร่ม",
+    locationLabel: "จุดที่หาย",
+    allLocations: "ทุกจุดที่หาย",
+    statSearching: "ประกาศที่กำลังตามหา",
+    statFound: "ได้ของคืนแล้วเดือนนี้",
+    noMatchTitle: "ไม่พบประกาศที่ตรงกับที่ค้นหา",
+    noMatchDescription: "ลองเปลี่ยนคำค้น หมวดหมู่ หรือจุดที่หาย",
   },
   reward: {
     sectionTitle: "ตั้งรางวัลให้คนเก็บได้",
@@ -747,7 +779,7 @@ export const th: Messages = {
     payNow: "ชำระรางวัล",
     payPrompt: (amount) => `ชำระรางวัล ${amount} บาท เพื่อเปิดใช้งาน`,
     payPromptBody: "หลังชำระแล้ว ประกาศของคุณจะขึ้นป้าย “มีรางวัล” บนบอร์ดประกาศตามหา",
-    status: { awaiting_payment: "รอชำระเงิน", held: "พักเงินไว้แล้ว", pending_payout: "รอโอนให้คนเก็บได้", paid_out: "โอนให้คนเก็บได้แล้ว", refunded: "คืนเงินแล้ว", voided: "ยกเลิกรางวัล" },
+    status: { awaiting_payment: "รอชำระเงิน", held: "พักเงินไว้แล้ว", in_review: "รอ รปภ. ตรวจสอบ", pending_payout: "รอโอนให้คนเก็บได้", paid_out: "โอนให้คนเก็บได้แล้ว", refunded: "คืนเงินแล้ว", voided: "ยกเลิกรางวัล" },
     heldUntil: (date) => `ถ้ายังไม่มีใครเจอ จะคืนเงินอัตโนมัติวันที่ ${date}`,
     paidNotice: "ชำระเงินแล้ว รางวัลถูกพักไว้ในระบบ ถ้าสถานะยังไม่เปลี่ยน รอสักครู่แล้วรีเฟรช",
     boardBadge: "มีรางวัล",
@@ -766,6 +798,19 @@ export const th: Messages = {
     payoutAmounts: (gross, fee, net) => `${gross} − ค่าธรรมเนียม ${fee} = โอน ${net} บาท`,
     payoutConfirm: "ยืนยันโอนแล้ว",
     payoutConfirmArmed: "โอนแล้ว ยืนยัน",
+    inReviewNote: "มีของที่คนเก็บได้แจ้งไว้ถูกรับคืนไปแล้ว เจ้าหน้าที่ รปภ. กำลังตรวจว่าจะโอนรางวัลให้คนเก็บได้หรือคืนเงินให้คุณ",
+    claimLinkForced: "ถ้าคนเก็บได้กด “ฉันเจอของชิ้นนี้” จากประกาศของคุณ ระบบจะผูกของชิ้นนั้นกับประกาศให้อัตโนมัติ",
+    tabReviews: "รางวัลรอตรวจสอบ",
+    reviewsEmptyTitle: "ไม่มีรางวัลรอตรวจสอบ",
+    reviewsEmptyDescription: "ถ้าเจ้าของปิดประกาศที่มีรางวัลหลังรับของที่คนอื่นเก็บได้ไปแล้ว รายการจะขึ้นที่นี่",
+    reviewsNote: "เทียบรูปและรายละเอียดของประกาศกับของที่คืนไป แล้วเลือกว่าจะโอนรางวัลให้คนเก็บได้หรือคืนเงินเจ้าของ",
+    reviewReason: { linked_item_claimed: "คนเก็บได้แจ้งของชิ้นนี้จากประกาศนี้โดยตรง", owner_claimed_similar: "เจ้าของรับของหมวดเดียวกันไปหลังลงประกาศ แต่ไม่ได้ผูกกับประกาศ" },
+    reviewNotice: "ประกาศตามหา",
+    reviewItem: "ของที่คืนไป",
+    reviewFinder: (name) => `คนเก็บได้: ${name}`,
+    reviewRelease: "โอนรางวัลให้คนเก็บได้",
+    reviewRefund: "คืนเงินเจ้าของ",
+    reviewArmed: "กดอีกครั้งเพื่อยืนยัน",
     checkoutTitle: "ชำระรางวัล",
     checkoutFor: (title) => `รางวัลสำหรับประกาศ “${title}”`,
     cardNumber: "หมายเลขบัตร",
@@ -828,6 +873,9 @@ export const th: Messages = {
     rewardNotPayable: "ประกาศนี้ไม่มีรางวัลที่รอชำระ",
     payoutNotFound: "ไม่พบรายการรางวัลนี้",
     payoutDone: "รางวัลนี้ยืนยันการโอนไปแล้ว",
+    reviewNotFound: "ไม่พบรางวัลที่รอตรวจสอบ",
+    reviewDone: "รางวัลนี้ตรวจสอบไปแล้ว",
+    reviewDecisionInvalid: "ต้องเลือกโอนให้คนเก็บได้หรือคืนเงินเจ้าของ",
     lostReportLinkInvalid: "เลือกได้เฉพาะประกาศที่ยังเปิดอยู่ของคุณเอง",
     checkoutNotFound: "ลิงก์ชำระเงินนี้ใช้ไม่ได้แล้ว",
     cardDeclined: "บัตรถูกปฏิเสธ ลองใช้บัตรอื่น",

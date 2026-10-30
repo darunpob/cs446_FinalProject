@@ -50,7 +50,7 @@ function ReportLinkField({ foundItem, value, onChange }: { foundItem: FoundItem;
 
   if (openReports.length === 0) return null;
   return (
-    <Field label={t.reward.claimLinkLabel} optional hint={t.reward.claimLinkHint}>
+    <Field label={t.reward.claimLinkLabel} optional hint={`${t.reward.claimLinkHint} ${t.reward.claimLinkForced}`}>
       {(controlId, describedBy) => (
         <SelectInput id={controlId} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
           <option value="">{t.reward.claimLinkNone}</option>

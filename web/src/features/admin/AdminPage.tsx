@@ -9,9 +9,10 @@ import { STALE_AFTER_DAYS } from "../catalog/categories";
 import { useAuth } from "../auth/AuthProvider";
 import { PendingPayouts } from "./PendingPayouts";
 import { PendingReturns } from "./PendingReturns";
+import { RewardReviews } from "./RewardReviews";
 import { StaleItems } from "./StaleItems";
 
-type AdminTab = "returns" | "payouts" | "stale";
+type AdminTab = "returns" | "payouts" | "reviews" | "stale";
 
 function Metric({ icon: Icon, label, value, stock }: { icon: LucideIcon; label: string; value: number | null; stock: string }) {
   return (
@@ -29,8 +30,8 @@ function Metric({ icon: Icon, label, value, stock }: { icon: LucideIcon; label: 
 
 function TabButton({ active, count, label, onClick }: { active: boolean; count: number | null; label: string; onClick: () => void }) {
   return (
-    <button type="button" role="tab" aria-selected={active} onClick={onClick}
-      className={`flex h-11 cursor-pointer items-center gap-2 rounded-t-md px-4 text-[15px] font-semibold transition-colors duration-150 ${active ? "paper" : "text-on-felt-2 hover:bg-felt hover:text-on-felt"}`}>
+    <button type="button" role="tab" aria-selected={active} onClick={(event) => { event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" }); onClick(); }}
+      className={`flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-t-md px-4 whitespace-nowrap text-[15px] font-semibold transition-colors duration-150 ${active ? "paper" : "text-on-felt-2 hover:bg-felt hover:text-on-felt"}`}>
       {label}
       {count !== null && <span className={`rounded-sm px-1.5 py-0.5 text-xs font-bold tabular-nums ${active ? "bg-stock-sky text-stock-ink" : "bg-felt-line text-on-felt"}`}>{count}</span>}
     </button>
@@ -45,15 +46,23 @@ export function AdminPage() {
   const pending = useApiQuery(() => api.listPendingReturns(), []);
   const stale = useApiQuery(() => api.listStaleItems(STALE_AFTER_DAYS), []);
   const payouts = useApiQuery(() => api.listPendingPayouts(), []);
+  const reviews = useApiQuery(() => api.listRewardReviews(), []);
 
   const statValues = stats.state.phase === "ready" ? stats.state.value : null;
   const claims = pending.state.phase === "ready" ? pending.state.value : null;
   const staleItems = stale.state.phase === "ready" ? stale.state.value : null;
   const payoutList = payouts.state.phase === "ready" ? payouts.state.value : null;
+  const reviewList = reviews.state.phase === "ready" ? reviews.state.value : null;
 
   const handleReturned = () => {
     pending.reload();
     stats.reload();
+    payouts.reload();
+    reviews.reload();
+  };
+
+  const handleReviewed = () => {
+    reviews.reload();
     payouts.reload();
   };
 
@@ -66,14 +75,16 @@ export function AdminPage() {
         <Metric icon={TimerReset} label={t.admin.metricStale(STALE_AFTER_DAYS)} value={staleItems?.length ?? null} stock="bg-stock-orange" />
         <Metric icon={PackageCheck} label={t.admin.metricReturned} value={statValues?.returnedThisMonth ?? null} stock="bg-stock-mint" />
       </div>
-      <div role="tablist" className="mt-10 flex gap-1 border-b-2 border-felt-line">
+      <div role="tablist" className="mt-10 flex gap-1 overflow-x-auto border-b-2 border-felt-line [scrollbar-width:none]">
         <TabButton active={tab === "returns"} count={claims?.length ?? null} label={t.admin.tabReturns} onClick={() => setTab("returns")} />
         <TabButton active={tab === "payouts"} count={payoutList?.length ?? null} label={t.reward.tabPayouts} onClick={() => setTab("payouts")} />
+        <TabButton active={tab === "reviews"} count={reviewList?.length ?? null} label={t.reward.tabReviews} onClick={() => setTab("reviews")} />
         <TabButton active={tab === "stale"} count={staleItems?.length ?? null} label={t.admin.tabStale} onClick={() => setTab("stale")} />
       </div>
       <div className="pt-6" role="tabpanel">
         {tab === "returns" && <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />}
         {tab === "payouts" && <PendingPayouts payouts={payoutList} failure={payouts.state.phase === "failed" ? payouts.state.message : null} onRetry={payouts.reload} onPaid={payouts.reload} />}
+        {tab === "reviews" && <RewardReviews reviews={reviewList} failure={reviews.state.phase === "failed" ? reviews.state.message : null} onRetry={reviews.reload} onResolved={handleReviewed} />}
         {tab === "stale" && <StaleItems staleItems={staleItems} failure={stale.state.phase === "failed" ? stale.state.message : null} onRetry={stale.reload} />}
       </div>
     </div>

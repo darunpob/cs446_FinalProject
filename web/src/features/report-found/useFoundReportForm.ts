@@ -17,12 +17,14 @@ export interface FoundReportDraft {
   dropOffPointId: string;
   verificationQuestion: string;
   verificationAnswer: string;
+  /** Lost notice id carried over from the board; never shown, only sent so the server can link the reward. */
+  answersLostReportId: string;
 }
 
 export type FoundReportErrors = Partial<Record<keyof FoundReportDraft, string>>;
 
 /** Fields the public lost board may hand over when a finder taps "I found this". */
-export type FoundReportPrefill = Partial<Pick<FoundReportDraft, "title" | "category" | "foundLocationId">>;
+export type FoundReportPrefill = Partial<Pick<FoundReportDraft, "title" | "category" | "foundLocationId" | "answersLostReportId">>;
 
 function blankDraft(prefill: FoundReportPrefill = {}): FoundReportDraft {
   return {
@@ -35,6 +37,7 @@ function blankDraft(prefill: FoundReportPrefill = {}): FoundReportDraft {
     dropOffPointId: "",
     verificationQuestion: "",
     verificationAnswer: "",
+    answersLostReportId: "",
     ...prefill,
   };
 }
@@ -98,6 +101,7 @@ export function useFoundReportForm(prefill: FoundReportPrefill = {}) {
         imageKeys,
         verificationQuestion: draft.verificationQuestion,
         verificationAnswer: draft.verificationAnswer,
+        answersLostReportId: draft.answersLostReportId,
       });
       setCreated(foundItem);
       return true;

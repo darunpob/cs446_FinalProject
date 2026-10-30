@@ -161,3 +161,111 @@ describe("refunds", () => {
     expect(await myReport(world, reportId)).toMatchObject({ status: "searching", reward: { status: "refunded" } });
   });
 });
+
+async function registerFinder(world: ReturnType<typeof freshWorld>) {
+  await world.api.register({ email: "finder.k@bumail.net", password: "finder1234", displayName: "คนเก็บได้" });
+  await world.signInAs("finder.k@bumail.net", "finder1234");
+}
+
+async function claimAsOwner(world: ReturnType<typeof freshWorld>, itemId: string, options: { lostReportId: string; studentId?: string; signedIn?: boolean }) {
+  if (options.signedIn === false) world.signOut();
+  else await world.signInAs("student@bumail.net", "student1234");
+  const outcome = await world.api.submitClaim({
+    itemId, answer: "โดราเอมอน", claimantName: "เจ้าของ", studentId: options.studentId ?? "1650000000", contact: "line", lostReportId: options.lostReportId,
+  });
+  if (outcome.status !== "verified") throw new Error("expected a verified claim");
+  await world.signInAs("guard@bu.ac.th", "guard1234");
+  await world.api.confirmReturn(outcome.claimId);
+}
+
+describe("owners cannot dodge a reward", () => {
+  it("follows the finder's link even when the owner answers 'not related'", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    await registerFinder(world);
+    const item = await world.api.createFoundItem({ ...foundBag, answersLostReportId: reportId });
+    await claimAsOwner(world, item.id, { lostReportId: "" });
+
+    expect(await world.api.listPendingPayouts()).toEqual([expect.objectContaining({ lostReportId: reportId, finderEmail: "finder.k@bumail.net" })]);
+    expect(await myReport(world, reportId)).toMatchObject({ status: "found", reward: { status: "pending_payout" } });
+  });
+
+  it("links a signed-out claim to the notice when the student ID matches it", async () => {
+    const world = freshWorld();
+    await world.signInAs("student@bumail.net", "student1234");
+    const receipt = await world.api.createLostReport({ ...lostBag, studentId: "1650000000" });
+    world.gateway.pay((await world.api.startRewardCheckout(receipt.id)).checkoutUrl.split("/").pop() ?? "", TEST_CARDS.success);
+    await registerFinder(world);
+    const item = await world.api.createFoundItem({ ...foundBag, answersLostReportId: receipt.id });
+    await claimAsOwner(world, item.id, { lostReportId: "", signedIn: false });
+
+    expect((await myReport(world, receipt.id))?.reward?.status).toBe("pending_payout");
+  });
+
+  it("sends the reward to a guard instead of refunding when the owner closes after taking a similar item", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    await registerFinder(world);
+    const item = await world.api.createFoundItem(foundBag);
+    await claimAsOwner(world, item.id, { lostReportId: "" });
+    await world.signInAs("student@bumail.net", "student1234");
+    expect((await world.api.closeLostReport(reportId, "cancelled")).reward?.status).toBe("in_review");
+
+    await world.signInAs("finder.k@bumail.net", "finder1234");
+    expect((await world.api.listMyLostReports()).earnedRewards).toEqual([]);
+
+    await world.signInAs("guard@bu.ac.th", "guard1234");
+    const [review] = await world.api.listRewardReviews();
+    expect(review).toMatchObject({ lostReportId: reportId, itemId: item.id, finderName: "คนเก็บได้", amount: 100, reason: "owner_claimed_similar" });
+    await world.api.resolveRewardReview(review.rewardId, "release");
+    await expect(world.api.resolveRewardReview(review.rewardId, "release")).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(await world.api.listPendingPayouts()).toEqual([expect.objectContaining({ finderEmail: "finder.k@bumail.net", netAmount: 90 })]);
+  });
+
+  it("lets the guard refund when the returned item was not the one on the notice", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    await registerFinder(world);
+    const item = await world.api.createFoundItem(foundBag);
+    await claimAsOwner(world, item.id, { lostReportId: "" });
+    await world.signInAs("student@bumail.net", "student1234");
+    await world.api.closeLostReport(reportId, "found");
+
+    await world.signInAs("guard@bu.ac.th", "guard1234");
+    const [review] = await world.api.listRewardReviews();
+    await expect(world.api.resolveRewardReview(review.rewardId, "pay-me" as never)).rejects.toMatchObject({ code: "VALIDATION" });
+    await world.api.resolveRewardReview(review.rewardId, "refund");
+    expect(await world.api.listRewardReviews()).toEqual([]);
+    expect((await myReport(world, reportId))?.reward?.status).toBe("refunded");
+  });
+
+  it("freezes instead of auto-refunding when the hold ends after a linked item was claimed by someone else", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    await registerFinder(world);
+    const item = await world.api.createFoundItem({ ...foundBag, answersLostReportId: reportId });
+    await claimAsOwner(world, item.id, { lostReportId: "", signedIn: false, studentId: "1659999999" });
+    world.clock.current = new Date(world.clock.current.getTime() + 30 * DAY_MS + 1);
+
+    expect(await myReport(world, reportId)).toMatchObject({ status: "searching", reward: { status: "in_review" } });
+    await world.signInAs("guard@bu.ac.th", "guard1234");
+    expect((await world.api.listRewardReviews())[0]).toMatchObject({ reason: "linked_item_claimed" });
+  });
+
+  it("still refunds a plain cancel when no finder's item went back", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    expect((await world.api.closeLostReport(reportId, "cancelled")).reward?.status).toBe("refunded");
+  });
+
+  it("rejects links to closed or unknown notices and ignores an owner answering their own notice", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    await expect(world.api.createFoundItem({ ...foundBag, answersLostReportId: "lst-missing" })).rejects.toMatchObject({ code: "VALIDATION" });
+    const ownFind = await world.api.createFoundItem({ ...foundBag, answersLostReportId: reportId });
+    await claimAsOwner(world, ownFind.id, { lostReportId: "" });
+    await world.signInAs("student@bumail.net", "student1234");
+    expect((await world.api.closeLostReport(reportId, "found")).reward?.status).toBe("refunded");
+    await expect(world.api.createFoundItem({ ...foundBag, answersLostReportId: reportId })).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+});

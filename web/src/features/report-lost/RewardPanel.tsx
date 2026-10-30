@@ -11,6 +11,7 @@ import { formatDate } from "../catalog/thaiTime";
 const STATUS_TONE: Record<RewardStatus, "warn" | "verify" | "success" | "neutral"> = {
   awaiting_payment: "warn",
   held: "verify",
+  in_review: "warn",
   pending_payout: "verify",
   paid_out: "success",
   refunded: "neutral",
@@ -50,6 +51,7 @@ export function RewardPanel({ reportId, reward }: { reportId: string; reward: Re
         </p>
         {reward.status === "held" && reward.expiresAt && <p className="mt-0.5 text-[13px] text-ink-2">{text.heldUntil(formatDate(reward.expiresAt))}</p>}
         {awaitingPayment && <p className="mt-0.5 text-[13px] text-ink-2">{text.payPromptBody}</p>}
+        {reward.status === "in_review" && <p className="mt-0.5 text-[13px] text-ink-2">{text.inReviewNote}</p>}
         {checkout.failure && <p role="alert" className="mt-1 text-[13px] text-danger">{checkout.failure}</p>}
       </div>
       {awaitingPayment && (

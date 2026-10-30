@@ -61,6 +61,9 @@ export interface FoundItemQuery {
   status?: FoundItemStatus;
 }
 
+/** Filters for the public lost board; `location` matches where the item was last seen. */
+export type LostReportQuery = Omit<FoundItemQuery, "status">;
+
 export interface NewFoundItem {
   title: string;
   description: string;
@@ -72,6 +75,11 @@ export interface NewFoundItem {
   imageKeys: string[];
   verificationQuestion: string;
   verificationAnswer: string;
+  /**
+   * The public lost notice the finder came from via "I found this", or "". Kept server-side only: when the item is
+   * claimed back, the reward of that notice follows it no matter what the owner picks in the claim form.
+   */
+  answersLostReportId?: string;
 }
 
 export const MAX_PHOTOS = 4;
@@ -129,9 +137,10 @@ export function rewardFee(amount: number): number {
 
 /**
  * awaiting_payment → held (escrow) → pending_payout (guard confirmed the return) → paid_out (admin marked the transfer).
- * A held reward is refunded when the owner closes the report, after REWARD_HOLD_DAYS, or when no eligible finder exists.
+ * A held reward is refunded when the owner closes the report, after REWARD_HOLD_DAYS, or when no eligible finder exists —
+ * unless a signed-in finder's item looks like it went back to the owner unlinked; then it waits in `in_review` for a guard.
  */
-export type RewardStatus = "awaiting_payment" | "held" | "pending_payout" | "paid_out" | "refunded" | "voided";
+export type RewardStatus = "awaiting_payment" | "held" | "in_review" | "pending_payout" | "paid_out" | "refunded" | "voided";
 
 export interface Reward {
   id: string;
@@ -168,6 +177,28 @@ export interface RewardPayout {
   fee: number;
   netAmount: number;
   releasedAt: string;
+}
+
+/**
+ * Why a refund was stopped: the finder linked the item to this notice ("linked_item_claimed"), or the owner claimed a
+ * same-category item after posting the notice without linking it ("owner_claimed_similar").
+ */
+export type RewardReviewReason = "linked_item_claimed" | "owner_claimed_similar";
+
+export type RewardReviewDecision = "release" | "refund";
+
+export interface RewardReview {
+  rewardId: string;
+  lostReportId: string;
+  reportTitle: string;
+  reportImageUrls: string[];
+  itemId: string;
+  itemTitle: string;
+  itemImageUrls: string[];
+  finderName: string;
+  amount: number;
+  reason: RewardReviewReason;
+  flaggedAt: string;
 }
 
 export interface LostReportReceipt {
@@ -270,6 +301,10 @@ export interface CampusStats {
   waiting: number;
   awaitingPickup: number;
   returnedThisMonth: number;
+  /** Open notices on the public lost board. */
+  lostSearching: number;
+  /** Lost reports closed as found this calendar month. */
+  lostFoundThisMonth: number;
 }
 
 export type UserRole = "student" | "guard";
@@ -323,10 +358,12 @@ export interface LostFoundApi {
   createLostReport(draft: NewLostReport): Promise<LostReportReceipt>;
   listMyLostReports(): Promise<MyLostReports>;
   closeLostReport(reportId: string, reason: LostReportCloseReason): Promise<MyLostReport>;
-  listOpenLostReports(): Promise<PublicLostReport[]>;
+  listOpenLostReports(query?: LostReportQuery): Promise<PublicLostReport[]>;
   startRewardCheckout(reportId: string): Promise<RewardCheckout>;
   listPendingPayouts(): Promise<RewardPayout[]>;
   confirmPayout(rewardId: string): Promise<RewardPayout>;
+  listRewardReviews(): Promise<RewardReview[]>;
+  resolveRewardReview(rewardId: string, decision: RewardReviewDecision): Promise<void>;
   submitClaim(draft: NewClaim): Promise<ClaimOutcome>;
   listPendingReturns(): Promise<Claim[]>;
   confirmReturn(claimId: string): Promise<Claim>;

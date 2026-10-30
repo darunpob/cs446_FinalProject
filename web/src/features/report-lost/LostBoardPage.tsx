@@ -10,15 +10,20 @@ import { useI18n } from "../../i18n/useI18n";
 import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDate } from "../catalog/thaiTime";
+import { BoardSearch, FilterBar, ResultSummary, Tally } from "../items/BoardFilters";
 import { ItemCardSkeleton } from "../items/ItemCard";
 import { ItemVisual } from "../items/ItemVisual";
 import { PhotoLightbox } from "../items/PhotoLightbox";
+import { toQuery, useItemFilters, useSearchDraft } from "../items/useItemFilters";
 
 const BOARD_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3";
 
-/** Only what the board itself shows is handed to the found form — never anything the owner kept private. */
+/**
+ * Only what the board itself shows is handed to the found form — never anything the owner kept private.
+ * The notice id rides along so the server can tie this find to the notice and its reward.
+ */
 export function foundReportPrefillPath(report: PublicLostReport): string {
-  const prefill = new URLSearchParams({ title: report.title, category: report.category, location: report.lastSeenLocationId });
+  const prefill = new URLSearchParams({ title: report.title, category: report.category, location: report.lastSeenLocationId, answers: report.id });
   return `/report-found?${prefill.toString()}`;
 }
 
@@ -78,8 +83,13 @@ function LostNotice({ report }: { report: PublicLostReport }) {
 }
 
 function BoardBody({ reports }: { reports: PublicLostReport[] }) {
+  const { isFiltered } = useItemFilters();
   const { t } = useI18n();
-  if (reports.length === 0) return <EmptyState icon={<SearchX className="size-7" />} title={t.lostBoard.emptyTitle} description={t.lostBoard.emptyDescription} />;
+  if (reports.length === 0) {
+    const title = isFiltered ? t.lostBoard.noMatchTitle : t.lostBoard.emptyTitle;
+    const description = isFiltered ? t.lostBoard.noMatchDescription : t.lostBoard.emptyDescription;
+    return <EmptyState icon={<SearchX className="size-7" />} title={title} description={description} />;
+  }
   return (
     <ul className={BOARD_GRID} aria-label={t.lostBoard.listLabel}>
       {reports.map((report) => <LostNotice key={report.id} report={report} />)}
@@ -87,20 +97,51 @@ function BoardBody({ reports }: { reports: PublicLostReport[] }) {
   );
 }
 
-export function LostBoardPage() {
-  const { t } = useI18n();
-  const { state, reload } = useApiQuery(() => api.listOpenLostReports(), []);
+function BoardResults() {
+  const { filters } = useItemFilters();
+  const { category, location, q } = toQuery(filters);
+  const { state, reload } = useApiQuery(() => api.listOpenLostReports({ q, category, location }), [q, category, location]);
+  if (state.phase === "failed") return <ErrorNotice message={state.message} onRetry={reload} />;
+  if (state.phase === "loading") return <div className={BOARD_GRID}>{[0, 1, 2].map((slot) => <ItemCardSkeleton key={slot} />)}</div>;
   return (
-    <div>
+    <>
+      <ResultSummary count={state.value.length} />
+      <BoardBody reports={state.value} />
+    </>
+  );
+}
+
+function BoardHeader() {
+  const { t } = useI18n();
+  const { draftSearch, setDraftSearch } = useSearchDraft();
+  const { state } = useApiQuery(() => api.getStats(), []);
+  const stats = state.phase === "ready" ? state.value : null;
+  return (
+    <section className="pb-5 sm:pb-6">
       <PageHeading stock="lost" title={t.lostBoard.title} description={t.lostBoard.subtitle} />
-      <p className="mb-8 flex max-w-2xl gap-2 text-sm leading-relaxed text-on-felt-2">
+      <p className="mb-5 flex max-w-2xl gap-2 text-sm leading-relaxed text-on-felt-2">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-stock-mint" aria-hidden /> {t.lostBoard.privacyNote}
       </p>
-      {state.phase === "loading" && (
-        <div className={BOARD_GRID}>{[0, 1, 2].map((slot) => <ItemCardSkeleton key={slot} />)}</div>
-      )}
-      {state.phase === "failed" && <ErrorNotice message={state.message} onRetry={reload} />}
-      {state.phase === "ready" && <BoardBody reports={state.value} />}
+      <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-end lg:gap-12">
+        <BoardSearch value={draftSearch} onChange={setDraftSearch} label={t.lostBoard.searchLabel} placeholder={t.lostBoard.searchPlaceholder} />
+        <div className="grid grid-cols-2 gap-3">
+          <Tally value={stats?.lostSearching ?? null} label={t.lostBoard.statSearching} />
+          <Tally value={stats?.lostFoundThisMonth ?? null} label={t.lostBoard.statFound} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function LostBoardPage() {
+  const { t } = useI18n();
+  return (
+    <div>
+      <BoardHeader />
+      <FilterBar locationLabel={t.lostBoard.locationLabel} allLocationsLabel={t.lostBoard.allLocations} />
+      <section className="pt-6" aria-label={t.lostBoard.listLabel}>
+        <BoardResults />
+      </section>
     </div>
   );
 }

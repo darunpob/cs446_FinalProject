@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import { Camera, ImagePlus, Plus, X } from "lucide-react";
+import { Camera, ImagePlus, Plus, TriangleAlert, X } from "lucide-react";
 import { MAX_PHOTOS } from "../../api/contract";
 import { messages } from "../../i18n/locale";
 import { useI18n } from "../../i18n/useI18n";
@@ -20,10 +20,10 @@ function acceptFiles(current: File[], incoming: File[], onChange: (photos: File[
   const sized = images.filter((file) => file.size <= MAX_SOURCE_BYTES);
   const room = MAX_PHOTOS - current.length;
   const accepted = sized.slice(0, Math.max(room, 0));
+  if (accepted.length > 0) onChange([...current, ...accepted]);
   if (images.length < incoming.length) onReject(text.onlyImages);
   else if (sized.length < images.length) onReject(text.tooLarge);
   else if (accepted.length < sized.length) onReject(text.limit(MAX_PHOTOS));
-  if (accepted.length > 0) onChange([...current, ...accepted]);
 }
 
 function usePreviewUrls(photos: File[]): string[] {
@@ -36,7 +36,26 @@ function usePreviewUrls(photos: File[]): string[] {
   return previewUrls;
 }
 
-export function PhotoPicker({ photos, onChange, onReject }: PhotoPickerProps) {
+/** Shows why files were left out right under the photo field's label, where the person is looking. */
+export function PhotoPicker({ photos, onChange }: Omit<PhotoPickerProps, "onReject">) {
+  const [rejection, setRejection] = useState<string | null>(null);
+  const handleChange = (next: File[]) => {
+    setRejection(null);
+    onChange(next);
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      {rejection && (
+        <p role="alert" className="flex items-start gap-2 rounded-sm bg-danger-soft px-3 py-2 text-[13px] leading-relaxed font-semibold text-danger">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden /> {rejection}
+        </p>
+      )}
+      <PhotoDropZone photos={photos} onChange={handleChange} onReject={setRejection} />
+    </div>
+  );
+}
+
+function PhotoDropZone({ photos, onChange, onReject }: PhotoPickerProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const previewUrls = usePreviewUrls(photos);

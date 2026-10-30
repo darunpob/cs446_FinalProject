@@ -80,7 +80,7 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
 
 export function ReportLostPage() {
   const { session } = useAuth();
-  const { draft, errors, setField, submit, submitting, failure, setFailure, receipt } = useLostReportForm(session?.user.displayName ?? "", session?.user.email ?? "");
+  const { draft, errors, setField, submit, submitting, failure, receipt } = useLostReportForm(session?.user.displayName ?? "", session?.user.email ?? "");
   const { t } = useI18n();
   const text = t.reportLost;
 
@@ -112,7 +112,7 @@ export function ReportLostPage() {
             <span className="flex items-baseline gap-2 text-sm font-semibold">
               {text.photosLabel} <span className="text-xs font-normal text-ink-3">{t.common.optional}</span>
             </span>
-            <PhotoPicker photos={draft.photos} onChange={(photos) => setField("photos", photos)} onReject={setFailure} />
+            <PhotoPicker photos={draft.photos} onChange={(photos) => setField("photos", photos)} />
             <p className="text-[13px] text-ink-3">{text.photosHint}</p>
           </div>
           {draft.category && CARD_HOLDING_CATEGORIES.includes(draft.category) && (
