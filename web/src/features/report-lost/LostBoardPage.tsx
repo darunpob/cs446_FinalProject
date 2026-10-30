@@ -18,10 +18,13 @@ import { PhotoLightbox } from "../items/PhotoLightbox";
 import { toQuery, useItemFilters, useSearchDraft } from "../items/useItemFilters";
 
 
-/** Same ink-stamp language as the found board: round = still open, square = settled, struck = handed back. */
+/**
+ * Same ink-stamp language as the found board: round = still looking, square = owner confirmed, struck = found.
+ * A find still waiting for the owner's answer reads as "not found yet" until the owner confirms it.
+ */
 const PROGRESS_STAMP: Record<LostNoticeProgress, string> = {
   searching: "rounded-full text-stamp",
-  found: "rounded-full text-success",
+  found: "rounded-full text-stamp",
   awaiting_pickup: "rounded-sm text-verify",
   returned: "rounded-sm text-ink-3 line-through decoration-2",
 };

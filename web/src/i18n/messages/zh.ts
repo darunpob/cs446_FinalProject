@@ -382,7 +382,7 @@ export const zh: Messages = {
     noMatchTitle: "没有符合条件的启事",
     noMatchDescription: "试试换个关键词、分类或地点",
     expiryNote: (days) => `超过 ${days} 天的启事将自动删除`,
-    progress: { searching: "尚未找到", found: "已有人找到", awaiting_pickup: "已确认，待领取", returned: "已归还" },
+    progress: { searching: "尚未找到", found: "尚未找到", awaiting_pickup: "已确认，待领取", returned: "已找到" },
     statAwaiting: "已确认，待领取",
     scopeOpen: "尚未找到",
   },

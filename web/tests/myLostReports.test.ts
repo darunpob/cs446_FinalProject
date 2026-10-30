@@ -165,11 +165,11 @@ describe("public lost board", () => {
 });
 
 describe("lost board history", () => {
-  it("lists only unanswered notices by default, and found, pending and returned ones with history", async () => {
+  it("lists notices still searching by default, and pending and returned ones with history", async () => {
     const { api } = freshApi();
     const openIds = (await api.listOpenLostReports()).map((notice) => notice.id);
     expect(openIds).toContain("lst-9001");
-    expect(openIds).not.toContain("lst-9003");
+    expect(openIds).toContain("lst-9003");
     expect(openIds).not.toContain("lst-9004");
     expect(openIds).not.toContain("lst-9005");
     const withHistory = await api.listOpenLostReports({ history: true });

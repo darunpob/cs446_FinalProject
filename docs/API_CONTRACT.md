@@ -18,8 +18,9 @@
 >    - `GET /api/lost-reports?history=true` รวมประกาศที่ปิดเป็น `found` (รปภ. ยืนยันคืนแล้ว) ด้วย ไม่ส่ง `history` = เฉพาะ `searching` เหมือนเดิม
 >    - `progress` เพิ่มค่า `returned` สำหรับประกาศพวกนี้
 >    - หน้าเว็บมีปุ่มสลับ "ยังไม่เจอ / ทั้งหมด" เหมือนหน้าของที่เจอ
->    - **ไม่ส่ง `history`:** ส่งเฉพาะประกาศ `progress = searching` (ยังไม่มีใครส่งของมา) ประกาศที่ `found` / `awaiting_pickup` จะโผล่เฉพาะตอน `history=true`
->    - `GET /api/stats` → `lostSearching` นับเฉพาะ `progress = searching` ให้ตรงกับบอร์ด
+>    - **ไม่ส่ง `history`:** ส่งประกาศ `progress` เป็น `searching` หรือ `found` (เจ้าของยังไม่ยืนยัน บอร์ดแสดงเป็น "ยังไม่เจอ" ทั้งคู่) · `awaiting_pickup` / `returned` โผล่เฉพาะตอน `history=true`
+>    - ป้ายบนบอร์ด: ยังไม่เจอ (วงกลมแดง) · ยืนยันแล้ว รอรับ (สี่เหลี่ยมฟ้า) · เจอแล้ว = `returned` (สีเทา ขีดฆ่า)
+>    - `GET /api/stats` → `lostSearching` นับประกาศ `searching` ที่ `progress` ไม่ใช่ `awaiting_pickup` ให้ตรงกับบอร์ด
 
 
 > **มีอะไรใหม่ใน v9: ของที่ตอบประกาศส่งถึงเจ้าของคนเดียว, เจ้าของปิดเองไม่ได้, ประกาศหมดอายุ 30 วัน (ฝั่ง backend ต้องทำ)**

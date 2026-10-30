@@ -382,7 +382,7 @@ export const en: Messages = {
     noMatchTitle: "No notices match your search",
     noMatchDescription: "Try another keyword, category or place",
     expiryNote: (days) => `Notices older than ${days} days are removed automatically`,
-    progress: { searching: "Not found yet", found: "Someone found it", awaiting_pickup: "Confirmed, awaiting pickup", returned: "Returned" },
+    progress: { searching: "Not found yet", found: "Not found yet", awaiting_pickup: "Confirmed, awaiting pickup", returned: "Found" },
     statAwaiting: "Confirmed, awaiting pickup",
     scopeOpen: "Not found yet",
   },
