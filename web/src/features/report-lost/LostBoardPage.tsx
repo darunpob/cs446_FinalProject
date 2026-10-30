@@ -12,12 +12,11 @@ import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDate } from "../catalog/thaiTime";
 import { BoardSearch, FilterBar, ResultSummary, Tally } from "../items/BoardFilters";
-import { ItemCardSkeleton } from "../items/ItemCard";
+import { ItemCardSkeleton, NOTICE_GRID } from "../items/ItemCard";
 import { ItemVisual } from "../items/ItemVisual";
 import { PhotoLightbox } from "../items/PhotoLightbox";
 import { toQuery, useItemFilters, useSearchDraft } from "../items/useItemFilters";
 
-const BOARD_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3";
 
 /** Same ink-stamp language as the found board: round = still open, square = settled, struck = handed back. */
 const PROGRESS_STAMP: Record<LostNoticeProgress, string> = {
@@ -30,8 +29,13 @@ const PROGRESS_STAMP: Record<LostNoticeProgress, string> = {
 function ProgressStamp({ progress }: { progress: LostNoticeProgress }) {
   const { t } = useI18n();
   return (
-    <span className={`stamp pointer-events-none absolute right-2 bottom-2 px-2 py-px text-xs ${PROGRESS_STAMP[progress]}`}>
-      {t.lostBoard.progress[progress]}
+    <span className={`stamp pointer-events-none absolute right-1 bottom-1.5 px-1.5 py-px text-[11px] sm:right-2 sm:bottom-2 sm:px-2 sm:text-xs ${PROGRESS_STAMP[progress]}`}>
+      {progress === "awaiting_pickup" ? (
+        <>
+          <span className="sm:hidden">{t.lostBoard.awaitingShort}</span>
+          <span className="hidden sm:inline">{t.lostBoard.progress[progress]}</span>
+        </>
+      ) : t.lostBoard.progress[progress]}
     </span>
   );
 }
@@ -51,12 +55,12 @@ function NoticePhoto({ report }: { report: PublicLostReport }) {
   const photoCount = report.imageUrls.length;
   const faded = report.progress === "returned" ? "opacity-60 grayscale" : "";
   if (photoCount === 0) {
-    return <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: null }} className={`aspect-[4/3] w-full ${faded}`} />;
+    return <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: null }} className={`aspect-square w-full sm:aspect-[4/3] ${faded}`} iconSize="size-8 sm:size-12" />;
   }
   return (
     <>
       <button type="button" onClick={() => setViewerOpen(true)} aria-label={t.photo.openViewer(photoCount)} className="group relative block w-full cursor-zoom-in overflow-hidden">
-        <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: report.imageUrls[0] }} className={`aspect-[4/3] w-full transition-transform duration-200 group-hover:scale-[1.03] ${faded}`} />
+        <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: report.imageUrls[0] }} className={`aspect-square w-full sm:aspect-[4/3] transition-transform duration-200 group-hover:scale-[1.03] ${faded}`} />
         <span className="absolute top-2 right-2 grid size-8 place-items-center rounded-full bg-ink/70 text-surface opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden>
           <Expand className="size-4" />
         </span>
@@ -78,12 +82,12 @@ function LostNotice({ report }: { report: PublicLostReport }) {
   return (
     <li className="paper relative flex min-w-0 flex-col rounded-sm shadow-paper">
       <span className="pin" aria-hidden />
-      <div className={`flex h-9 items-center gap-2 rounded-t-sm px-3 text-sm font-bold text-stock-ink ${category.stock}`}>
-        <category.icon className="size-4 shrink-0" aria-hidden />
-        <span className="truncate">{t.categories[category.id]}</span>
+      <div className={`flex h-7 items-center gap-2 rounded-t-sm px-2 text-sm font-bold text-stock-ink sm:h-9 sm:px-3 ${category.stock}`}>
+        <category.icon className="size-3.5 shrink-0 sm:size-4" aria-label={t.categories[category.id]} />
+        <span className="hidden truncate sm:inline" aria-hidden>{t.categories[category.id]}</span>
         {report.hasReward && (
-          <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-sm bg-ink px-2 py-0.5 text-xs text-surface">
-            <Gift className="size-3.5" aria-hidden /> {t.reward.boardBadge}
+          <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-sm bg-ink px-1.5 py-0.5 text-xs text-surface sm:px-2" title={t.reward.boardBadge}>
+            <Gift className="size-3.5" aria-hidden /> <span className="hidden sm:inline">{t.reward.boardBadge}</span>
           </span>
         )}
       </div>
@@ -91,17 +95,19 @@ function LostNotice({ report }: { report: PublicLostReport }) {
         <NoticePhoto report={report} />
         <ProgressStamp progress={report.progress} />
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="line-clamp-2 text-base leading-snug font-semibold wrap-anywhere">{report.title}</h3>
-        {report.description && <p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-line text-ink-2 wrap-anywhere">{report.description}</p>}
-        <p className="flex items-center gap-1.5 text-sm text-ink-2">
-          <MapPin className="size-3.5 shrink-0 text-ink-3" aria-hidden />
+      <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-4">
+        <h3 className="line-clamp-2 text-[13px] leading-snug font-semibold wrap-anywhere sm:text-base">{report.title}</h3>
+        {report.description && <p className="hidden line-clamp-4 text-sm leading-relaxed whitespace-pre-line text-ink-2 wrap-anywhere sm:block">{report.description}</p>}
+        <p className="flex items-center gap-1.5 text-xs text-ink-2 sm:text-sm">
+          <MapPin className="hidden size-3.5 shrink-0 text-ink-3 sm:block" aria-hidden />
           <span className="truncate">{t.lostBoard.lostNear(placeName(report.lastSeenLocationId))}</span>
         </p>
         <p className="text-xs text-ink-3 tabular-nums">{formatDate(report.lostAt)}</p>
         {(report.progress === "searching" || report.progress === "found") && (
-          <ButtonLink to={foundReportPrefillPath(report)} variant="mint" size="sm" icon={<HandHelping className="size-4" aria-hidden />} className="mt-auto self-start">
-            {t.lostBoard.iFoundIt}
+          <ButtonLink to={foundReportPrefillPath(report)} variant="mint" size="sm" icon={<HandHelping className="size-4" aria-hidden />}
+            className="mt-auto w-full max-sm:h-8! max-sm:gap-1! max-sm:px-1! max-sm:text-xs! sm:w-auto sm:self-start">
+            <span className="sm:hidden">{t.lostBoard.iFoundItShort}</span>
+            <span className="hidden sm:inline">{t.lostBoard.iFoundIt}</span>
           </ButtonLink>
         )}
       </div>
@@ -118,7 +124,7 @@ function BoardBody({ reports }: { reports: PublicLostReport[] }) {
     return <EmptyState icon={<SearchX className="size-7" />} title={title} description={description} />;
   }
   return (
-    <ul className={BOARD_GRID} aria-label={t.lostBoard.listLabel}>
+    <ul className={NOTICE_GRID} aria-label={t.lostBoard.listLabel}>
       {reports.map((report) => <LostNotice key={report.id} report={report} />)}
     </ul>
   );
@@ -130,7 +136,7 @@ function BoardResults() {
   const history = filters.scope === "all";
   const { state, reload } = useApiQuery(() => api.listOpenLostReports({ q, category, location, history }), [q, category, location, history]);
   if (state.phase === "failed") return <ErrorNotice message={state.message} onRetry={reload} />;
-  if (state.phase === "loading") return <div className={BOARD_GRID}>{[0, 1, 2].map((slot) => <ItemCardSkeleton key={slot} />)}</div>;
+  if (state.phase === "loading") return <div className={NOTICE_GRID}>{[0, 1, 2].map((slot) => <ItemCardSkeleton key={slot} />)}</div>;
   return (
     <>
       <ResultSummary count={state.value.length} />

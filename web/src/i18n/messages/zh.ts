@@ -367,6 +367,8 @@ export const zh: Messages = {
     privacyNote: "本页显示物品名称、描述、照片、丢失区域和日期，不显示学号和失主联系方式。",
     lostNear: (place) => `丢失于 ${place} 附近`,
     iFoundIt: "我捡到了",
+    iFoundItShort: "我捡到了",
+    awaitingShort: "待领取",
     emptyTitle: "目前没有人在寻物",
     emptyDescription: "有人登记丢失物品后会显示在这里",
     listLabel: "寻物启事列表",

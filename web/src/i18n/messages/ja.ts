@@ -367,6 +367,8 @@ export const ja: Messages = {
     privacyNote: "この掲示板には品名・説明・写真・場所・日付を表示します。学籍番号や連絡先は表示しません。",
     lostNear: (place) => `${place}付近で紛失`,
     iFoundIt: "これを拾いました",
+    iFoundItShort: "見つけた",
+    awaitingShort: "受取待ち",
     emptyTitle: "探している物はありません",
     emptyDescription: "紛失届が出されるとここに表示されます",
     listLabel: "探し物の一覧",

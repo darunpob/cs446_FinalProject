@@ -367,6 +367,8 @@ export const en: Messages = {
     privacyNote: "This board shows the item name, details, photos, area and date. Student IDs and contact details stay hidden.",
     lostNear: (place) => `Lost near ${place}`,
     iFoundIt: "I found this",
+    iFoundItShort: "Found it",
+    awaitingShort: "Pickup due",
     emptyTitle: "Nobody is looking for anything",
     emptyDescription: "Lost reports show up here as soon as they are filed",
     listLabel: "Lost notices",

@@ -346,6 +346,8 @@ export interface Messages {
     privacyNote: string;
     lostNear: (place: string) => string;
     iFoundIt: string;
+    iFoundItShort: string;
+    awaitingShort: string;
     emptyTitle: string;
     emptyDescription: string;
     listLabel: string;
@@ -809,6 +811,8 @@ export const th: Messages = {
     privacyNote: "บอร์ดนี้แสดงชื่อของ รายละเอียด รูป บริเวณที่หาย และวันที่ ไม่แสดงรหัสนักศึกษาหรือช่องทางติดต่อของเจ้าของ",
     lostNear: (place) => `หายแถว ${place}`,
     iFoundIt: "ฉันเจอของชิ้นนี้",
+    iFoundItShort: "ฉันเจอ",
+    awaitingShort: "รอรับ",
     emptyTitle: "ยังไม่มีใครตามหาของ",
     emptyDescription: "เมื่อมีคนแจ้งของหาย ประกาศจะขึ้นที่นี่",
     listLabel: "รายการประกาศตามหา",
