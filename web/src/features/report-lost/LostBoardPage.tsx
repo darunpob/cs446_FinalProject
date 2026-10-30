@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Expand, Gift, HandHelping, MapPin, SearchX, ShieldCheck } from "lucide-react";
+import { CalendarClock, Expand, Gift, HandHelping, MapPin, SearchX, ShieldCheck } from "lucide-react";
 import { api } from "../../api/client";
-import type { PublicLostReport } from "../../api/contract";
+import { LOST_REPORT_EXPIRY_DAYS } from "../../api/contract";
+import type { LostNoticeProgress, PublicLostReport } from "../../api/contract";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ButtonLink } from "../../design-system/Button";
 import { PageHeading } from "../../design-system/FormSection";
-import { EmptyState, ErrorNotice } from "../../design-system/Surface";
+import { Badge, EmptyState, ErrorNotice } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
@@ -17,6 +18,12 @@ import { PhotoLightbox } from "../items/PhotoLightbox";
 import { toQuery, useItemFilters, useSearchDraft } from "../items/useItemFilters";
 
 const BOARD_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3";
+
+const PROGRESS_TONE: Record<LostNoticeProgress, "stamp" | "success" | "verify"> = {
+  searching: "stamp",
+  found: "success",
+  awaiting_pickup: "verify",
+};
 
 /**
  * Only what the board itself shows is handed to the found form — never anything the owner kept private.
@@ -31,6 +38,9 @@ function NoticePhoto({ report }: { report: PublicLostReport }) {
   const { t } = useI18n();
   const [viewerOpen, setViewerOpen] = useState(false);
   const photoCount = report.imageUrls.length;
+  if (photoCount === 0) {
+    return <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: null }} className="aspect-[4/3] w-full" />;
+  }
   return (
     <>
       <button type="button" onClick={() => setViewerOpen(true)} aria-label={t.photo.openViewer(photoCount)} className="group relative block w-full cursor-zoom-in overflow-hidden">
@@ -65,7 +75,10 @@ function LostNotice({ report }: { report: PublicLostReport }) {
           </span>
         )}
       </div>
-      {report.imageUrls.length > 0 && <NoticePhoto report={report} />}
+      <div className="relative">
+        <NoticePhoto report={report} />
+        <Badge tone={PROGRESS_TONE[report.progress]} className="pointer-events-none absolute bottom-2 left-2 shadow-paper">{t.lostBoard.progress[report.progress]}</Badge>
+      </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h3 className="line-clamp-2 text-base leading-snug font-semibold wrap-anywhere">{report.title}</h3>
         {report.description && <p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-line text-ink-2 wrap-anywhere">{report.description}</p>}
@@ -74,9 +87,11 @@ function LostNotice({ report }: { report: PublicLostReport }) {
           <span className="truncate">{t.lostBoard.lostNear(placeName(report.lastSeenLocationId))}</span>
         </p>
         <p className="text-xs text-ink-3 tabular-nums">{formatDate(report.lostAt)}</p>
-        <ButtonLink to={foundReportPrefillPath(report)} variant="mint" size="sm" icon={<HandHelping className="size-4" aria-hidden />} className="mt-auto self-start">
-          {t.lostBoard.iFoundIt}
-        </ButtonLink>
+        {report.progress !== "awaiting_pickup" && (
+          <ButtonLink to={foundReportPrefillPath(report)} variant="mint" size="sm" icon={<HandHelping className="size-4" aria-hidden />} className="mt-auto self-start">
+            {t.lostBoard.iFoundIt}
+          </ButtonLink>
+        )}
       </div>
     </li>
   );
@@ -119,13 +134,15 @@ function BoardHeader() {
   return (
     <section className="pb-5 sm:pb-6">
       <PageHeading stock="lost" title={t.lostBoard.title} description={t.lostBoard.subtitle} />
-      <p className="mb-5 flex max-w-2xl gap-2 text-sm leading-relaxed text-on-felt-2">
-        <ShieldCheck className="mt-0.5 size-4 shrink-0 text-stock-mint" aria-hidden /> {t.lostBoard.privacyNote}
-      </p>
+      <div className="mb-5 flex max-w-2xl flex-col gap-1.5 text-sm leading-relaxed text-on-felt-2">
+        <p className="flex gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-stock-mint" aria-hidden /> {t.lostBoard.privacyNote}</p>
+        <p className="flex gap-2"><CalendarClock className="mt-0.5 size-4 shrink-0 text-stock-yellow" aria-hidden /> {t.lostBoard.expiryNote(LOST_REPORT_EXPIRY_DAYS)}</p>
+      </div>
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-end lg:gap-12">
         <BoardSearch value={draftSearch} onChange={setDraftSearch} label={t.lostBoard.searchLabel} placeholder={t.lostBoard.searchPlaceholder} />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Tally value={stats?.lostSearching ?? null} label={t.lostBoard.statSearching} />
+          <Tally value={stats?.lostAwaitingPickup ?? null} label={t.lostBoard.statAwaiting} />
           <Tally value={stats?.lostFoundThisMonth ?? null} label={t.lostBoard.statFound} />
         </div>
       </div>

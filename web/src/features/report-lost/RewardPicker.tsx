@@ -1,5 +1,5 @@
 import { CreditCard, Gift } from "lucide-react";
-import { REWARD_HOLD_DAYS, REWARD_MAX_BAHT, REWARD_MIN_BAHT, rewardFee } from "../../api/contract";
+import { LOST_REPORT_EXPIRY_DAYS, REWARD_MAX_BAHT, REWARD_MIN_BAHT, rewardFee } from "../../api/contract";
 import { Field, TextInput } from "../../design-system/Field";
 import { useI18n } from "../../i18n/useI18n";
 
@@ -37,7 +37,7 @@ export function RewardPicker({ value, onChange, error }: RewardPickerProps) {
       </Field>
       {showBreakdown && <p className="text-sm font-semibold">{text.breakdown(rewardFee(amount), amount - rewardFee(amount))}</p>}
       <ul className="flex list-disc flex-col gap-1 pl-5 text-[13px] leading-relaxed text-ink-2">
-        <li>{text.ruleRefund(REWARD_HOLD_DAYS)}</li>
+        <li>{text.ruleRefund(LOST_REPORT_EXPIRY_DAYS)}</li>
         <li>{text.ruleBoard}</li>
       </ul>
       <p className="flex items-center gap-2 rounded-sm bg-surface-2 px-3 py-2 text-[13px] text-ink-2">

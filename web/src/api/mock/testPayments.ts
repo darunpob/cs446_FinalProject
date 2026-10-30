@@ -1,7 +1,7 @@
 import { ApiError } from "../errors";
 import { messages } from "../../i18n/locale";
 import type { MockDatabaseHandle, StoredLostReport } from "./mockDatabase";
-import { holdReward } from "./rewardLedger";
+import { holdReward, noticeExpiresAt } from "./rewardLedger";
 
 /** The same public test card numbers Stripe and Omise accept in test mode. */
 export const TEST_CARDS = {
@@ -37,7 +37,7 @@ export function createTestPaymentGateway(database: MockDatabaseHandle, now: () =
       const digits = cardNumber.replace(/\D/g, "");
       if (digits === TEST_CARDS.declined) throw new ApiError("VALIDATION", messages().errors.cardDeclined, 402);
       if (digits !== TEST_CARDS.success) throw new ApiError("VALIDATION", messages().errors.testCardOnly, 400);
-      holdReward(report.reward, now());
+      holdReward(report.reward, now(), noticeExpiresAt(report.createdAt));
       database.persist();
     },
   };

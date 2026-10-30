@@ -8,6 +8,7 @@ import { useApiQuery } from "../../api/useApiQuery";
 import { Button, ButtonLink } from "../../design-system/Button";
 import { Card, EmptyState, Spinner, StatusStamp } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
+import { useLoginGate } from "../auth/AuthProvider";
 import { categoryMeta, placeCode } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDateTime, formatRelative } from "../catalog/thaiTime";
@@ -93,6 +94,7 @@ function ClaimPanel({ foundItem, onClaim }: { foundItem: FoundItem; onClaim: () 
 function ItemDetail({ foundItem, onChanged }: { foundItem: FoundItem; onChanged: () => void }) {
   const { t } = useI18n();
   const [claiming, setClaiming] = useState(false);
+  const passLoginGate = useLoginGate();
   const category = categoryMeta(foundItem.category);
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
@@ -115,7 +117,7 @@ function ItemDetail({ foundItem, onChanged }: { foundItem: FoundItem; onChanged:
             {foundItem.aiLabels.length > 0 && <AiLabels labels={foundItem.aiLabels} />}
           </div>
           <ItemSegments foundItem={foundItem} />
-          <ClaimPanel foundItem={foundItem} onClaim={() => setClaiming(true)} />
+          <ClaimPanel foundItem={foundItem} onClaim={() => passLoginGate() && setClaiming(true)} />
         </div>
       </Card>
       <ClaimDialog key={foundItem.id} foundItem={foundItem} open={claiming} onClose={() => setClaiming(false)} onVerified={onChanged} />

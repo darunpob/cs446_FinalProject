@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router";
+import { Navigate, useLocation, useNavigate } from "react-router";
 import { api } from "../../api/client";
 import type { NewAccount, Session, SessionUser, UserRole } from "../../api/contract";
 import { readSession, writeSession } from "./sessionStore";
@@ -59,6 +59,23 @@ export function useAuth(): AuthState {
   return auth;
 }
 
+/** Login page URL that comes back to `location`, query string included, once the visitor has signed in. */
+export function loginPathFor(location: { pathname: string; search: string }): string {
+  return `/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
+}
+
+/** Browsing is open to everyone, acting is not: returns true when signed in, otherwise sends the visitor to log in. */
+export function useLoginGate(): () => boolean {
+  const { session } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  return () => {
+    if (session) return true;
+    navigate(loginPathFor(location));
+    return false;
+  };
+}
+
 export function RequireRole({ role, children }: { role: UserRole; children: ReactNode }) {
   const { session } = useAuth();
   const location = useLocation();
@@ -71,5 +88,5 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const location = useLocation();
   if (session) return children;
-  return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
+  return <Navigate to={loginPathFor(location)} replace />;
 }

@@ -17,7 +17,7 @@ export interface FoundReportDraft {
   dropOffPointId: string;
   verificationQuestion: string;
   verificationAnswer: string;
-  /** Lost notice id carried over from the board; never shown, only sent so the server can link the reward. */
+  /** Lost notice id carried over from the board; the find then goes privately to that notice's owner. */
   answersLostReportId: string;
 }
 
@@ -56,6 +56,15 @@ export function titleError(title: string, tooShort: string): string | undefined 
   return length > TITLE_MAX_LENGTH ? messages().errors.titleTooLong(TITLE_MAX_LENGTH) : undefined;
 }
 
+/** Only finds posted on the public board need a question; a notice owner confirms from their own account. */
+function verificationErrors(draft: FoundReportDraft): FoundReportErrors {
+  const text = messages().reportFound;
+  return {
+    verificationQuestion: draft.verificationQuestion.trim().length < 5 ? text.questionTooShort : undefined,
+    verificationAnswer: draft.verificationAnswer.trim() ? undefined : text.answerRequired,
+  };
+}
+
 export function validateFoundReport(draft: FoundReportDraft, now: Date = new Date()): FoundReportErrors {
   const text = messages().reportFound;
   const checks: FoundReportErrors = {
@@ -65,8 +74,7 @@ export function validateFoundReport(draft: FoundReportDraft, now: Date = new Dat
     foundLocationId: draft.foundLocationId ? undefined : text.locationRequired,
     foundAtLocal: foundAtError(draft.foundAtLocal, now),
     dropOffPointId: draft.dropOffPointId ? undefined : text.dropOffRequired,
-    verificationQuestion: draft.verificationQuestion.trim().length < 5 ? text.questionTooShort : undefined,
-    verificationAnswer: draft.verificationAnswer.trim() ? undefined : text.answerRequired,
+    ...(draft.answersLostReportId ? {} : verificationErrors(draft)),
   };
   return Object.fromEntries(Object.entries(checks).filter(([, message]) => message)) as FoundReportErrors;
 }

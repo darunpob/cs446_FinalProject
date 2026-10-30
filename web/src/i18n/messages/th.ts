@@ -1,4 +1,4 @@
-import type { CategoryId, FoundItemStatus, RewardReviewReason } from "../../api/contract";
+import type { CategoryId, FinderRewardStatus, FindStage, FoundItemStatus, LostNoticeProgress, LostReportStatus } from "../../api/contract";
 
 interface PlaceText {
   name: string;
@@ -39,10 +39,14 @@ export interface Messages {
     homeLabel: string;
     lostBoard: string;
     myReports: string;
-    myReportsTab: string;
     reportMenu: string;
     reportLostHint: string;
     reportFoundHint: string;
+    myFinds: string;
+    myFindsHint: string;
+    myReportsHint: string;
+    accountHint: string;
+    accountMenu: string;
   };
   footer: { credit: string; mockData: string; resetMock: string };
   theme: { toLight: string; toDark: string };
@@ -177,6 +181,10 @@ export interface Messages {
     viewPost: string;
     reportAnother: string;
     prefillNote: string;
+    privateNote: string;
+    sentTitle: string;
+    sentLead: string;
+    viewMyFinds: string;
     timeRequired: string;
     timeInFuture: string;
     titleTooShort: string;
@@ -293,16 +301,39 @@ export interface Messages {
     reportsTitle: string;
     emptyTitle: string;
     emptyDescription: string;
-    status: { searching: string; found: string; cancelled: string };
+    status: Record<LostReportStatus, string>;
     lostAtPlace: (place: string, date: string) => string;
     closedAgo: (relative: string) => string;
     matchesTitle: (count: number) => string;
     noMatchesYet: string;
-    markFound: string;
     cancelReport: string;
-    confirmFound: string;
     confirmCancel: string;
     keepOpen: string;
+    submissionsTitle: (count: number) => string;
+    submissionsHint: string;
+    submissionMeta: (place: string, date: string) => string;
+    confirmMine: string;
+    confirmMineArmed: string;
+    declineNotMine: string;
+    declineArmed: string;
+    confirmedNote: string;
+    previous: string;
+    next: string;
+    slideLabel: (index: number, total: number) => string;
+    selfFoundNote: (refund: number, fee: number) => string;
+    selfFoundNoteNoReward: string;
+  };
+  myFinds: {
+    title: string;
+    subtitle: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    browseBoard: string;
+    stage: Record<FindStage, string>;
+    answersNotice: (title: string) => string;
+    dropOffAt: (place: string) => string;
+    rewardLine: (net: number) => string;
+    rewardStatus: Record<FinderRewardStatus, string>;
   };
   lostBoard: {
     title: string;
@@ -322,6 +353,9 @@ export interface Messages {
     statFound: string;
     noMatchTitle: string;
     noMatchDescription: string;
+    expiryNote: (days: number) => string;
+    progress: Record<LostNoticeProgress, string>;
+    statAwaiting: string;
   };
   reward: {
     sectionTitle: string;
@@ -337,18 +371,10 @@ export interface Messages {
     payNow: string;
     payPrompt: (amount: number) => string;
     payPromptBody: string;
-    status: { awaiting_payment: string; held: string; in_review: string; pending_payout: string; paid_out: string; refunded: string; voided: string };
+    status: { awaiting_payment: string; held: string; pending_payout: string; paid_out: string; refunded: string; voided: string };
     heldUntil: (date: string) => string;
     paidNotice: string;
     boardBadge: string;
-    earnedTitle: string;
-    earnedHint: string;
-    earnedStatus: { pending_payout: string; paid_out: string };
-    finderLoginNote: string;
-    finderLoginLink: string;
-    claimLinkLabel: string;
-    claimLinkNone: string;
-    claimLinkHint: string;
     tabPayouts: string;
     payoutsEmptyTitle: string;
     payoutsEmptyDescription: string;
@@ -356,19 +382,7 @@ export interface Messages {
     payoutAmounts: (gross: number, fee: number, net: number) => string;
     payoutConfirm: string;
     payoutConfirmArmed: string;
-    inReviewNote: string;
-    claimLinkForced: string;
-    tabReviews: string;
-    reviewsEmptyTitle: string;
-    reviewsEmptyDescription: string;
-    reviewsNote: string;
-    reviewReason: Record<RewardReviewReason, string>;
-    reviewNotice: string;
-    reviewItem: string;
-    reviewFinder: (name: string) => string;
-    reviewRelease: string;
-    reviewRefund: string;
-    reviewArmed: string;
+    refundedAmount: (refund: number, fee: number) => string;
     checkoutTitle: string;
     checkoutFor: (title: string) => string;
     cardNumber: string;
@@ -421,9 +435,13 @@ export interface Messages {
     emailTaken: string;
     wrongCurrentPassword: string;
     sessionExpired: string;
-    closeReasonInvalid: string;
     lostReportNotFound: string;
     lostReportClosed: string;
+    reportAwaitingPickup: string;
+    reportHasSubmissions: string;
+    submissionNotFound: string;
+    submissionAlreadyConfirmed: string;
+    declinedOwnFind: string;
     rewardInvalid: (min: number, max: number) => string;
     tooLong: (field: string, max: number) => string;
     titleTooLong: (max: number) => string;
@@ -431,9 +449,6 @@ export interface Messages {
     rewardNotPayable: string;
     payoutNotFound: string;
     payoutDone: string;
-    reviewNotFound: string;
-    reviewDone: string;
-    reviewDecisionInvalid: string;
     lostReportLinkInvalid: string;
     checkoutNotFound: string;
     cardDeclined: string;
@@ -465,10 +480,14 @@ export const th: Messages = {
     homeLabel: "BU Lost & Found หน้าแรก",
     lostBoard: "ประกาศตามหา",
     myReports: "ของที่ฉันแจ้งหาย",
-    myReportsTab: "ของที่หาย",
     reportMenu: "แจ้ง",
     reportLostHint: "ทำของหาย ประกาศตามหาและตั้งรางวัลได้",
     reportFoundHint: "เก็บของได้ ประกาศให้เจ้าของมารับ",
+    myFinds: "ของที่ฉันเจอ",
+    myFindsHint: "ติดตามของที่คุณเก็บได้และรางวัล",
+    myReportsHint: "ประกาศตามหาและของที่มีคนส่งมาให้",
+    accountHint: "โปรไฟล์และรหัสผ่าน",
+    accountMenu: "เมนูบัญชี",
   },
   footer: {
     credit: "BU Lost & Found · โปรเจกต์ CS446 Cloud Computing · มหาวิทยาลัยกรุงเทพ",
@@ -618,7 +637,11 @@ export const th: Messages = {
     itemRef: "รหัสรายการ",
     viewPost: "ดูประกาศ",
     reportAnother: "แจ้งชิ้นต่อไป",
-    prefillNote: "กรอกชื่อ หมวด และบริเวณจากประกาศตามหาไว้ให้แล้ว แก้ให้ตรงกับของที่คุณเก็บได้จริง และตั้งคำถามยืนยันจากสิ่งที่เห็นบนของเอง",
+    prefillNote: "กรอกชื่อ หมวด และบริเวณจากประกาศตามหาไว้ให้แล้ว แก้ให้ตรงกับของที่คุณเก็บได้จริง",
+    privateNote: "ของที่ส่งจากประกาศนี้จะไม่ขึ้นบอร์ดสาธารณะ เจ้าของประกาศเห็นคนเดียว และระบบจะส่งอีเมลแจ้งให้ ไม่ต้องตั้งคำถามยืนยัน",
+    sentTitle: "ส่งให้เจ้าของประกาศแล้ว",
+    sentLead: "เราส่งอีเมลแจ้งเจ้าของแล้ว อย่าลืมนำของไปฝากที่",
+    viewMyFinds: "ดูของที่ฉันเจอ",
     timeRequired: "ระบุเวลาที่เจอ",
     timeInFuture: "เวลาที่เจอต้องไม่อยู่ในอนาคต",
     titleTooShort: "บอกชื่อสิ่งของสั้น ๆ อย่างน้อย 3 ตัวอักษร",
@@ -735,16 +758,39 @@ export const th: Messages = {
     reportsTitle: "ประกาศของฉัน",
     emptyTitle: "ยังไม่มีประกาศของหาย",
     emptyDescription: "เมื่อแจ้งของหาย รายการจะขึ้นที่นี่พร้อมของที่อาจตรงกัน",
-    status: { searching: "กำลังตามหา", found: "ได้คืนแล้ว", cancelled: "ยกเลิก" },
+    status: { searching: "กำลังตามหา", found: "ได้คืนแล้ว", cancelled: "ยกเลิก", expired: "หมดอายุ" },
     lostAtPlace: (place, date) => `หายที่ ${place} · ${date}`,
     closedAgo: (relative) => `ปิดประกาศ ${relative}`,
     matchesTitle: (count) => `ของที่อาจตรงกัน ${count} ชิ้น`,
     noMatchesYet: "ยังไม่มีของที่ตรงกัน ลองกลับมาดูใหม่ภายหลัง",
-    markFound: "ได้ของคืนแล้ว",
     cancelReport: "ยกเลิกประกาศ",
-    confirmFound: "ยืนยัน ได้คืนแล้ว",
     confirmCancel: "ยืนยันยกเลิก",
     keepOpen: "ยังตามหาอยู่",
+    submissionsTitle: (count) => `มีคนส่งของที่อาจเป็นของคุณมา ${count} ชิ้น`,
+    submissionsHint: "เห็นเฉพาะคุณเท่านั้น ถ้าใช่ของคุณ กด “นี่ของฉัน” เพื่อรับรหัสไปรับของ ถ้าไม่ใช่ ของชิ้นนั้นจะย้ายไปขึ้นบอร์ดของที่เจอแทน",
+    submissionMeta: (place, date) => `เจอที่ ${place} · ${date}`,
+    confirmMine: "นี่ของฉัน",
+    confirmMineArmed: "ยืนยัน นี่ของฉัน",
+    declineNotMine: "ไม่ใช่ของฉัน",
+    declineArmed: "ยืนยัน ไม่ใช่ของฉัน",
+    confirmedNote: "คุณยืนยันของแล้ว ใช้รหัสรับของด้านบนไปรับที่จุดฝาก พอ รปภ. ยืนยันคืนของ ประกาศจะปิดเองและรางวัลจะโอนให้คนเก็บได้",
+    previous: "ก่อนหน้า",
+    next: "ถัดไป",
+    slideLabel: (index, total) => `ชิ้นที่ ${index} จาก ${total}`,
+    selfFoundNote: (refund, fee) => `หาเจอเองแล้ว? กดยกเลิกประกาศ ไม่ต้องจ่ายรางวัลให้ใคร ระบบคืนเงิน ${refund} บาท (หักค่าธรรมเนียม ${fee} บาท)`,
+    selfFoundNoteNoReward: "หาเจอเองแล้ว หรือไม่ต้องการตามหาต่อ กดยกเลิกประกาศได้เลย",
+  },
+  myFinds: {
+    title: "ของที่ฉันเจอ",
+    subtitle: "ติดตามว่าของที่คุณเก็บได้ถึงมือเจ้าของหรือยัง และรางวัลอยู่ขั้นไหน",
+    emptyTitle: "ยังไม่มีของที่คุณแจ้งเจอ",
+    emptyDescription: "เก็บของได้ใช่ไหม? ลองดูบอร์ดประกาศตามหาว่ามีใครกำลังหาอยู่",
+    browseBoard: "ดูประกาศตามหา",
+    stage: { posted: "ขึ้นบอร์ดแล้ว รอเจ้าของ", sent: "ส่งให้เจ้าของประกาศแล้ว รอยืนยัน", confirmed: "เจ้าของยืนยันแล้ว รอมารับ", returned: "เจ้าของรับของแล้ว" },
+    answersNotice: (title) => `ตอบประกาศ “${title}”`,
+    dropOffAt: (place) => `ฝากไว้ที่ ${place}`,
+    rewardLine: (net) => `รางวัล ${net} บาท (หักค่าธรรมเนียมแล้ว)`,
+    rewardStatus: { promised: "ได้เมื่อเจ้าของรับของ", pending_payout: "รอโอนรางวัล", paid_out: "โอนรางวัลแล้ว", forfeited: "ไม่ได้รับรางวัล" },
   },
   lostBoard: {
     title: "ประกาศตามหา",
@@ -764,6 +810,9 @@ export const th: Messages = {
     statFound: "ได้ของคืนแล้วเดือนนี้",
     noMatchTitle: "ไม่พบประกาศที่ตรงกับที่ค้นหา",
     noMatchDescription: "ลองเปลี่ยนคำค้น หมวดหมู่ หรือจุดที่หาย",
+    expiryNote: (days) => `ประกาศที่เกิน ${days} วันจะถูกลบโดยอัตโนมัติ`,
+    progress: { searching: "ยังไม่เจอ", found: "เจอแล้ว", awaiting_pickup: "ยืนยันแล้ว รอรับ" },
+    statAwaiting: "ยืนยันแล้ว รอมารับ",
   },
   reward: {
     sectionTitle: "ตั้งรางวัลให้คนเก็บได้",
@@ -772,25 +821,17 @@ export const th: Messages = {
     customLabel: "จำนวนอื่น (บาท)",
     amount: (baht) => `${baht.toLocaleString("th-TH")} บาท`,
     breakdown: (fee, net) => `คนเก็บได้จะได้รับ ${net} บาท (หักค่าธรรมเนียม ${fee} บาท)`,
-    ruleRefund: (days) => `คืนเงินอัตโนมัติถ้ายกเลิกประกาศ หรือครบ ${days} วันแล้วยังไม่มีใครเจอ`,
+    ruleRefund: (days) => `ถ้ายกเลิกประกาศ หรือครบ ${days} วันแล้วยังไม่มีใครเจอ ระบบคืนเงินให้ (หักค่าธรรมเนียม)`,
     ruleBoard: "บอร์ดสาธารณะโชว์แค่ป้าย “มีรางวัล” ไม่บอกจำนวนเงิน",
     ruleCap: (max) => `ตั้งได้สูงสุด ${max} บาท`,
     testModeNote: "โหมดทดสอบ: ใช้บัตรทดสอบเท่านั้น ไม่มีการตัดเงินจริง",
     payNow: "ชำระรางวัล",
     payPrompt: (amount) => `ชำระรางวัล ${amount} บาท เพื่อเปิดใช้งาน`,
     payPromptBody: "หลังชำระแล้ว ประกาศของคุณจะขึ้นป้าย “มีรางวัล” บนบอร์ดประกาศตามหา",
-    status: { awaiting_payment: "รอชำระเงิน", held: "พักเงินไว้แล้ว", in_review: "รอ รปภ. ตรวจสอบ", pending_payout: "รอโอนให้คนเก็บได้", paid_out: "โอนให้คนเก็บได้แล้ว", refunded: "คืนเงินแล้ว", voided: "ยกเลิกรางวัล" },
+    status: { awaiting_payment: "รอชำระเงิน", held: "พักเงินไว้แล้ว", pending_payout: "รอโอนให้คนเก็บได้", paid_out: "โอนให้คนเก็บได้แล้ว", refunded: "คืนเงินแล้ว", voided: "ยกเลิกรางวัล" },
     heldUntil: (date) => `ถ้ายังไม่มีใครเจอ จะคืนเงินอัตโนมัติวันที่ ${date}`,
     paidNotice: "ชำระเงินแล้ว รางวัลถูกพักไว้ในระบบ ถ้าสถานะยังไม่เปลี่ยน รอสักครู่แล้วรีเฟรช",
     boardBadge: "มีรางวัล",
-    earnedTitle: "รางวัลที่ฉันได้รับ",
-    earnedHint: "จากของที่คุณเก็บได้และเจ้าของรับคืนแล้ว (หักค่าธรรมเนียมแล้ว)",
-    earnedStatus: { pending_payout: "รอแอดมินโอน", paid_out: "โอนแล้ว" },
-    finderLoginNote: "เข้าสู่ระบบก่อนแจ้ง ถ้าเจ้าของตั้งรางวัลไว้ คุณจะได้รับรางวัลหลังเจ้าของรับของคืน",
-    finderLoginLink: "เข้าสู่ระบบ",
-    claimLinkLabel: "ของชิ้นนี้ตรงกับประกาศไหนของคุณ",
-    claimLinkNone: "ไม่เกี่ยวกับประกาศของฉัน",
-    claimLinkHint: "ถ้าประกาศนั้นมีรางวัล ระบบจะปล่อยให้คนเก็บได้หลัง รปภ. ยืนยันคืนของ",
     tabPayouts: "รอโอนรางวัล",
     payoutsEmptyTitle: "ไม่มีรางวัลรอโอน",
     payoutsEmptyDescription: "เมื่อ รปภ. ยืนยันคืนของที่มีรางวัล รายการจะขึ้นที่นี่",
@@ -798,19 +839,7 @@ export const th: Messages = {
     payoutAmounts: (gross, fee, net) => `${gross} − ค่าธรรมเนียม ${fee} = โอน ${net} บาท`,
     payoutConfirm: "ยืนยันโอนแล้ว",
     payoutConfirmArmed: "โอนแล้ว ยืนยัน",
-    inReviewNote: "มีของที่คนเก็บได้แจ้งไว้ถูกรับคืนไปแล้ว เจ้าหน้าที่ รปภ. กำลังตรวจว่าจะโอนรางวัลให้คนเก็บได้หรือคืนเงินให้คุณ",
-    claimLinkForced: "ถ้าคนเก็บได้กด “ฉันเจอของชิ้นนี้” จากประกาศของคุณ ระบบจะผูกของชิ้นนั้นกับประกาศให้อัตโนมัติ",
-    tabReviews: "รางวัลรอตรวจสอบ",
-    reviewsEmptyTitle: "ไม่มีรางวัลรอตรวจสอบ",
-    reviewsEmptyDescription: "ถ้าเจ้าของปิดประกาศที่มีรางวัลหลังรับของที่คนอื่นเก็บได้ไปแล้ว รายการจะขึ้นที่นี่",
-    reviewsNote: "เทียบรูปและรายละเอียดของประกาศกับของที่คืนไป แล้วเลือกว่าจะโอนรางวัลให้คนเก็บได้หรือคืนเงินเจ้าของ",
-    reviewReason: { linked_item_claimed: "คนเก็บได้แจ้งของชิ้นนี้จากประกาศนี้โดยตรง", owner_claimed_similar: "เจ้าของรับของหมวดเดียวกันไปหลังลงประกาศ แต่ไม่ได้ผูกกับประกาศ" },
-    reviewNotice: "ประกาศตามหา",
-    reviewItem: "ของที่คืนไป",
-    reviewFinder: (name) => `คนเก็บได้: ${name}`,
-    reviewRelease: "โอนรางวัลให้คนเก็บได้",
-    reviewRefund: "คืนเงินเจ้าของ",
-    reviewArmed: "กดอีกครั้งเพื่อยืนยัน",
+    refundedAmount: (refund, fee) => `คืนเงินให้คุณ ${refund} บาท (หักค่าธรรมเนียม ${fee} บาท)`,
     checkoutTitle: "ชำระรางวัล",
     checkoutFor: (title) => `รางวัลสำหรับประกาศ “${title}”`,
     cardNumber: "หมายเลขบัตร",
@@ -863,9 +892,13 @@ export const th: Messages = {
     emailTaken: "อีเมลนี้มีบัญชีอยู่แล้ว ลองเข้าสู่ระบบแทน",
     wrongCurrentPassword: "รหัสผ่านปัจจุบันไม่ถูกต้อง",
     sessionExpired: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
-    closeReasonInvalid: "เหตุผลการปิดประกาศไม่ถูกต้อง",
     lostReportNotFound: "ไม่พบประกาศนี้",
     lostReportClosed: "ประกาศนี้ปิดไปแล้ว",
+    reportAwaitingPickup: "คุณยืนยันของชิ้นหนึ่งไปแล้ว รอรับของก่อน ยังยกเลิกประกาศไม่ได้",
+    reportHasSubmissions: "มีของที่คนส่งมาให้คุณรอคำตอบอยู่ กด “นี่ของฉัน” หรือ “ไม่ใช่ของฉัน” ก่อนยกเลิกประกาศ",
+    submissionNotFound: "ไม่พบของที่ส่งมา หรือถูกจัดการไปแล้ว",
+    submissionAlreadyConfirmed: "คุณยืนยันของจากประกาศนี้ไปแล้ว",
+    declinedOwnFind: "ของชิ้นนี้ถูกส่งมาที่ประกาศของคุณ และคุณแจ้งว่าไม่ใช่ของคุณแล้ว ถ้าเปลี่ยนใจ ติดต่อ รปภ. ที่จุดฝาก",
     rewardInvalid: (min, max) => `รางวัลต้องเป็นจำนวนเต็ม ${min}–${max} บาท`,
     tooLong: (field, max) => `${field}ยาวเกิน ${max} ตัวอักษร`,
     titleTooLong: (max) => `ชื่อยาวได้ไม่เกิน ${max} ตัวอักษร`,
@@ -873,9 +906,6 @@ export const th: Messages = {
     rewardNotPayable: "ประกาศนี้ไม่มีรางวัลที่รอชำระ",
     payoutNotFound: "ไม่พบรายการรางวัลนี้",
     payoutDone: "รางวัลนี้ยืนยันการโอนไปแล้ว",
-    reviewNotFound: "ไม่พบรางวัลที่รอตรวจสอบ",
-    reviewDone: "รางวัลนี้ตรวจสอบไปแล้ว",
-    reviewDecisionInvalid: "ต้องเลือกโอนให้คนเก็บได้หรือคืนเงินเจ้าของ",
     lostReportLinkInvalid: "เลือกได้เฉพาะประกาศที่ยังเปิดอยู่ของคุณเอง",
     checkoutNotFound: "ลิงก์ชำระเงินนี้ใช้ไม่ได้แล้ว",
     cardDeclined: "บัตรถูกปฏิเสธ ลองใช้บัตรอื่น",

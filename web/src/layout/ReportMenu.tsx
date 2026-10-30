@@ -5,7 +5,7 @@ import { HandHelping, Megaphone, Plus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useI18n } from "../i18n/useI18n";
 
-interface ReportChoice {
+export interface MenuChoice {
   to: string;
   icon: LucideIcon;
   stock: string;
@@ -13,7 +13,7 @@ interface ReportChoice {
   hint: string;
 }
 
-function useReportChoices(): ReportChoice[] {
+function useReportChoices(): MenuChoice[] {
   const { t } = useI18n();
   return [
     { to: "/report-lost", icon: Megaphone, stock: "bg-stock-pink", label: t.nav.reportLost, hint: t.nav.reportLostHint },
@@ -42,7 +42,7 @@ function useDismiss(open: boolean, close: () => void, containerRef: RefObject<HT
   }, [open, close, containerRef]);
 }
 
-function ChoiceLink({ choice }: { choice: ReportChoice }) {
+export function ChoiceLink({ choice }: { choice: MenuChoice }) {
   const Icon = choice.icon;
   return (
     <Link to={choice.to} role="menuitem" className="flex items-center gap-3 rounded-md p-3 text-left transition-colors duration-150 hover:bg-surface-2 focus-visible:bg-surface-2">
@@ -57,7 +57,7 @@ function ChoiceLink({ choice }: { choice: ReportChoice }) {
   );
 }
 
-function useMenuState() {
+export function useMenuState() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const close = useRef(() => setOpen(false)).current;

@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
-import { Link, useLocation, useSearchParams } from "react-router";
-import { CircleCheckBig, Clock3, EyeOff, Gift, HandHelping, IdCard, Lightbulb, Lock, ShieldCheck, Store } from "lucide-react";
+import { useSearchParams } from "react-router";
+import { CircleCheckBig, Clock3, EyeOff, HandHelping, IdCard, Lightbulb, Lock, MailCheck, ShieldCheck, Store } from "lucide-react";
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../api/contract";
 import type { FoundItem } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
@@ -8,7 +8,6 @@ import { Field, TextArea, TextInput } from "../../design-system/Field";
 import { FormSection, PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice, StatusStamp } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
-import { useAuth } from "../auth/AuthProvider";
 import { CARD_HOLDING_CATEGORIES, isCategoryId } from "../catalog/categories";
 import { CategoryPicker } from "../catalog/CategoryPicker";
 import { useDirectory } from "../catalog/DirectoryProvider";
@@ -80,17 +79,20 @@ function TipsAside() {
   );
 }
 
-function FoundSuccess({ foundItem, onAnother }: { foundItem: FoundItem; onAnother: () => void }) {
+function FoundSuccess({ foundItem, sentToOwner, onAnother }: { foundItem: FoundItem; sentToOwner: boolean; onAnother: () => void }) {
   const { dropOffPoint } = useDirectory();
   const { t } = useI18n();
+  const nextStep = sentToOwner
+    ? <ButtonLink to="/my-finds" variant="secondary">{t.reportFound.viewMyFinds}</ButtonLink>
+    : <ButtonLink to={`/items/${foundItem.id}`} variant="secondary">{t.reportFound.viewPost}</ButtonLink>;
   return (
     <div className="mx-auto max-w-lg py-6 text-center">
       <span className="mx-auto grid size-16 place-items-center rounded-sm bg-stock-mint text-stock-ink shadow-paper">
-        <CircleCheckBig className="size-8" aria-hidden />
+        {sentToOwner ? <MailCheck className="size-8" aria-hidden /> : <CircleCheckBig className="size-8" aria-hidden />}
       </span>
-      <h1 className="mt-5 font-display text-4xl">{t.reportFound.successTitle}</h1>
+      <h1 className="mt-5 font-display text-4xl">{sentToOwner ? t.reportFound.sentTitle : t.reportFound.successTitle}</h1>
       <p className="mt-2 text-on-felt-2">
-        {t.reportFound.successLead} <strong className="text-on-felt">{dropOffPoint(foundItem.dropOffPointId)?.name}</strong>
+        {sentToOwner ? t.reportFound.sentLead : t.reportFound.successLead} <strong className="text-on-felt">{dropOffPoint(foundItem.dropOffPointId)?.name}</strong>
       </p>
       <Card pinned className="mt-8 flex items-center gap-4 p-3 pt-5 text-left">
         <ItemVisual foundItem={foundItem} iconSize="size-7" className="size-16 shrink-0 rounded-sm" />
@@ -101,24 +103,58 @@ function FoundSuccess({ foundItem, onAnother }: { foundItem: FoundItem; onAnothe
         <StatusStamp status={foundItem.status} pressed className="shrink-0" />
       </Card>
       <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-        <ButtonLink to={`/items/${foundItem.id}`} variant="secondary">{t.reportFound.viewPost}</ButtonLink>
+        {nextStep}
         <Button variant="mint" onClick={onAnother}>{t.reportFound.reportAnother}</Button>
       </div>
     </div>
   );
 }
 
+function VerificationStep({ draft, errors, setField }: Pick<ReturnType<typeof useFoundReportForm>, "draft" | "errors" | "setField">) {
+  const { t } = useI18n();
+  const text = t.reportFound;
+  return (
+    <FormSection step={4} title={text.step4Title} description={text.step4Description}>
+      <Field label={text.questionLabel} error={errors.verificationQuestion}>
+        {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.verificationQuestion)} value={draft.verificationQuestion} onChange={(event) => setField("verificationQuestion", event.target.value)} placeholder={text.questionPlaceholder} />}
+      </Field>
+      <div className="-mt-2 flex flex-wrap gap-2">
+        {text.questionIdeas.map((idea) => (
+          <button key={idea} type="button" onClick={() => setField("verificationQuestion", idea)} className="cursor-pointer rounded-sm border border-dashed border-line-strong px-3 py-1.5 text-[13px] text-ink-2 transition-colors duration-150 hover:border-ink hover:bg-surface-2 hover:text-ink">
+            + {idea}
+          </button>
+        ))}
+      </div>
+      <Field label={text.answerLabel} error={errors.verificationAnswer} hint={text.answerHint}>
+        {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.verificationAnswer)} value={draft.verificationAnswer} onChange={(event) => setField("verificationAnswer", event.target.value)} leading={<Lock className="size-4" />} autoComplete="off" />}
+      </Field>
+    </FormSection>
+  );
+}
+
+function PrefillNotes() {
+  const { t } = useI18n();
+  return (
+    <div className="mb-6 flex max-w-3xl flex-col gap-3">
+      <p role="note" className="paper flex gap-3 rounded-md border-2 border-stock-mint p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
+        <HandHelping className="mt-0.5 size-5 shrink-0 text-ink" aria-hidden /> {t.reportFound.prefillNote}
+      </p>
+      <p role="note" className="paper flex gap-3 rounded-md border-2 border-verify p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
+        <EyeOff className="mt-0.5 size-5 shrink-0 text-verify" aria-hidden /> {t.reportFound.privateNote}
+      </p>
+    </div>
+  );
+}
+
 export function ReportFoundPage() {
-  const { session } = useAuth();
-  const location = useLocation();
   const [params] = useSearchParams();
   const prefill = readPrefill(params);
   const { draft, errors, setField, submit, submitting, failure, created, reset } = useFoundReportForm(prefill);
-  const prefilled = Object.keys(prefill).length > 0;
+  const answeringNotice = Boolean(draft.answersLostReportId);
   const { t } = useI18n();
   const text = t.reportFound;
 
-  if (created) return <FoundSuccess foundItem={created} onAnother={reset} />;
+  if (created) return <FoundSuccess foundItem={created} sentToOwner={answeringNotice} onAnother={reset} />;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -129,18 +165,7 @@ export function ReportFoundPage() {
   return (
     <>
       <PageHeading stock="reportFound" title={text.title} description={text.description} />
-      {!session && (
-        <p role="note" className="paper mb-6 flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1 rounded-md p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
-          <Gift className="size-5 shrink-0 text-ink" aria-hidden />
-          <span className="min-w-0 flex-1">{t.reward.finderLoginNote}</span>
-          <Link to={`/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`} className="font-semibold text-ink underline underline-offset-2">{t.reward.finderLoginLink}</Link>
-        </p>
-      )}
-      {prefilled && (
-        <p role="note" className="paper mb-6 flex max-w-3xl gap-3 rounded-md border-2 border-stock-mint p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
-          <HandHelping className="mt-0.5 size-5 shrink-0 text-ink" aria-hidden /> {text.prefillNote}
-        </p>
-      )}
+      {answeringNotice && <PrefillNotes />}
       <form onSubmit={handleSubmit} noValidate className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-6">
           <FormSection step={1} title={text.step1Title} description={text.step1Description}>
@@ -178,21 +203,7 @@ export function ReportFoundPage() {
             <DropOffPicker value={draft.dropOffPointId} onChange={(dropOffId) => setField("dropOffPointId", dropOffId)} error={errors.dropOffPointId} />
           </FormSection>
 
-          <FormSection step={4} title={text.step4Title} description={text.step4Description}>
-            <Field label={text.questionLabel} error={errors.verificationQuestion}>
-              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.verificationQuestion)} value={draft.verificationQuestion} onChange={(event) => setField("verificationQuestion", event.target.value)} placeholder={text.questionPlaceholder} />}
-            </Field>
-            <div className="-mt-2 flex flex-wrap gap-2">
-              {text.questionIdeas.map((idea) => (
-                <button key={idea} type="button" onClick={() => setField("verificationQuestion", idea)} className="cursor-pointer rounded-sm border border-dashed border-line-strong px-3 py-1.5 text-[13px] text-ink-2 transition-colors duration-150 hover:border-ink hover:bg-surface-2 hover:text-ink">
-                  + {idea}
-                </button>
-              ))}
-            </div>
-            <Field label={text.answerLabel} error={errors.verificationAnswer} hint={text.answerHint}>
-              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.verificationAnswer)} value={draft.verificationAnswer} onChange={(event) => setField("verificationAnswer", event.target.value)} leading={<Lock className="size-4" />} autoComplete="off" />}
-            </Field>
-          </FormSection>
+          {!answeringNotice && <VerificationStep draft={draft} errors={errors} setField={setField} />}
 
           {failure && <ErrorNotice message={failure} />}
           <Button type="submit" size="lg" variant="mint" loading={submitting} className="w-full sm:w-auto sm:self-end sm:px-10">

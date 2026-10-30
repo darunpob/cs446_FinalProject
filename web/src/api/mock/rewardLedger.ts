@@ -1,5 +1,5 @@
-import type { EarnedReward, Reward, RewardPayout, RewardReviewDecision, RewardReviewReason } from "../contract";
-import { REWARD_HOLD_DAYS, REWARD_MAX_BAHT, REWARD_MIN_BAHT, rewardFee } from "../contract";
+import type { MyFind, Reward, RewardPayout } from "../contract";
+import { LOST_REPORT_EXPIRY_DAYS, REWARD_MAX_BAHT, REWARD_MIN_BAHT, rewardFee } from "../contract";
 import type { StoredAccount, StoredFoundItem, StoredLostReport, StoredReward } from "./mockDatabase";
 
 const DAY_MS = 86_400_000;
@@ -7,6 +7,11 @@ const DAY_MS = 86_400_000;
 export function isValidRewardAmount(amount: number): boolean {
   if (amount === 0) return true;
   return Number.isInteger(amount) && amount >= REWARD_MIN_BAHT && amount <= REWARD_MAX_BAHT;
+}
+
+/** The moment an open notice posted at `createdAt` expires, and with it any reward nobody earned. */
+export function noticeExpiresAt(createdAt: string): string {
+  return new Date(new Date(createdAt).getTime() + LOST_REPORT_EXPIRY_DAYS * DAY_MS).toISOString();
 }
 
 export function openReward(rewardId: string, amount: number): StoredReward | null {
@@ -19,6 +24,7 @@ export function openReward(rewardId: string, amount: number): StoredReward | nul
     paidAt: null,
     expiresAt: null,
     settledAt: null,
+    refundAmount: null,
     checkoutSessionId: null,
     finderEmail: null,
     itemTitle: null,
@@ -27,22 +33,27 @@ export function openReward(rewardId: string, amount: number): StoredReward | nul
 
 export function toReward(stored: StoredReward | null): Reward | null {
   if (!stored) return null;
-  const { checkoutSessionId: _session, finderEmail: _finder, itemTitle: _itemTitle, review: _review, ...reward } = stored;
+  const { checkoutSessionId: _session, finderEmail: _finder, itemTitle: _itemTitle, ...reward } = stored;
   return reward;
 }
 
 /** What the payment webhook does once the gateway reports a successful test charge. */
-export function holdReward(reward: StoredReward, now: Date): void {
+export function holdReward(reward: StoredReward, now: Date, expiresAt: string): void {
   reward.status = "held";
   reward.paidAt = now.toISOString();
-  reward.expiresAt = new Date(now.getTime() + REWARD_HOLD_DAYS * DAY_MS).toISOString();
+  reward.expiresAt = expiresAt;
 }
 
-/** Ends a reward without paying anyone: held money goes back to the owner, an unpaid checkout is voided. */
+/** Ends a reward without paying anyone: held money goes back to the owner minus the fee, an unpaid checkout is voided. */
 export function settleWithoutFinder(reward: StoredReward | null, now: Date): void {
-  if (reward?.status === "held") reward.status = "refunded";
-  else if (reward?.status === "awaiting_payment") reward.status = "voided";
-  else return;
+  if (reward?.status === "held") {
+    reward.status = "refunded";
+    reward.refundAmount = reward.amount - reward.fee;
+  } else if (reward?.status === "awaiting_payment") {
+    reward.status = "voided";
+  } else {
+    return;
+  }
   reward.settledAt = now.toISOString();
 }
 
@@ -60,40 +71,14 @@ export function releaseOnReturn(report: StoredLostReport, returnedItem: StoredFo
   reward.settledAt = now.toISOString();
 }
 
-/** Freezes a held reward instead of refunding it, so a guard can compare the returned item with the notice. */
-export function holdForReview(reward: StoredReward, returnedItem: StoredFoundItem, reason: RewardReviewReason, now: Date): void {
-  reward.status = "in_review";
-  reward.finderEmail = returnedItem.finderEmail;
-  reward.itemTitle = returnedItem.title;
-  reward.review = { itemId: returnedItem.id, reason, flaggedAt: now.toISOString() };
-}
-
-/** The guard's verdict on a frozen reward: pay the finder as if the claim had been linked, or refund the owner. */
-export function resolveReview(reward: StoredReward, decision: RewardReviewDecision, now: Date): void {
-  reward.status = decision === "release" ? "pending_payout" : "refunded";
-  if (decision === "refund") reward.finderEmail = null;
-  reward.settledAt = now.toISOString();
-  reward.review = null;
-}
-
-/**
- * Stands in for the scheduled EventBridge job: settles held rewards whose hold period has ended.
- * `settle` decides between a refund and a review, because only the caller can see claims and found items.
- */
-export function refundExpiredRewards(reports: StoredLostReport[], now: Date, settle: (report: StoredLostReport) => void): boolean {
-  const expired = reports.filter((report) => report.reward?.status === "held" && report.reward.expiresAt !== null && report.reward.expiresAt <= now.toISOString());
-  expired.forEach(settle);
-  return expired.length > 0;
-}
-
-export function toEarnedReward(reward: StoredReward): EarnedReward {
-  return {
-    rewardId: reward.id,
-    itemTitle: reward.itemTitle ?? "",
-    netAmount: reward.amount - reward.fee,
-    status: reward.status === "paid_out" ? "paid_out" : "pending_payout",
-    releasedAt: reward.settledAt ?? "",
-  };
+/** The reward as the finder of `find` sees it: promised while held, theirs once released to them, otherwise forfeited. */
+export function toFinderReward(reward: StoredReward | null, find: StoredFoundItem): MyFind["reward"] {
+  if (!reward || reward.status === "awaiting_payment" || reward.status === "voided") return null;
+  const netAmount = reward.amount - reward.fee;
+  if (reward.status === "held") return { netAmount, status: "promised" };
+  const releasedToThisFinder = reward.finderEmail === find.finderEmail;
+  if (reward.status === "refunded" || !releasedToThisFinder) return { netAmount, status: "forfeited" };
+  return { netAmount, status: reward.status };
 }
 
 export function toPayout(report: StoredLostReport, reward: StoredReward, finder: StoredAccount | undefined): RewardPayout {

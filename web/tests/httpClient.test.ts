@@ -35,7 +35,7 @@ describe("createHttpApi follows docs/API_CONTRACT.md", () => {
 
   it("posts claims to /api/items/{id}/claims without repeating the id in the body", async () => {
     const calls = stubFetch(200, { status: "rejected", attemptsLeft: 2 });
-    const claimForm = { answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line", lostReportId: "" };
+    const claimForm = { answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" };
     await createHttpApi("/api/", () => null).submitClaim({ itemId: "itm-1003", ...claimForm });
     expect(calls[0]).toMatchObject({ url: "/api/items/itm-1003/claims", method: "POST", body: claimForm });
   });
@@ -52,10 +52,24 @@ describe("createHttpApi follows docs/API_CONTRACT.md", () => {
     expect(calls[0]).toMatchObject({ url: "/api/lost-reports/mine", method: "GET", authorization: "Bearer token-123" });
   });
 
-  it("closes a lost report with the reason in the body", async () => {
-    const calls = stubFetch(200, { id: "lst-8f2a", status: "found" });
-    await createHttpApi("/api", () => "token-123").closeLostReport("lst-8f2a", "found");
-    expect(calls[0]).toMatchObject({ url: "/api/lost-reports/lst-8f2a/close", method: "POST", body: { reason: "found" }, authorization: "Bearer token-123" });
+  it("cancels a lost report and answers finds sent to it", async () => {
+    const calls = stubFetch(200, { id: "lst-8f2a", status: "cancelled" });
+    const api = createHttpApi("/api", () => "token-123");
+    await api.cancelLostReport("lst-8f2a");
+    await api.confirmSubmission("lst-8f2a", "itm-9");
+    await api.declineSubmission("lst-8f2a", "itm-9");
+    expect(calls.map((call) => call.url)).toEqual([
+      "/api/lost-reports/lst-8f2a/cancel",
+      "/api/lost-reports/lst-8f2a/submissions/itm-9/confirm",
+      "/api/lost-reports/lst-8f2a/submissions/itm-9/decline",
+    ]);
+    expect(calls.every((call) => call.method === "POST" && call.authorization === "Bearer token-123")).toBe(true);
+  });
+
+  it("unwraps my finds from /api/items/mine", async () => {
+    const calls = stubFetch(200, { finds: [] });
+    await expect(createHttpApi("/api", () => "token-123").listMyFinds()).resolves.toEqual([]);
+    expect(calls[0]).toMatchObject({ url: "/api/items/mine", method: "GET", authorization: "Bearer token-123" });
   });
 
   it("unwraps the public lost board from /api/lost-reports", async () => {

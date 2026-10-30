@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router";
 import { CircleHelp, Clock3, MapPin, Phone, ShieldAlert } from "lucide-react";
 import { api } from "../../api/client";
 import type { ClaimOutcome, FoundItem } from "../../api/contract";
 import { describeError } from "../../api/errors";
-import { useApiQuery } from "../../api/useApiQuery";
 import { Button } from "../../design-system/Button";
-import { Field, SelectInput, TextInput } from "../../design-system/Field";
+import { Field, TextInput } from "../../design-system/Field";
 import { Dialog, ErrorNotice, StatusStamp } from "../../design-system/Surface";
 import { messages } from "../../i18n/locale";
 import { useI18n } from "../../i18n/useI18n";
@@ -36,33 +35,6 @@ function validate(form: ClaimForm): FormErrors {
   return Object.fromEntries(Object.entries(checks).filter(([, message]) => message)) as FormErrors;
 }
 
-/** Lets a signed-in owner tie this claim to one of their open reports, so the guard's return releases its reward. */
-function ReportLinkField({ foundItem, value, onChange }: { foundItem: FoundItem; value: string; onChange: (reportId: string) => void }) {
-  const { t } = useI18n();
-  const { state } = useApiQuery(() => api.listMyLostReports(), []);
-  const openReports = state.phase === "ready" ? state.value.reports.filter((report) => report.status === "searching") : [];
-  const sameCategory = openReports.filter((report) => report.category === foundItem.category);
-  const suggestedId = sameCategory.length === 1 ? sameCategory[0].id : "";
-
-  useEffect(() => {
-    if (suggestedId) onChange(suggestedId);
-  }, [suggestedId, onChange]);
-
-  if (openReports.length === 0) return null;
-  return (
-    <Field label={t.reward.claimLinkLabel} optional hint={`${t.reward.claimLinkHint} ${t.reward.claimLinkForced}`}>
-      {(controlId, describedBy) => (
-        <SelectInput id={controlId} aria-describedby={describedBy} value={value} onChange={(event) => onChange(event.target.value)}>
-          <option value="">{t.reward.claimLinkNone}</option>
-          {openReports.map((report) => (
-            <option key={report.id} value={report.id}>{report.title}{report.reward?.status === "held" ? ` · ${t.reward.boardBadge}` : ""}</option>
-          ))}
-        </SelectInput>
-      )}
-    </Field>
-  );
-}
-
 interface ClaimDialogProps {
   foundItem: FoundItem;
   open: boolean;
@@ -74,7 +46,6 @@ export function ClaimDialog({ foundItem, open, onClose, onVerified }: ClaimDialo
   const { session } = useAuth();
   const { t } = useI18n();
   const [form, setForm] = useState<ClaimForm>({ answer: "", claimantName: session?.user.displayName ?? "", studentId: "", contact: session?.user.email ?? "" });
-  const [lostReportId, setLostReportId] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<ClaimOutcome | null>(null);
@@ -90,7 +61,7 @@ export function ClaimDialog({ foundItem, open, onClose, onVerified }: ClaimDialo
     setSubmitting(true);
     setFailure(null);
     try {
-      const claimOutcome = await api.submitClaim({ itemId: foundItem.id, ...form, lostReportId });
+      const claimOutcome = await api.submitClaim({ itemId: foundItem.id, ...form });
       setOutcome(claimOutcome);
       if (claimOutcome.status === "verified") onVerified();
     } catch (claimError) {
@@ -134,7 +105,6 @@ export function ClaimDialog({ foundItem, open, onClose, onVerified }: ClaimDialo
           <Field label={t.claim.contactLabel} error={errors.contact} hint={t.claim.contactHint}>
             {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.contact)} value={form.contact} onChange={(event) => setField("contact")(event.target.value)} />}
           </Field>
-          {session && <ReportLinkField foundItem={foundItem} value={lostReportId} onChange={setLostReportId} />}
           <Button type="submit" size="lg" loading={submitting} className="mt-2 w-full">
             {t.claim.submit}
           </Button>

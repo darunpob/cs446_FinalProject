@@ -39,6 +39,8 @@ export interface FoundItemSeed {
   verificationQuestion: string;
   verificationAnswer: string;
   aiLabels: string[];
+  /** Set on sample finds sent privately to a sample notice; such items stay off the public board. */
+  answersLostReportId?: string;
 }
 
 export const foundItemSeeds: FoundItemSeed[] = [
@@ -126,6 +128,53 @@ export const foundItemSeeds: FoundItemSeed[] = [
     verificationQuestion: "สมุดโน้ตในกระเป๋าเป็นวิชาอะไร", verificationAnswer: "cs446",
     aiLabels: ["Tote Bag", "Cat", "Handbag"],
   },
+  {
+    id: "itm-1101", title: "ซองใส่บัตร มีบัตรนักศึกษา", category: "card",
+    description: "ซองพลาสติกใส ข้างในมีบัตรนักศึกษาและบัตร ATM",
+    foundLocationId: "loc-gym", dropOffPointId: "drop-gate1", daysAgo: 1, hour: 18, status: "available",
+    verificationQuestion: "", verificationAnswer: "", aiLabels: ["ID Cards", "Wallet"], answersLostReportId: "lst-9003",
+  },
+  {
+    id: "itm-1102", title: "กระติกน้ำสแตนเลสสีเขียว", category: "bottle",
+    description: "กระติกสีเขียวเข้ม ฝาสีดำ มีรอยบุบที่ก้น",
+    foundLocationId: "loc-a5", dropOffPointId: "drop-student", daysAgo: 2, hour: 10, status: "claimed",
+    verificationQuestion: "", verificationAnswer: "", aiLabels: ["Bottle", "Steel"], answersLostReportId: "lst-9004",
+  },
+];
+
+/** Sample owner and finder of the sample notices. Neither can sign in; they only make the board look lived-in. */
+export const SAMPLE_OWNER_EMAIL = "sample.owner@bumail.net";
+export const SAMPLE_FINDER_EMAIL = "sample.finder@bumail.net";
+
+export interface LostReportSeed {
+  id: string;
+  title: string;
+  description: string;
+  category: CategoryId;
+  lastSeenLocationId: string;
+  daysAgo: number;
+  hour: number;
+  /** Paid and held from the start; 0 = no reward. */
+  rewardAmount: number;
+}
+
+export const lostReportSeeds: LostReportSeed[] = [
+  {
+    id: "lst-9001", title: "แว่นสายตากรอบทอง ในซองหนังสีน้ำตาล", category: "other",
+    description: "ลืมไว้แถวโต๊ะอ่านหนังสือชั้น 2 ซองมีกระดุมแม่เหล็ก", lastSeenLocationId: "loc-library", daysAgo: 1, hour: 15, rewardAmount: 0,
+  },
+  {
+    id: "lst-9002", title: "AirPods Pro เคสสีขาว สติกเกอร์แมวดำ", category: "electronics",
+    description: "น่าจะหล่นตอนกินข้าวกลางวัน", lastSeenLocationId: "loc-canteen", daysAgo: 2, hour: 12, rewardAmount: 200,
+  },
+  {
+    id: "lst-9003", title: "ซองใส่บัตรนักศึกษา + บัตร ATM", category: "card",
+    description: "ซองพลาสติกใส หายหลังเล่นแบดที่ยิม", lastSeenLocationId: "loc-gym", daysAgo: 3, hour: 17, rewardAmount: 100,
+  },
+  {
+    id: "lst-9004", title: "กระติกน้ำสแตนเลส สีเขียวเข้ม", category: "bottle",
+    description: "ฝาสีดำ มีรอยบุบที่ก้น", lastSeenLocationId: "loc-a5", daysAgo: 4, hour: 9, rewardAmount: 0,
+  },
 ];
 
 export interface ClaimSeed {
@@ -136,12 +185,19 @@ export interface ClaimSeed {
   contact: string;
   pickupCode: string;
   hoursAgo: number;
+  /** Set when the claim is a notice owner confirming a find sent to that notice. */
+  lostReportId?: string;
+  ownerEmail?: string;
 }
 
 export const pendingClaimSeeds: ClaimSeed[] = [
   {
     id: "clm-2001", itemId: "itm-1004", claimantName: "ธนพล ใจดี", studentId: "1650707093",
     contact: "LINE: thanaphon.j", pickupCode: "K7Q2MX", hoursAgo: 5,
+  },
+  {
+    id: "clm-2101", itemId: "itm-1102", claimantName: "เจ้าของประกาศตัวอย่าง", studentId: "",
+    contact: SAMPLE_OWNER_EMAIL, pickupCode: "M4TZ8P", hoursAgo: 20, lostReportId: "lst-9004", ownerEmail: SAMPLE_OWNER_EMAIL,
   },
 ];
 

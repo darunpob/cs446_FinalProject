@@ -9,10 +9,9 @@ import { STALE_AFTER_DAYS } from "../catalog/categories";
 import { useAuth } from "../auth/AuthProvider";
 import { PendingPayouts } from "./PendingPayouts";
 import { PendingReturns } from "./PendingReturns";
-import { RewardReviews } from "./RewardReviews";
 import { StaleItems } from "./StaleItems";
 
-type AdminTab = "returns" | "payouts" | "reviews" | "stale";
+type AdminTab = "returns" | "payouts" | "stale";
 
 function Metric({ icon: Icon, label, value, stock }: { icon: LucideIcon; label: string; value: number | null; stock: string }) {
   return (
@@ -46,23 +45,15 @@ export function AdminPage() {
   const pending = useApiQuery(() => api.listPendingReturns(), []);
   const stale = useApiQuery(() => api.listStaleItems(STALE_AFTER_DAYS), []);
   const payouts = useApiQuery(() => api.listPendingPayouts(), []);
-  const reviews = useApiQuery(() => api.listRewardReviews(), []);
 
   const statValues = stats.state.phase === "ready" ? stats.state.value : null;
   const claims = pending.state.phase === "ready" ? pending.state.value : null;
   const staleItems = stale.state.phase === "ready" ? stale.state.value : null;
   const payoutList = payouts.state.phase === "ready" ? payouts.state.value : null;
-  const reviewList = reviews.state.phase === "ready" ? reviews.state.value : null;
 
   const handleReturned = () => {
     pending.reload();
     stats.reload();
-    payouts.reload();
-    reviews.reload();
-  };
-
-  const handleReviewed = () => {
-    reviews.reload();
     payouts.reload();
   };
 
@@ -78,13 +69,11 @@ export function AdminPage() {
       <div role="tablist" className="mt-10 flex gap-1 overflow-x-auto border-b-2 border-felt-line [scrollbar-width:none]">
         <TabButton active={tab === "returns"} count={claims?.length ?? null} label={t.admin.tabReturns} onClick={() => setTab("returns")} />
         <TabButton active={tab === "payouts"} count={payoutList?.length ?? null} label={t.reward.tabPayouts} onClick={() => setTab("payouts")} />
-        <TabButton active={tab === "reviews"} count={reviewList?.length ?? null} label={t.reward.tabReviews} onClick={() => setTab("reviews")} />
         <TabButton active={tab === "stale"} count={staleItems?.length ?? null} label={t.admin.tabStale} onClick={() => setTab("stale")} />
       </div>
       <div className="pt-6" role="tabpanel">
         {tab === "returns" && <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />}
         {tab === "payouts" && <PendingPayouts payouts={payoutList} failure={payouts.state.phase === "failed" ? payouts.state.message : null} onRetry={payouts.reload} onPaid={payouts.reload} />}
-        {tab === "reviews" && <RewardReviews reviews={reviewList} failure={reviews.state.phase === "failed" ? reviews.state.message : null} onRetry={reviews.reload} onResolved={handleReviewed} />}
         {tab === "stale" && <StaleItems staleItems={staleItems} failure={stale.state.phase === "failed" ? stale.state.message : null} onRetry={stale.reload} />}
       </div>
     </div>

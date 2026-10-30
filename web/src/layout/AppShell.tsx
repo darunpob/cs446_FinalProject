@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { useEffect } from "react";
-import { House, LogIn, LogOut, NotebookText, SearchCheck, ShieldCheck, UserRound } from "lucide-react";
+import { House, LogIn, LogOut, SearchCheck, ShieldCheck, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../features/auth/AuthProvider";
 import { USE_MOCK, resetMockData } from "../api/client";
@@ -8,6 +8,7 @@ import { ROUTE_STOCK } from "../design-system/FormSection";
 import type { RouteStock } from "../design-system/FormSection";
 import type { Messages } from "../i18n/messages/th";
 import { useI18n } from "../i18n/useI18n";
+import { AccountMenuButton, AccountMenuTab } from "./AccountMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { PageErrorBoundary } from "./PageErrorBoundary";
 import { ReportMenuButton, ReportMenuFab } from "./ReportMenu";
@@ -16,8 +17,6 @@ import { ThemeToggle } from "./ThemeToggle";
 interface NavEntry {
   to: string;
   labelKey: keyof Messages["nav"];
-  /** Shorter label for the mobile tab bar, where each tab is about 64px wide. */
-  tabLabelKey?: keyof Messages["nav"];
   icon: LucideIcon;
   stock: RouteStock;
 }
@@ -25,7 +24,6 @@ interface NavEntry {
 const PUBLIC_NAV: NavEntry[] = [
   { to: "/", labelKey: "found", icon: House, stock: "found" },
   { to: "/looking-for", labelKey: "lostBoard", icon: SearchCheck, stock: "lost" },
-  { to: "/my-reports", labelKey: "myReports", tabLabelKey: "myReportsTab", icon: NotebookText, stock: "lost" },
 ];
 
 const GUARD_NAV: NavEntry = { to: "/admin", labelKey: "guard", icon: ShieldCheck, stock: "guard" };
@@ -61,10 +59,7 @@ function AccountControl() {
   }
   return (
     <div className="flex items-center gap-1">
-      <NavLink to="/account" title={t.nav.account} className={({ isActive }) => `hidden h-10 max-w-44 items-center gap-2 rounded-md px-2 text-sm transition-colors duration-150 md:flex ${isActive ? "bg-board text-on-felt" : "text-on-felt hover:bg-board"}`}>
-        <UserRound className="size-4 shrink-0 text-on-felt-2" aria-hidden />
-        <span className="truncate">{session.user.displayName}</span>
-      </NavLink>
+      <AccountMenuButton displayName={session.user.displayName} />
       <button type="button" onClick={signOut} aria-label={t.nav.logout} title={t.nav.logout} className={FELT_ICON_BUTTON}>
         <LogOut className="size-[18px]" />
       </button>
@@ -104,15 +99,16 @@ function Header({ navEntries }: { navEntries: NavEntry[] }) {
 function MobileTabBar({ navEntries }: { navEntries: NavEntry[] }) {
   const { session } = useAuth();
   const { t } = useI18n();
-  const accountTab: NavEntry = { to: session ? "/account" : "/login", labelKey: "account", icon: UserRound, stock: "account" };
-  const tabs = [...navEntries, accountTab];
-  const splitAt = Math.floor(tabs.length / 2);
+  const loginTab: NavEntry = { to: "/login", labelKey: "account", icon: UserRound, stock: "account" };
+  const splitAt = Math.ceil((navEntries.length + 1) / 2);
+  const trailing = navEntries.slice(splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />);
   return (
     <nav aria-label={t.nav.mobileMenu} className="paper fixed inset-x-0 bottom-0 z-40 border-t-4 border-stock-yellow pb-[env(safe-area-inset-bottom)] shadow-sheet md:hidden">
       <div className="mx-auto flex max-w-md items-center justify-around px-2">
-        {tabs.slice(0, splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
+        {navEntries.slice(0, splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
         <ReportMenuFab />
-        {tabs.slice(splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
+        {trailing}
+        {session ? <AccountMenuTab /> : <MobileTab entry={loginTab} />}
       </div>
     </nav>
   );
@@ -128,7 +124,7 @@ function MobileTab({ entry }: { entry: NavEntry }) {
           <span className={`grid h-7 w-11 place-items-center rounded-md transition-colors duration-150 ${isActive ? ROUTE_STOCK[entry.stock] : ""}`}>
             <Icon className="size-5" aria-hidden />
           </span>
-          <span className="text-center leading-tight">{t.nav[entry.tabLabelKey ?? entry.labelKey]}</span>
+          <span className="text-center leading-tight">{t.nav[entry.labelKey]}</span>
         </>
       )}
     </NavLink>

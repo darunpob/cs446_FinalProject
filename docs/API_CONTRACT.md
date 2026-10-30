@@ -1,6 +1,36 @@
-# BU Lost & Found — API Contract (v8)
+# BU Lost & Found — API Contract (v9)
 
-> **มีอะไรใหม่ใน v8 — ปิดช่องโหว่เจ้าของเบี้ยวรางวัล + ตัวกรองบอร์ดประกาศตามหา (ฝั่ง backend ต้องทำ):**
+> **มีอะไรใหม่ใน v9: ของที่ตอบประกาศส่งถึงเจ้าของคนเดียว, เจ้าของปิดเองไม่ได้, ประกาศหมดอายุ 30 วัน (ฝั่ง backend ต้องทำ)**
+> v9 แทนที่กลไก "รางวัลรอตรวจสอบ" ของ v8 ทั้งหมด
+> 1. **ของที่ส่งจาก "ฉันเจอของชิ้นนี้" (`answersLostReportId`) เป็นของส่วนตัว:**
+>    - ไม่ขึ้น `GET /api/items` และ `GET /api/items/{id}` ตอบ `404` กับทุกคน ยกเว้นคนเก็บได้และเจ้าของประกาศ
+>    - ไม่ต้องมีคำถามยืนยัน
+>    - ส่งอีเมลแจ้งเจ้าของทาง SNS/SES พร้อมลิงก์ `/#/my-reports?report=<id>`
+>    - เจ้าของเห็นของพวกนี้ใน `MyLostReport.submissions`
+> 2. **เจ้าของตอบของที่ส่งมา** ด้วย endpoint ใหม่ 2 ตัว:
+>    - `POST /api/lost-reports/{id}/submissions/{itemId}/confirm` ("นี่ของฉัน"): ออกรหัสรับของที่ผูกกับประกาศ → รปภ. ยืนยันคืน → รางวัลเป็น `pending_payout` ทันที
+>    - `.../decline` ("ไม่ใช่ของฉัน"): ของย้ายขึ้นบอร์ดสาธารณะ และเจ้าของคนนั้น (บัญชีหรือรหัสนักศึกษา) claim ชิ้นนี้ไม่ได้อีก → `403`
+> 3. **ลบปุ่ม "ได้ของคืนแล้ว":**
+>    - `POST /api/lost-reports/{id}/close` เปลี่ยนเป็น `POST /api/lost-reports/{id}/cancel` (ยกเลิกได้อย่างเดียว)
+>    - สถานะ `found` ตั้งได้จาก รปภ. ยืนยันคืนเท่านั้น
+>    - ยกเลิกไม่ได้ (`409`) ระหว่างที่มีของรอเจ้าของตอบ หรือเจ้าของยืนยันแล้วรอรับ
+> 4. **คืนเงินหักค่าธรรมเนียม:** ยกเลิกหรือหมดอายุ → refund `amount − fee` → `Reward.refundAmount`
+> 5. **ประกาศหมดอายุ:**
+>    - ประกาศ `searching` ที่สร้างเกิน 30 วัน และไม่มีของรอตอบหรือรอรับ → `status='expired'` + คืนเงิน
+>    - `expires_at` ของรางวัลเท่ากับ `created_at + 30 วัน` ของประกาศ
+> 6. **ลบออก:**
+>    - `in_review` และ `/api/admin/reward-reviews*`
+>    - `NewClaim.lostReportId`: claim ของสาธารณะไม่ผูกรางวัลแล้ว
+>    - `MyLostReports.earnedRewards`: ย้ายไป `GET /api/items/mine`
+> 7. **ต้องล็อกอิน:** `POST /api/items` และ `POST /api/items/{id}/claims` บังคับ token (`401`) · ดู ค้นหา และกรองยังเปิดให้ทุกคน
+> 8. **ใหม่:**
+>    - `GET /api/items/mine` (หน้า "ของที่ฉันเจอ")
+>    - `PublicLostReport.progress`, `MyLostReport.progress`: `searching` | `found` | `awaiting_pickup`
+>    - `CampusStats.lostAwaitingPickup`
+> 9. schema: SQL v8 → v9 ท้ายข้อ 7
+
+> **v8 (ถูกแทนที่บางส่วนโดย v9):**
+
 > 1. **ช่องโหว่:** เจ้าของที่ตั้งรางวัลไว้ รับของคืนแล้วเลือก "ไม่เกี่ยวกับประกาศของฉัน" ในฟอร์มยืนยัน จากนั้นปิดประกาศ → ระบบเดิมคืนเงินให้เจ้าของ คนเก็บได้ไม่ได้อะไร
 > 2. **แก้ชั้นที่ 1 — ลิงก์จากคนเก็บได้:** ปุ่ม "ฉันเจอของชิ้นนี้" ส่ง `answersLostReportId` มากับ `POST /api/items` → เก็บใน `found_items.answers_lost_report_id` (ห้ามส่งออกใน response) · ตอน claim ถ้าคนรับเป็นเจ้าของประกาศนั้น (token ตรง หรือ `studentId` ตรงกับ `lost_reports.student_id`) **backend ผูก claim กับประกาศเองโดยไม่สน `lostReportId` ที่ส่งมา**
 > 3. **แก้ชั้นที่ 2 — ห้ามคืนเงินถ้าน่าสงสัย:** ทุกจุดที่จะคืนเงินรางวัล `held` (ปิดประกาศ, ครบ 30 วัน) ให้เช็กก่อนว่ามีของที่คนเก็บได้ (ล็อกอิน ไม่ใช่เจ้าของ) ถูกรับคืนไปแล้วหรือไม่ — ถ้ามี เปลี่ยนเป็นสถานะใหม่ `in_review` แทน แล้วให้ รปภ. ตัดสินใน endpoint ใหม่ `/api/admin/reward-reviews` — ข้อ 2b
@@ -95,22 +125,23 @@ graph LR
 | GET | `/api/locations` | ทุกฟอร์ม (dropdown จุดที่เจอ / จุดรับฝาก) | – |
 | GET | `/api/stats` | หน้าแรก (3 กล่องตัวเลข), หน้า รปภ. | – |
 | GET | `/api/items?q=&category=&location=&status=` | หน้าแรก | – |
-| GET | `/api/items/{id}` | หน้ารายละเอียด | – |
+| GET | `/api/items/{id}` | หน้ารายละเอียด | – (ของส่วนตัว v9: เฉพาะคนเก็บได้ / เจ้าของประกาศ) |
+| GET | `/api/items/mine` | หน้า "ของที่ฉันเจอ" (v9) | 🔒 ทุก role |
 | POST | `/api/uploads` | แจ้งเจอของ (ขอ presigned URL รูป) | – |
-| POST | `/api/items` | แจ้งเจอของ | – |
+| POST | `/api/items` | แจ้งเจอของ | 🔒 ทุก role (v9) |
 | POST | `/api/lost-reports` | แจ้งของหาย | 🔒 ทุก role (**ใหม่ใน v4**) |
 | GET | `/api/lost-reports/mine` | หน้า "ของที่ฉันแจ้งหาย" | 🔒 ทุก role |
-| POST | `/api/lost-reports/{id}/close` | หน้า "ของที่ฉันแจ้งหาย" ปุ่ม "ได้ของคืนแล้ว / ยกเลิกประกาศ" | 🔒 เจ้าของรายงาน |
+| POST | `/api/lost-reports/{id}/cancel` | หน้า "ของที่ฉันแจ้งหาย" ปุ่ม "ยกเลิกประกาศ" (v9 แทน `/close`) | 🔒 เจ้าของรายงาน |
+| POST | `/api/lost-reports/{id}/submissions/{itemId}/confirm` | ปุ่ม "นี่ของฉัน" ในประกาศของฉัน (v9) | 🔒 เจ้าของรายงาน |
+| POST | `/api/lost-reports/{id}/submissions/{itemId}/decline` | ปุ่ม "ไม่ใช่ของฉัน" ในประกาศของฉัน (v9) | 🔒 เจ้าของรายงาน |
 | GET | `/api/lost-reports?q=&category=&location=` | หน้า "ประกาศตามหา" (บอร์ดสาธารณะ + ตัวกรอง v8) | – |
-| POST | `/api/items/{id}/claims` | ปุ่ม "นี่ของฉัน" | – (ถ้ามี token จะผูก claim กับบัญชี) |
+| POST | `/api/items/{id}/claims` | ปุ่ม "นี่ของฉัน" | 🔒 ทุก role (v9) |
 | GET | `/api/admin/claims?status=verified` | หน้า รปภ. แท็บ "รอส่งคืน" | 🔒 guard |
 | POST | `/api/admin/claims/{claimId}/return` | หน้า รปภ. ปุ่ม "ยืนยันคืนแล้ว" | 🔒 guard |
 | GET | `/api/admin/items/stale?days=30` | หน้า รปภ. แท็บ "ของค้างนาน" | 🔒 guard |
 | POST | `/api/lost-reports/{id}/reward/checkout` | ปุ่ม "ชำระรางวัล" | 🔒 เจ้าของรายงาน |
 | GET | `/api/admin/payouts?status=pending_payout` | หน้า รปภ. แท็บ "รอโอนรางวัล" | 🔒 guard |
 | POST | `/api/admin/payouts/{rewardId}/paid` | หน้า รปภ. ปุ่ม "ยืนยันโอนแล้ว" | 🔒 guard |
-| GET | `/api/admin/reward-reviews` | หน้า รปภ. แท็บ "รางวัลรอตรวจสอบ" (v8) | 🔒 guard |
-| POST | `/api/admin/reward-reviews/{rewardId}` | หน้า รปภ. ปุ่ม "โอนรางวัลให้คนเก็บได้ / คืนเงินเจ้าของ" (v8) | 🔒 guard |
 | POST | Lambda Function URL (ไม่ผ่าน `/api`) | Stripe เรียก webhook | ลายเซ็น `Stripe-Signature` |
 | POST | `/api/auth/login` | หน้าเข้าสู่ระบบ | – |
 | POST | `/api/auth/register` | หน้าสมัครสมาชิก | – |
@@ -143,7 +174,7 @@ graph LR
      Message: `${item.title}\nฝากไว้ที่: ${dropOff.name} (${dropOff.hours})\nดูรายละเอียด: ${WEB_URL}/#/items/${item.id}`,   // WEB_URL = http://<web-bucket>.s3-website-us-east-1.amazonaws.com (env ของ EC2)
    });
    ```
-3. **ปิดเรื่อง** (คืนของแล้ว หรือเจ้าของกดปิดเองที่ `POST /api/lost-reports/{id}/close`) → `lost_reports.status` เป็น `'found'` หรือ `'cancelled'` แล้วไม่ต้อง publish อีก ไม่ต้องลบ topic · publish เฉพาะรายงานที่ `status = 'searching'`
+3. **ปิดเรื่อง** (รปภ. ยืนยันคืน, เจ้าของยกเลิกที่ `POST /api/lost-reports/{id}/cancel` หรือหมดอายุ — v9) → `lost_reports.status` เป็น `'found'`, `'cancelled'` หรือ `'expired'` แล้วไม่ต้อง publish อีก ไม่ต้องลบ topic · publish เฉพาะรายงานที่ `status = 'searching'`
 
 **LINE (ไม่บังคับ):** ส่ง push ได้เฉพาะ `userId` ของคนที่แอด LINE OA แล้ว — ผู้ใช้แอดเพื่อนจากการ์ดในหน้ายืนยัน แล้วพิมพ์รหัสแจ้ง เช่น `lst-8f2a` ในแชท → LINE เรียก `POST /api/line/webhook` → ตรวจ `x-line-signature` → บันทึก `event.source.userId` ลง `lost_reports.line_user_id` → ตอนมีของตรงกันส่ง push เพิ่มจากอีเมล · `contact.lineId`, `contact.phone` ในฟอร์มมีไว้ให้ รปภ. ติดต่อกลับเท่านั้น
 
@@ -156,12 +187,9 @@ graph LR
 stateDiagram-v2
   [*] --> awaiting_payment: แจ้งหาย + rewardAmount > 0
   awaiting_payment --> held: webhook checkout.session.completed
-  awaiting_payment --> voided: เจ้าของปิดประกาศ / คืนของแล้วยังไม่จ่าย
-  held --> pending_payout: รปภ. ยืนยันคืน + คนเก็บได้ล็อกอินและไม่ใช่เจ้าของ
-  held --> refunded: เจ้าของปิดประกาศ / ครบ 30 วัน / คนเก็บได้ไม่ได้ล็อกอิน (และไม่เข้าเงื่อนไขน่าสงสัย)
-  held --> in_review: จะคืนเงิน แต่ของของคนเก็บได้ถูกรับคืนไปแล้ว (v8)
-  in_review --> pending_payout: รปภ. เลือก "โอนรางวัลให้คนเก็บได้"
-  in_review --> refunded: รปภ. เลือก "คืนเงินเจ้าของ"
+  awaiting_payment --> voided: เจ้าของยกเลิกประกาศ / หมดอายุ / คืนของแล้วยังไม่จ่าย
+  held --> pending_payout: เจ้าของกด "นี่ของฉัน" กับของที่ส่งมา แล้ว รปภ. ยืนยันคืน
+  held --> refunded: เจ้าของยกเลิก / ประกาศหมดอายุ 30 วัน (คืน amount − fee)
   pending_payout --> paid_out: แอดมินกด "ยืนยันโอนแล้ว"
 ```
 
@@ -169,7 +197,8 @@ stateDiagram-v2
 |---|---|
 | จำนวนรางวัล | จำนวนเต็ม `20`–`500` บาท (`REWARD_MIN_BAHT`, `REWARD_MAX_BAHT`) หรือ `0` = ไม่ตั้ง |
 | ค่าธรรมเนียม | `fee = round(amount × 0.10)` · คนเก็บได้ได้ `amount − fee` |
-| ระยะพักเงิน | 30 วันนับจาก `paid_at` (`expires_at`) แล้วคืนเงินอัตโนมัติ — **ประกาศยังเปิดอยู่** แค่ไม่มีรางวัลแล้ว |
+| อายุประกาศ (v9) | 30 วันนับจาก `lost_reports.created_at` (`rewards.expires_at`) แล้วปิดเป็น `expired` + คืนเงิน **ยกเว้น** มีของรอเจ้าของตอบหรือยืนยันแล้วรอรับ |
+| คืนเงิน (v9) | `refund_amount = amount − fee` (ค่าธรรมเนียมไม่คืน) ทั้งตอนยกเลิกและหมดอายุ |
 
 **กันคนขโมยของแล้วมาอ้างว่าเก็บได้:**
 - บอร์ดสาธารณะส่งแค่ `hasReward` (true เมื่อ `status = 'held'`) **ห้ามส่งจำนวนเงิน** ทุก endpoint สาธารณะ
@@ -177,12 +206,12 @@ stateDiagram-v2
 - ปล่อยเงิน**หลัง รปภ. ยืนยันคืนเท่านั้น** (`POST /api/admin/claims/{id}/return`) ไม่มี endpoint อื่นที่เปลี่ยนเป็น `pending_payout`
 - คนรับรางวัลต้องเป็นบัญชีมหาวิทยาลัยที่ล็อกอินตอนแจ้งเจอของ (`found_items.finder_email`) และต้องไม่ใช่เจ้าของรายงาน ไม่งั้นคืนเงินเจ้าของ
 
-**กันเจ้าของเบี้ยวรางวัล (v8):** ใช้ฟังก์ชันเดียวกันทุกจุดที่จะคืนเงิน `held` (ปิดประกาศ, Lambda `refund-expired`) — หา "ของที่น่าจะเป็นของชิ้นนี้" ตามลำดับ ถ้าเจอให้ตั้ง `status='in_review'` + `review_item_id`, `review_reason`, `reviewed_flagged_at=NOW()`, `finder_email` ของของชิ้นนั้น **และห้าม refund ทาง Stripe**:
-1. `linked_item_claimed` — `found_items.answers_lost_report_id = ประกาศนี้` และ `status IN ('claimed','returned')`
-2. `owner_claimed_similar` — claim ที่ `created_at >= lost_reports.created_at`, `item_category = lost_reports.category` และเป็นของเจ้าของ (`claims.owner_email = owner_email` หรือ `lost_reports.student_id <> ''` และ `claims.student_id = lost_reports.student_id`) ไม่ว่าจะผูกกับประกาศอื่นหรือไม่
-- ทั้งสองแบบ ของชิ้นนั้นต้องมี `finder_email` ที่ไม่ใช่ `NULL` และไม่ใช่เจ้าของ ไม่งั้นคืนเงินตามปกติ
-- `in_review` ไม่นับเป็นรางวัลบนบอร์ด (`hasReward` = false) และไม่โผล่ใน `earnedRewards` ของคนเก็บได้ (โชว์เฉพาะ `pending_payout`, `paid_out`)
-- กรณีปกติไม่โดน: ยกเลิกประกาศโดยไม่เคยรับของ หรือของที่รับไปเป็นของที่ส่งมาแบบไม่ล็อกอิน → คืนเงินเหมือนเดิม
+**กันเจ้าของเบี้ยวรางวัล (v9, แทน v8):**
+- รางวัลตามของได้ทางเดียว: ของที่คนเก็บได้ส่งผ่าน "ฉันเจอของชิ้นนี้" (`found_items.answers_lost_report_id`) และเจ้าของกด "นี่ของฉัน" (`confirm`) → `claims.lost_report_id` ถูกตั้งโดย backend เท่านั้น
+- ของส่วนตัวไม่ขึ้นบอร์ดสาธารณะ เจ้าของจึงไปกด claim แบบไม่ผูกรางวัลไม่ได้
+- ถ้าเจ้าของกด "ไม่ใช่ของฉัน" ของจะขึ้นบอร์ด แต่ `POST /api/items/{id}/claims` ต้องตอบ `403` เมื่อคน claim เป็นเจ้าของประกาศนั้น (`owner_email` ตรง หรือ `student_id` ตรง)
+- ยกเลิก / หมดอายุไม่ได้ ระหว่างที่มีของ `answers_lost_report_id = ประกาศนี้`, `declined_by_owner = 0`, `status='available'` หรือมี claim `verified` ที่ผูกกับประกาศ
+- ช่องโหว่ที่ยังปิดไม่ได้: ให้เพื่อนใช้บัญชีและรหัสนักศึกษาอื่นมา claim ของที่ถูก decline ไปแล้ว → รปภ. ควรตรวจบัตรตอนส่งคืน
 
 **ขั้นตอนฝั่ง AWS + Stripe:**
 1. `POST /api/lost-reports/{id}/reward/checkout` (EC2) →
@@ -206,8 +235,9 @@ stateDiagram-v2
    }
    ```
    Function URL ส่ง body มาเป็น base64 ได้ (`isBase64Encoded`) ต้อง decode ก่อนตรวจลายเซ็น · Lambda อยู่ใน VPC เดียวกับ RDS และ SG ของ RDS ต้องเปิด 3306 ให้ SG ของ Lambda
-3. **EventBridge Scheduler** (`rate(1 day)`, role `LabRole`) → **Lambda `refund-expired`**: `SELECT … FROM rewards WHERE status='held' AND expires_at <= NOW()` → แต่ละแถวเช็ก "กันเจ้าของเบี้ยวรางวัล" ก่อน (ด้านบน): น่าสงสัย → `in_review` · ไม่น่าสงสัย → `stripe.refunds.create({ payment_intent })` และ `status='refunded'`, `settled_at=NOW()`
-4. คืนเงินตอนเจ้าของปิดประกาศ / ตอนคืนของแล้วไม่มีคนเก็บได้ที่มีสิทธิ์ ทำใน EC2 ทันทีด้วย `stripe.refunds.create` แบบเดียวกัน
+3. **EventBridge Scheduler** (`rate(1 day)`, role `LabRole`) → **Lambda `expire-notices`** (v9 แทน `refund-expired`): `SELECT … FROM lost_reports WHERE status='searching' AND created_at <= NOW() - INTERVAL 30 DAY` ที่ไม่มีของรอตอบ/รอรับ (ด้านบน) → `status='expired'`, `closed_at=NOW()` · รางวัล `held` → `stripe.refunds.create({ payment_intent, amount: (amount - fee) * 100 })`, `status='refunded'`, `refund_amount`, `settled_at=NOW()` · `awaiting_payment` → `voided`
+4. คืนเงินตอนเจ้าของยกเลิกประกาศ ทำใน EC2 ทันทีด้วย `stripe.refunds.create` แบบเดียวกัน (หักค่าธรรมเนียม)
+5. **อีเมลแจ้งเจ้าของ (v9):** หลัง `POST /api/items` ที่มี `answersLostReportId` ให้ publish ไปที่ topic ของประกาศนั้น (ข้อ 2) หัวข้อ "มีคนส่งของที่อาจเป็นของคุณมาแล้ว" พร้อมลิงก์ `${WEB_URL}/#/my-reports?report=<id>` · ห้ามใส่รหัสนักศึกษาหรือข้อมูลติดต่อคนเก็บได้ในอีเมล
 
 หน้าเว็บโหมด mock จำลองหน้าจ่ายเงินที่ `/#/test-checkout/{sessionId}` (บัตร `4242 4242 4242 4242` สำเร็จ, `4000 0000 0000 0002` ถูกปฏิเสธ) และจำลอง EventBridge ด้วยการเช็กหมดอายุทุกครั้งที่อ่านรายการ
 
@@ -239,7 +269,7 @@ stateDiagram-v2
 | Format | JSON ทั้ง request/response, `Content-Type: application/json` |
 | เวลา | ISO 8601 UTC เช่น `2026-10-27T03:15:00.000Z` (เก็บใน RDS เป็น UTC `DATETIME`) |
 | ID | string มี prefix: `itm-` (ของที่เจอ), `lst-` (แจ้งหาย), `clm-` (คำขอรับคืน) |
-| Auth | `Authorization: Bearer <token>` — จำเป็นสำหรับ `/api/admin/*` (ต้องเป็น role `guard`), `/api/me*`, `POST /api/lost-reports`, `/api/lost-reports/mine` และ `/api/lost-reports/{id}/close` (role ใดก็ได้) · `POST /api/items/{id}/claims` รับ token แบบไม่บังคับ |
+| Auth | `Authorization: Bearer <token>` — จำเป็นสำหรับ `/api/admin/*` (ต้องเป็น role `guard`), `/api/me*`, `POST /api/lost-reports`, `/api/lost-reports/mine`, `/api/lost-reports/{id}/cancel`, `/api/lost-reports/{id}/submissions/*`, `GET /api/items/mine`, `POST /api/items` และ `POST /api/items/{id}/claims` (role ใดก็ได้ — v9 ทุกปุ่มต้องล็อกอิน แต่ดู/ค้นหา/กรองไม่ต้อง) |
 | CORS | **API ต้องตั้ง** (v6): `Access-Control-Allow-Origin: http://<web-bucket>.s3-website-us-east-1.amazonaws.com` (และ `http://localhost:5173` ตอนพัฒนา), `Allow-Headers: Authorization, Content-Type`, `Allow-Methods: GET, POST, PUT, OPTIONS` · ตอบ `OPTIONS` (preflight) ด้วย `204` โดย**ไม่ต้องมี token** — เช่น Express: `app.use(cors({ origin: [WEB_URL, "http://localhost:5173"] }))` ก่อน middleware ตรวจ JWT · **bucket รูปต้องตั้ง CORS** ให้ `PUT` จาก origin เดียวกันนี้ |
 | Error | HTTP status ตามตาราง + body `{ "error": { "code": "NOT_FOUND", "message": "ข้อความที่แสดงให้ผู้ใช้ได้" } }` — หน้าเว็บแสดง `message` ตรง ๆ |
 
@@ -290,7 +320,8 @@ interface Claim {
   returnedAt: string | null;
 }
 
-type LostReportStatus = "searching" | "found" | "cancelled";   // DB: lost_reports.status
+type LostReportStatus = "searching" | "found" | "cancelled" | "expired";   // DB: lost_reports.status · v9 เพิ่ม expired
+type LostNoticeProgress = "searching" | "found" | "awaiting_pickup";       // v9: ยังไม่เจอ / มีของรอตอบ / เจ้าของยืนยันแล้วรอรับ
 
 interface MyLostReport {          // เห็นเฉพาะเจ้าของรายงาน
   id: string;
@@ -302,8 +333,10 @@ interface MyLostReport {          // เห็นเฉพาะเจ้าข�
   imageUrls: string[];            // v6
   createdAt: string;
   status: LostReportStatus;
+  progress: LostNoticeProgress;   // v9 · มีความหมายเฉพาะตอน searching
   closedAt: string | null;
-  possibleMatches: FoundItem[];   // คำนวณใหม่ทุกครั้งที่เรียก · [] ถ้า status ไม่ใช่ "searching"
+  submissions: FoundItem[];       // v9 · ของที่ส่งผ่าน "ฉันเจอของชิ้นนี้" รอเจ้าของตอบ · [] ถ้าไม่ใช่ searching
+  possibleMatches: FoundItem[];   // คำนวณใหม่ทุกครั้งที่เรียก · [] ถ้า status ไม่ใช่ "searching" · ไม่รวมของส่วนตัว
 }
 
 interface MyClaim {               // claim ที่ทำตอนล็อกอินอยู่ — ให้เจ้าของเปิดดูรหัสรับของซ้ำได้
@@ -326,6 +359,7 @@ interface PublicLostReport {      // บอร์ดสาธารณะ — �
   lostAt: string;
   imageUrls: string[];            // v6
   hasReward: boolean;             // true เมื่อรางวัล status = "held" · ห้ามส่งจำนวนเงิน
+  progress: LostNoticeProgress;   // v9 · ป้าย "ยังไม่เจอ / เจอแล้ว / ยืนยันแล้ว รอรับ"
 }
 
 type RewardStatus = "awaiting_payment" | "held" | "pending_payout" | "paid_out" | "refunded" | "voided";
@@ -336,16 +370,16 @@ interface Reward {                // อยู่ใน MyLostReport.reward แ�
   fee: number;                    // round(amount × 0.10)
   status: RewardStatus;
   paidAt: string | null;
-  expiresAt: string | null;       // paidAt + 30 วัน
+  expiresAt: string | null;       // v9: created_at ของประกาศ + 30 วัน
   settledAt: string | null;       // เวลาที่ออกจากการพักเงิน (ปล่อยให้คนเก็บได้ หรือคืนเงิน)
+  refundAmount: number | null;    // v9: amount − fee เมื่อ refunded, นอกนั้น null
 }
 
-interface EarnedReward {          // GET /api/lost-reports/mine → earnedRewards (ฉันเป็นคนเก็บได้)
-  rewardId: string;
-  itemTitle: string;
-  netAmount: number;              // amount − fee
-  status: "pending_payout" | "paid_out";
-  releasedAt: string;
+interface MyFind {                // v9 · GET /api/items/mine (ฉันเป็นคนเก็บได้) — แทน EarnedReward
+  item: FoundItem;
+  stage: "posted" | "sent" | "confirmed" | "returned";   // บนบอร์ด / ส่งให้เจ้าของแล้ว / เจ้าของยืนยัน รอรับ / คืนแล้ว
+  noticeTitle: string | null;     // ชื่อประกาศที่ตอบ (null ถ้าไม่ได้ตอบ หรือเจ้าของ decline)
+  reward: { netAmount: number; status: "promised" | "pending_payout" | "paid_out" | "forfeited" } | null;
 }
 
 interface RewardPayout {          // หน้า รปภ. แท็บ "รอโอนรางวัล"
@@ -383,7 +417,7 @@ interface RewardPayout {          // หน้า รปภ. แท็บ "ร�
 ```json
 { "waiting": 10, "awaitingPickup": 1, "returnedThisMonth": 4, "lostSearching": 7, "lostFoundThisMonth": 3 }
 ```
-`waiting` = ของสถานะ `available` · `awaitingPickup` = claim สถานะ `verified` · `returnedThisMonth` = ของที่ `returned_at` อยู่ในเดือนปัจจุบัน · `lostSearching` = lost report สถานะ `searching` · `lostFoundThisMonth` = lost report สถานะ `found` ที่ `closed_at` อยู่ในเดือนปัจจุบัน (v8 — หน้าประกาศตามหา)
+`waiting` = ของสถานะ `available` · `awaitingPickup` = claim สถานะ `verified` · `returnedThisMonth` = ของที่ `returned_at` อยู่ในเดือนปัจจุบัน · `lostSearching` = lost report สถานะ `searching` · `lostFoundThisMonth` = lost report สถานะ `found` ที่ `closed_at` อยู่ในเดือนปัจจุบัน (v8 — หน้าประกาศตามหา) · `lostAwaitingPickup` = ประกาศ `searching` ที่มี claim `verified` ผูกอยู่ (v9)
 
 ### `GET /api/items?q=&category=&location=&status=`
 ทุก param ไม่บังคับ
@@ -435,7 +469,8 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 - `title` 1–60 ตัวอักษร, `description` ไม่เกิน 500 → ไม่งั้น `400`
 - backend ตั้ง `status = "available"`, `reportedAt = now`, `aiLabels` ตามข้อ 3
 - response คือ `FoundItem` **ที่ไม่มี** `verificationAnswer`
-- token ไม่บังคับ: ถ้ามี token ที่ถูกต้อง ให้บันทึก `finder_email` = email ใน JWT (คนเดียวที่รับรางวัลได้ ดูข้อ 2b) · **ห้ามส่ง `finder_email` ออกใน response ใด ๆ**
+- **v9 บังคับ token** (`401`): บันทึก `finder_email` = email ใน JWT (คนเดียวที่รับรางวัลได้ ดูข้อ 2b) · **ห้ามส่ง `finder_email` ออกใน response ใด ๆ**
+- v9: ถ้า `answersLostReportId` ชี้ประกาศของคนอื่น → ของเป็น**ส่วนตัว** (ไม่ขึ้นบอร์ด) และ `verificationQuestion` / `verificationAnswer` เป็น `""` ได้ · นอกนั้นยังบังคับคำถามยืนยัน · แล้วส่งอีเมลแจ้งเจ้าของ (ข้อ 2b ข้อ 5)
 - หลังบันทึก: หา lost report ที่ตรงกัน (กติกาจับคู่ด้านล่าง + บัตรนักศึกษาจากข้อ 3) แล้ว publish SNS ตามข้อ 2
 
 ### `POST /api/lost-reports` 🔒 — แจ้งของหาย → `201`
@@ -470,27 +505,47 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 ```json
 {
   "reports": [MyLostReport, ...],
-  "claims":  [MyClaim, ...],
-  "earnedRewards": [EarnedReward, ...]
+  "claims":  [MyClaim, ...]
 }
 ```
-- `reports[].reward` = แถวใน `rewards` ของรายงานนั้น (`null` ถ้าไม่ตั้ง) · `earnedRewards` = `rewards WHERE finder_email = ? AND status IN ('pending_payout','paid_out')`
+- `reports[].reward` = แถวใน `rewards` ของรายงานนั้น (`null` ถ้าไม่ตั้ง) · v9 ลบ `earnedRewards` (ย้ายไป `GET /api/items/mine`)
+- `submissions` (v9) = `found_items WHERE answers_lost_report_id = ? AND declined_by_owner = 0 AND status = 'available'` (ไม่มี `verificationAnswer`)
 - **`possibleMatches` ต้องคำนวณใหม่ทุกครั้งที่เรียก** ด้วยกติกาจับคู่เดียวกับตอนแจ้ง — ห้ามเอารายการเดิมที่เก็บไว้ตอน `POST` เพราะมีของเจอเข้ามาเพิ่มเรื่อย ๆ · รายงานที่ `status` ไม่ใช่ `searching` ให้ส่ง `[]`
 - `claims` = `SELECT ... FROM claims JOIN found_items ... WHERE claims.owner_email = ? ORDER BY created_at DESC` — หน้าเว็บโชว์รหัสรับของและจุดรับฝากให้ดูซ้ำได้ (เดิมโชว์ครั้งเดียวใน dialog ถ้าปิดไปก็หายเลย)
 - `possibleMatches` เป็น `FoundItem` → **ห้ามมี `verificationAnswer`**
 
-### `POST /api/lost-reports/{id}/close` 🔒 — ปุ่ม "ได้ของคืนแล้ว / ยกเลิกประกาศ" → `200 MyLostReport`
-```json
-{ "reason": "found" }       // หรือ "cancelled"
-```
+### `POST /api/lost-reports/{id}/cancel` 🔒 — ปุ่ม "ยกเลิกประกาศ" (v9 แทน `/close`) → `200 MyLostReport`
 ```sql
-UPDATE lost_reports SET status = ?, closed_at = NOW()
+UPDATE lost_reports SET status = 'cancelled', closed_at = NOW()
 WHERE id = ? AND owner_email = ? AND status = 'searching'
 ```
-- `reason` ไม่ใช่ `found` / `cancelled` → `400`
 - **ไม่พบ id หรือคนเรียกไม่ใช่เจ้าของ → `404`** (ห้ามตอบ 403 เพราะจะบอกใบ้ว่ามี id นี้อยู่จริง)
-- ปิดไปแล้ว → `409`
-- รางวัล: `held` → เช็ก "กันเจ้าของเบี้ยวรางวัล" (ข้อ 2b) ก่อน: น่าสงสัย → `in_review` (ไม่ refund) · ไม่น่าสงสัย → refund ทาง Stripe แล้ว `refunded` · `awaiting_payment` → `voided` (response มี `reward` สถานะใหม่)
+- ปิดไปแล้ว → `409` · มีของรอเจ้าของตอบ หรือเจ้าของยืนยันแล้วรอรับ → `409`
+- รางวัล: `held` → refund `amount − fee` แล้ว `refunded` + `refund_amount` · `awaiting_payment` → `voided`
+- หน้าเว็บบอก "หาเจอเองให้กดยกเลิก ไม่ต้องจ่ายรางวัล คืนเงินหักค่าธรรมเนียม"
+
+### `POST /api/lost-reports/{id}/submissions/{itemId}/confirm` 🔒 (v9) → `200 MyClaim`
+- ประกาศของคนเรียก, `searching` และของ `answers_lost_report_id = id`, `declined_by_owner = 0`, `status='available'` ไม่งั้น `404`
+- มี claim `verified` ผูกกับประกาศนี้อยู่แล้ว → `409`
+- transaction: ของ → `claimed` · `INSERT claims` (`owner_email` = JWT, `lost_report_id` = id, ชื่อ / รหัสนักศึกษา / ช่องทางติดต่อจากประกาศ) → ตอบรหัสรับของ
+- รปภ. ยืนยันคืน (`/api/admin/claims/{id}/return`) → ประกาศ `found` + รางวัล `pending_payout`
+
+### `POST /api/lost-reports/{id}/submissions/{itemId}/decline` 🔒 (v9) → `200 { "ok": true }`
+เงื่อนไขเดียวกับ confirm (`404`) → `UPDATE found_items SET declined_by_owner = 1` → ของขึ้นบอร์ดสาธารณะ · เจ้าของประกาศ claim ชิ้นนี้ไม่ได้ (`403`)
+
+### `GET /api/items/mine` 🔒 (v9) — หน้า "ของที่ฉันเจอ" → `200`
+```json
+{ "finds": [MyFind, ...] }
+```
+`found_items WHERE finder_email = ? ORDER BY reported_at DESC`
+- `stage`:
+  - `returned` / `confirmed` ตาม `status` ของของ
+  - `sent` ถ้าเป็นของส่วนตัวที่ประกาศยัง `searching`
+  - นอกนั้น `posted`
+- `reward` (เฉพาะของที่ตอบประกาศและไม่ถูก decline, รางวัลไม่ใช่ `awaiting_payment` / `voided`):
+  - `held` → `promised`
+  - `pending_payout` / `paid_out` ที่ `finder_email` เป็นคนเรียก → ตามนั้น
+  - นอกนั้น `forfeited`
 
 ### `POST /api/lost-reports/{id}/reward/checkout` 🔒 → `200`
 ```json
@@ -504,15 +559,16 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 ```json
 { "reports": [{ "id": "lst-8f2a", "title": "บัตรนักศึกษา", "description": "อยู่ในซองใสสีฟ้า", "category": "card", "lastSeenLocationId": "loc-canteen", "lostAt": "2026-10-26T05:00:00.000Z", "imageUrls": [], "hasReward": true }] }
 ```
-- เฉพาะ `status = 'searching'` เรียงจาก `lost_at` ใหม่สุด
+- เฉพาะ `status = 'searching'` เรียงจาก `lost_at` ใหม่สุด (รวมประกาศที่มีของรอตอบ / รอรับ — ดูจาก `progress`) · v9 หน้าเว็บซ่อนปุ่ม "ฉันเจอของชิ้นนี้" เมื่อ `progress = 'awaiting_pickup'`
+- v9: `GET /api/items?…` ต้องไม่รวมของส่วนตัว (`answers_lost_report_id` ชี้ประกาศ `searching` และ `declined_by_owner = 0`)
 - ตัวกรอง (v8, ไม่บังคับทั้งหมด): `category` ตรงตัว · `location` เทียบกับ `last_seen_location_id` · `q` แยกคำด้วยช่องว่าง ทุกคำต้องอยู่ใน `title` / `description` / ชื่อสถานที่ (ไม่สนตัวพิมพ์)
 - ⚠️ **ห้ามส่ง `student_id`, `contact_*`, `owner_email` เด็ดขาด** · v6 ส่ง `description` แล้วตามที่ทีมตกลง — ความเสี่ยง: ถ้าเจ้าของเขียนจุดสังเกตลับ (เช่น "มีสติกเกอร์โดราเอมอน") มิจฉาชีพอ่านบอร์ดแล้วเอาไปตอบคำถามยืนยันได้ หน้าฟอร์มจึงเตือนเจ้าของไว้ที่ช่อง "ลักษณะเด่น"
 - ปุ่ม "ฉันเจอของชิ้นนี้" ในหน้าเว็บพาไปหน้าแจ้งเจอของ (`/report-found?title=&category=&location=&answers=<id>`) — ไม่มีช่องทางติดต่อเจ้าของโดยตรง · หน้าเว็บส่ง `answers` ต่อเป็น `answersLostReportId` ใน `POST /api/items` (v8)
 
 ### `POST /api/items/{id}/claims` — ปุ่ม "นี่ของฉัน" → `200`
 ```json
-// request
-{ "answer": "Honda", "claimantName": "ธนพล ใจดี", "studentId": "1650707093", "contact": "LINE: thanaphon.j", "lostReportId": "lst-8f2a" }
+// request (v9 ลบ lostReportId)
+{ "answer": "Honda", "claimantName": "ธนพล ใจดี", "studentId": "1650707093", "contact": "LINE: thanaphon.j" }
 
 // response — ตอบถูก
 { "status": "verified", "claimId": "clm-91c", "pickupCode": "K7Q2MX", "dropOffPointId": "drop-gate2" }
@@ -530,9 +586,12 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 
 ตอบถูก → ใช้ transaction: `UPDATE found_items SET status='claimed' WHERE id=? AND status='available'` (ถ้าแถวที่แก้ = 0 → `409`) แล้ว `INSERT` claim
 
-**ผูกประกาศโดยไม่ฟังเจ้าของ (v8):** ถ้า `found_items.answers_lost_report_id` ชี้ไปที่ประกาศ `searching` และคน claim คือเจ้าของประกาศนั้น (`owner_email` = email ใน JWT **หรือ** `lost_reports.student_id <> ''` และเท่ากับ `studentId` ใน request) → ตั้ง `claims.lost_report_id` = ประกาศนั้น **แทนค่า `lostReportId` ที่ส่งมา** (แม้จะส่ง `""` = "ไม่เกี่ยวกับประกาศของฉัน") พอ รปภ. ยืนยันคืน รางวัลจะปล่อยให้คนเก็บได้ตามปกติ · รหัสรับของแสดงบนหน้าจอ (หน้าเว็บบอกให้แคปหน้าจอเก็บไว้)
-
-**token ไม่บังคับ:** ถ้ามี `Authorization` และ token ถูกต้อง ให้ใส่ `claims.owner_email` = email ใน JWT (ไม่มี token → `NULL`) เพื่อให้ `GET /api/lost-reports/mine` แสดงรหัสรับของซ้ำได้ · token ผิด/หมดอายุ ให้ถือว่าไม่มี token (อย่าตอบ 401 ที่ endpoint นี้)
+**v9:**
+- บังคับ token (`401`) และใส่ `claims.owner_email` = email ใน JWT
+- `claims.lost_report_id` เป็น `NULL` เสมอ (รางวัลผูกได้ทาง `confirm` เท่านั้น)
+- ของส่วนตัว → `404`
+- ของที่ `answers_lost_report_id` ชี้ประกาศที่คน claim เป็นเจ้าของ (`owner_email` ตรง หรือ `student_id` ตรง) → `403`
+- รหัสรับของแสดงบนหน้าจอ และเปิดดูซ้ำได้ใน `GET /api/lost-reports/mine`
 
 ### `GET /api/admin/claims?status=verified` 🔒
 ```json
@@ -542,7 +601,7 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 ### `POST /api/admin/claims/{claimId}/return` 🔒 → `200 Claim`
 transaction: claim → `returned` + `returned_at = now`, ของ → `returned` + `returned_at`, lost report ที่เกี่ยวข้อง (`claims.lost_report_id`, ถ้ามีและยัง `searching`) → `status = 'found'`, `closed_at = now` · `409` ถ้าคืนไปแล้ว
 
-**ปล่อยรางวัล (ใน transaction เดียวกัน):** ถ้ารายงานนั้นมีรางวัล `held` และ `found_items.finder_email` ไม่ว่างและ ≠ `lost_reports.owner_email` → `rewards.status = 'pending_payout'`, `finder_email`, `settled_at = now` · ไม่เข้าเงื่อนไข → refund แล้ว `refunded` · รางวัล `awaiting_payment` → `voided`
+**ปล่อยรางวัล (ใน transaction เดียวกัน):** ถ้ารายงานนั้นมีรางวัล `held` และ `found_items.finder_email` ไม่ว่างและ ≠ `lost_reports.owner_email` → `rewards.status = 'pending_payout'`, `finder_email`, `settled_at = now` · ไม่เข้าเงื่อนไข → refund (หักค่าธรรมเนียม) แล้ว `refunded` · รางวัล `awaiting_payment` → `voided` · v9: ของส่วนตัวอื่นที่ยังรอตอบของประกาศนี้จะขึ้นบอร์ดสาธารณะเอง (ประกาศไม่ใช่ `searching` แล้ว)
 
 ### `GET /api/admin/payouts?status=pending_payout` 🔒 guard
 ```json
@@ -552,24 +611,6 @@ transaction: claim → `returned` + `returned_at = now`, ของ → `returned
 
 ### `POST /api/admin/payouts/{rewardId}/paid` 🔒 guard → `200 RewardPayout`
 แอดมินบันทึกว่าโอนแล้ว (โหมดทดสอบ: ไม่มีการโอนจริง) → `status = 'paid_out'`, `paid_out_at = now`, `paid_out_by = email ของแอดมิน` · ไม่พบ → `404` · ไม่ใช่ `pending_payout` → `409`
-
-### `GET /api/admin/reward-reviews` 🔒 guard (v8)
-```json
-{ "reviews": [{
-  "rewardId": "rwd-12", "lostReportId": "lst-8f2a", "reportTitle": "กระเป๋าเป้สีดำ", "reportImageUrls": ["https://..."],
-  "itemId": "itm-1042", "itemTitle": "กระเป๋าเป้สีดำ มีสติกเกอร์", "itemImageUrls": ["https://..."],
-  "finderName": "คนเก็บได้", "amount": 100, "reason": "owner_claimed_similar", "flaggedAt": "2026-10-30T04:00:00.000Z"
-}] }
-```
-`rewards WHERE status='in_review'` JOIN `lost_reports`, `found_items` (`review_item_id`), `users` (`finder_email`) · `reason`: `linked_item_claimed` | `owner_claimed_similar` (ข้อ 2b) · หน้าเว็บแสดงรูปประกาศกับรูปของที่คืนไปคู่กันให้ รปภ. เทียบ
-
-### `POST /api/admin/reward-reviews/{rewardId}` 🔒 guard (v8) → `200 { "ok": true }`
-```json
-{ "decision": "release" }   // หรือ "refund"
-```
-- `release` → `status='pending_payout'`, `settled_at=NOW()` (ไปต่อที่แท็บ "รอโอนรางวัล") · ถ้าประกาศยัง `searching` ให้ปิดเป็น `found`
-- `refund` → `stripe.refunds.create` แล้ว `status='refunded'`, `finder_email=NULL`, `settled_at=NOW()` · ประกาศคงสถานะเดิม
-- ล้าง `review_*` ทั้งสองกรณี · `decision` อื่น → `400` · ไม่พบ → `404` · ไม่ใช่ `in_review` → `409`
 
 ### `GET /api/admin/items/stale?days=30` 🔒
 ของ `available` ที่ `found_at` เก่ากว่า `days` วัน เรียงจากค้างนานสุด
@@ -800,6 +841,18 @@ ALTER TABLE lost_reports MODIFY title VARCHAR(60) NOT NULL;
 > ถ้าย้ายไปใช้ DynamoDB ภายหลัง: ทำ GSI partition key = `ownerEmail`, sort key = `createdAt` บนตาราง lost reports และ claims แทน index ข้างบน
 
 ข้อมูลตั้งต้นของ `locations` คัดลอกจาก `campusDirectoryFixture` ใน [`web/src/fixtures/mockData.ts`](../web/src/fixtures/mockData.ts) ได้เลย (แก้ชื่อให้ตรงกับมหาวิทยาลัยจริง)
+
+**v8 → v9 (ของส่วนตัว + หมดอายุ + คืนเงินหักค่าธรรมเนียม):**
+```sql
+UPDATE rewards SET status = 'held', review_item_id = NULL, review_reason = NULL, reviewed_flagged_at = NULL WHERE status = 'in_review';
+ALTER TABLE rewards
+  MODIFY status ENUM('awaiting_payment', 'held', 'pending_payout', 'paid_out', 'refunded', 'voided') NOT NULL DEFAULT 'awaiting_payment',
+  DROP COLUMN review_item_id, DROP COLUMN review_reason, DROP COLUMN reviewed_flagged_at,
+  ADD COLUMN refund_amount INT NULL;
+ALTER TABLE lost_reports MODIFY status ENUM('searching', 'found', 'cancelled', 'expired') NOT NULL DEFAULT 'searching';
+ALTER TABLE found_items ADD COLUMN declined_by_owner TINYINT(1) NOT NULL DEFAULT 0;
+CREATE INDEX idx_found_finder ON found_items (finder_email);
+```
 
 ## 8. ทดสอบกับหน้าเว็บ
 

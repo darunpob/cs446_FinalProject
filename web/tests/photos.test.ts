@@ -28,7 +28,8 @@ const lostPhone: NewLostReport = {
 
 describe("photos on notices", () => {
   it("keeps every uploaded photo of a found item in order, cover first", async () => {
-    const { api } = worldWithImages(["img-a", "img-b", "img-c"]);
+    const { api, signIn } = worldWithImages(["img-a", "img-b", "img-c"]);
+    await signIn();
     const created = await api.createFoundItem({ ...foundPhone, imageKeys: ["img-a", "img-b", "img-c"] });
     expect(created.imageUrls).toHaveLength(3);
     expect(created.imageUrl).toBe(created.imageUrls[0]);
@@ -37,15 +38,17 @@ describe("photos on notices", () => {
 
   it("rejects more photos than a notice can hold", async () => {
     const keys = Array.from({ length: MAX_PHOTOS + 1 }, (_, index) => `img-${index}`);
-    const { api } = worldWithImages(keys);
+    const { api, signIn } = worldWithImages(keys);
+    await signIn();
     await expect(api.createFoundItem({ ...foundPhone, imageKeys: keys })).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("shows a lost report's photos and description on the public board", async () => {
     const { api, signIn } = worldWithImages(["img-lost"]);
     await signIn();
-    await api.createLostReport({ ...lostPhone, imageKeys: ["img-lost"] });
-    const [notice] = await api.listOpenLostReports();
+    const { id } = await api.createLostReport({ ...lostPhone, imageKeys: ["img-lost"] });
+    const notice = (await api.listOpenLostReports()).find((candidate) => candidate.id === id);
+    if (!notice) throw new Error("expected the new notice on the board");
     expect(notice.imageUrls).toEqual(["data:image/jpeg;base64,img-lost"]);
     expect(notice.description).toBe(lostPhone.description);
   });

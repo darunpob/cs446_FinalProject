@@ -64,15 +64,15 @@ describe("lost reports belong to the signed-in account", () => {
   });
 });
 
-describe("closing a lost report", () => {
-  it("marks it found, drops its matches and refuses a second close", async () => {
+describe("cancelling a lost report", () => {
+  it("cancels it, drops its matches and refuses a second cancel", async () => {
     const { api, signInAs } = freshApi();
     await signInAs("student@bumail.net", "student1234");
     const { id } = await api.createLostReport(lostKeys);
-    const closed = await api.closeLostReport(id, "found");
-    expect(closed).toMatchObject({ id, status: "found", possibleMatches: [] });
+    const closed = await api.cancelLostReport(id);
+    expect(closed).toMatchObject({ id, status: "cancelled", possibleMatches: [], submissions: [] });
     expect(closed.closedAt).not.toBeNull();
-    await expect(api.closeLostReport(id, "cancelled")).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(api.cancelLostReport(id)).rejects.toMatchObject({ code: "CONFLICT" });
   });
 
   it("answers 404 when someone else tries to close it", async () => {
@@ -80,23 +80,17 @@ describe("closing a lost report", () => {
     await signInAs("student@bumail.net", "student1234");
     const { id } = await api.createLostReport(lostKeys);
     await signInAs("guard@bu.ac.th", "guard1234");
-    await expect(api.closeLostReport(id, "cancelled")).rejects.toMatchObject({ code: "NOT_FOUND", httpStatus: 404 });
-  });
-
-  it("rejects an unknown reason", async () => {
-    const { api, signInAs } = freshApi();
-    await signInAs("student@bumail.net", "student1234");
-    const { id } = await api.createLostReport(lostKeys);
-    await expect(api.closeLostReport(id, "lost-interest" as "found")).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(api.cancelLostReport(id)).rejects.toMatchObject({ code: "NOT_FOUND", httpStatus: 404 });
   });
 });
 
 describe("pickup codes stay reachable after the claim dialog closes", () => {
-  it("lists claims made while signed in, and only those", async () => {
+  it("lists only the signed-in user's own claims", async () => {
     const { api, tokenHolder, signInAs } = freshApi();
-    await api.submitClaim({ itemId: "itm-1001", answer: "แมว", claimantName: "Anon", studentId: "1650000009", contact: "x", lostReportId: "" });
+    await signInAs("guard@bu.ac.th", "guard1234");
+    await api.submitClaim({ itemId: "itm-1001", answer: "แมว", claimantName: "Other", studentId: "1650000009", contact: "x" });
     await signInAs("student@bumail.net", "student1234");
-    const outcome = await api.submitClaim({ itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line", lostReportId: "" });
+    const outcome = await api.submitClaim({ itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" });
     if (outcome.status !== "verified") throw new Error("expected a verified claim");
 
     const { claims } = await api.listMyLostReports();
@@ -114,12 +108,12 @@ describe("public lost board", () => {
     await signInAs("student@bumail.net", "student1234");
     const kept = await api.createLostReport(lostKeys);
     const withdrawn = await api.createLostReport(lostUmbrella);
-    await api.closeLostReport(withdrawn.id, "cancelled");
+    await api.cancelLostReport(withdrawn.id);
 
-    const board = await api.listOpenLostReports();
+    const board = (await api.listOpenLostReports()).filter((notice) => notice.id === kept.id || notice.id === withdrawn.id);
     expect(board).toEqual([{
       id: kept.id, title: lostKeys.title, description: lostKeys.description, category: "keys", lastSeenLocationId: "loc-parking",
-      lostAt: lostKeys.lostAt, imageUrls: [], hasReward: false,
+      lostAt: lostKeys.lostAt, imageUrls: [], hasReward: false, progress: "searching",
     }]);
     expect(JSON.stringify(board)).not.toMatch(/1650707093|bumail|0812345678|thanaphon/);
   });
@@ -129,7 +123,9 @@ describe("public lost board", () => {
     await signInAs("student@bumail.net", "student1234");
     const keys = await api.createLostReport(lostKeys);
     const umbrella = await api.createLostReport({ ...lostUmbrella, lastSeenLocationId: "loc-library" });
-    const ids = async (query: Parameters<typeof api.listOpenLostReports>[0]) => (await api.listOpenLostReports(query)).map((report) => report.id);
+    const mine = [keys.id, umbrella.id];
+    const ids = async (query: Parameters<typeof api.listOpenLostReports>[0]) =>
+      (await api.listOpenLostReports(query)).map((report) => report.id).filter((reportId) => mine.includes(reportId));
 
     expect(await ids({ q: "โดราเอมอน" })).toEqual([keys.id]);
     expect(await ids({ category: "other" })).toEqual([umbrella.id]);
@@ -137,22 +133,30 @@ describe("public lost board", () => {
     expect(await ids({ q: "ร่ม", category: "keys" })).toEqual([]);
   });
 
-  it("counts open notices and the ones found this month", async () => {
+  it("counts open notices, confirmed pickups and the ones found this month", async () => {
     const { api, signInAs } = freshApi();
     await signInAs("student@bumail.net", "student1234");
-    await api.createLostReport(lostKeys);
-    const found = await api.createLostReport(lostUmbrella);
+    const notice = await api.createLostReport(lostUmbrella);
     const before = await api.getStats();
-    await api.closeLostReport(found.id, "found");
+    await api.register({ email: "finder.k@bumail.net", password: "finder1234", displayName: "คนเก็บได้" });
+    await signInAs("finder.k@bumail.net", "finder1234");
+    const answer = await api.createFoundItem({
+      title: "ร่มสีดำ", description: "", category: "other", foundLocationId: "loc-parking", dropOffPointId: "drop-gate2",
+      foundAt: "2026-10-29T01:00:00.000Z", imageKeys: [], verificationQuestion: "", verificationAnswer: "", answersLostReportId: notice.id,
+    });
+    await signInAs("student@bumail.net", "student1234");
+    const pickup = await api.confirmSubmission(notice.id, answer.id);
+    expect((await api.getStats()).lostAwaitingPickup).toBe(before.lostAwaitingPickup + 1);
+
+    await api.confirmReturn(pickup.claimId);
     const after = await api.getStats();
-    expect(after.lostSearching).toBe(before.lostSearching - 1);
-    expect(after.lostFoundThisMonth).toBe(before.lostFoundThisMonth + 1);
+    expect(after).toMatchObject({ lostSearching: before.lostSearching - 1, lostAwaitingPickup: before.lostAwaitingPickup, lostFoundThisMonth: before.lostFoundThisMonth + 1 });
   });
 
   it("hands the found form only what the board already shows, plus the notice id", () => {
     const path = foundReportPrefillPath({
       id: "lst-1", title: "ร่ม & กุญแจ", description: "สีดำ", category: "keys", lastSeenLocationId: "loc-parking",
-      lostAt: "2026-10-28T09:00:00.000Z", imageUrls: [], hasReward: false,
+      lostAt: "2026-10-28T09:00:00.000Z", imageUrls: [], hasReward: false, progress: "searching",
     });
     const params = new URLSearchParams(path.split("?")[1]);
     expect(path.startsWith("/report-found?")).toBe(true);

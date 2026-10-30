@@ -1,6 +1,7 @@
-import type { Claim, FoundItem, LostReportStatus, NewLostReport, Reward, RewardReviewReason, UserProfile } from "../contract";
-import { demoAccounts, foundItemSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
-import type { FoundItemSeed } from "../../fixtures/mockData";
+import type { Claim, FoundItem, LostReportStatus, NewLostReport, Reward, UserProfile } from "../contract";
+import { SAMPLE_FINDER_EMAIL, SAMPLE_OWNER_EMAIL, demoAccounts, foundItemSeeds, lostReportSeeds, pendingClaimSeeds } from "../../fixtures/mockData";
+import type { FoundItemSeed, LostReportSeed } from "../../fixtures/mockData";
+import { holdReward, noticeExpiresAt, openReward } from "./rewardLedger";
 
 export interface StoredFoundItem extends FoundItem {
   verificationAnswer: string;
@@ -9,14 +10,14 @@ export interface StoredFoundItem extends FoundItem {
   finderEmail: string | null;
   /** Lost notice the finder answered from the public board; optional so databases saved before v7 still load. */
   answersLostReportId?: string | null;
+  /** The notice owner said this find is not theirs: it is public now, and that owner may not claim it. */
+  declinedByOwner?: boolean;
 }
 
 export interface StoredReward extends Reward {
   checkoutSessionId: string | null;
   finderEmail: string | null;
   itemTitle: string | null;
-  /** Set while the reward is in_review: which returned item the guard must compare with the notice, and why. */
-  review?: { itemId: string; reason: RewardReviewReason; flaggedAt: string } | null;
 }
 
 export interface StoredLostReport extends NewLostReport {
@@ -36,6 +37,14 @@ export interface StoredClaim extends Claim {
   lostReportId: string | null;
 }
 
+/** Stands in for the SES e-mail telling a notice owner that a finder sent something in. */
+export interface StoredNotification {
+  to: string;
+  lostReportId: string;
+  itemId: string;
+  sentAt: string;
+}
+
 /** Plain-text password is acceptable only because this database never leaves the browser. */
 export interface StoredAccount extends UserProfile {
   password: string;
@@ -49,12 +58,14 @@ export interface MockDatabase {
   failedAttempts: Record<string, number>;
   images: Record<string, string>;
   accounts: StoredAccount[];
+  outbox: StoredNotification[];
 }
 
-const STORAGE_KEY = "bu-lf-mock-db-v2";
+/** Bumped to v3 so browsers holding a v2 database pick up the sample lost notices. */
+const STORAGE_KEY = "bu-lf-mock-db-v3";
 const HOUR_MS = 3_600_000;
 
-function seedTimestamp(now: Date, seed: FoundItemSeed): Date {
+function seedTimestamp(now: Date, seed: Pick<FoundItemSeed, "daysAgo" | "hour">): Date {
   const stamp = new Date(now);
   stamp.setDate(stamp.getDate() - seed.daysAgo);
   stamp.setHours(seed.hour, 15, 0, 0);
@@ -82,7 +93,33 @@ function seedFoundItem(now: Date, seed: FoundItemSeed): StoredFoundItem {
     aiLabels: seed.aiLabels,
     verificationAnswer: seed.verificationAnswer,
     returnedAt: returnedAt ? returnedAt.toISOString() : null,
-    finderEmail: null,
+    finderEmail: seed.answersLostReportId ? SAMPLE_FINDER_EMAIL : null,
+    answersLostReportId: seed.answersLostReportId ?? null,
+  };
+}
+
+function seedLostReport(now: Date, seed: LostReportSeed): StoredLostReport {
+  const lostAt = seedTimestamp(now, seed);
+  const createdAt = new Date(Math.min(lostAt.getTime() + HOUR_MS, now.getTime())).toISOString();
+  const reward = openReward(`rwd-${seed.id}`, seed.rewardAmount);
+  if (reward) holdReward(reward, new Date(createdAt), noticeExpiresAt(createdAt));
+  return {
+    id: seed.id,
+    title: seed.title,
+    description: seed.description,
+    category: seed.category,
+    lastSeenLocationId: seed.lastSeenLocationId,
+    lostAt: lostAt.toISOString(),
+    imageKeys: [],
+    imageUrls: [],
+    studentId: "",
+    contact: { name: "", email: SAMPLE_OWNER_EMAIL, lineId: "", phone: "" },
+    rewardAmount: seed.rewardAmount,
+    createdAt,
+    ownerEmail: SAMPLE_OWNER_EMAIL,
+    status: "searching",
+    closedAt: null,
+    reward,
   };
 }
 
@@ -103,8 +140,8 @@ function seedClaims(now: Date, foundItems: StoredFoundItem[]): StoredClaim[] {
       status: "verified" as const,
       createdAt: new Date(now.getTime() - seed.hoursAgo * HOUR_MS).toISOString(),
       returnedAt: null,
-      ownerEmail: null,
-      lostReportId: null,
+      ownerEmail: seed.ownerEmail ?? null,
+      lostReportId: seed.lostReportId ?? null,
     }];
   });
 }
@@ -118,11 +155,12 @@ export function seedDatabase(now: Date): MockDatabase {
   return {
     schemaVersion: 1,
     foundItems,
-    lostReports: [],
+    lostReports: lostReportSeeds.map((seed) => seedLostReport(now, seed)),
     claims: seedClaims(now, foundItems),
     failedAttempts: {},
     images: {},
     accounts: seedAccounts(),
+    outbox: [],
   };
 }
 
@@ -167,6 +205,7 @@ function upgradeOwnership(db: MockDatabase): void {
     imageUrls: stored.imageUrls ?? (stored.imageUrl ? [stored.imageUrl] : []),
     cardNumberMasked: stored.cardNumberMasked ?? false,
   }));
+  db.outbox = db.outbox ?? [];
 }
 
 function loadDatabase(storage: Storage | null): MockDatabase | null {

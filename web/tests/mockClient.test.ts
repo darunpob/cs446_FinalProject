@@ -3,9 +3,10 @@ import { MockLostFoundApi } from "../src/api/mock/mockClient";
 import { openMockDatabase } from "../src/api/mock/mockDatabase";
 import { ApiError } from "../src/api/errors";
 
+/** Claims need an account, so the shared fixture is already signed in as the demo student. */
 function freshApi() {
   const now = () => new Date("2026-10-27T10:00:00+07:00");
-  return new MockLostFoundApi({ database: openMockDatabase(null, now), now, latencyMs: 0 });
+  return new MockLostFoundApi({ database: openMockDatabase(null, now), now, latencyMs: 0, getAccessToken: () => "mock.1.student@bumail.net" });
 }
 
 describe("MockLostFoundApi", () => {
@@ -27,7 +28,7 @@ describe("MockLostFoundApi", () => {
 
   it("verifies a correct claim, then lets a guard confirm the return", async () => {
     const api = freshApi();
-    const outcome = await api.submitClaim({ itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line", lostReportId: "" });
+    const outcome = await api.submitClaim({ itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" });
     expect(outcome.status).toBe("verified");
     expect((await api.getFoundItem("itm-1003")).status).toBe("claimed");
 
@@ -40,7 +41,7 @@ describe("MockLostFoundApi", () => {
 
   it("locks a claimant out after three wrong answers", async () => {
     const api = freshApi();
-    const attempt = () => api.submitClaim({ itemId: "itm-1002", answer: "wrong", claimantName: "C", studentId: "1650000001", contact: "x", lostReportId: "" });
+    const attempt = () => api.submitClaim({ itemId: "itm-1002", answer: "wrong", claimantName: "C", studentId: "1650000001", contact: "x" });
     expect(await attempt()).toEqual({ status: "rejected", attemptsLeft: 2 });
     await attempt();
     expect(await attempt()).toEqual({ status: "rejected", attemptsLeft: 0 });
@@ -56,13 +57,26 @@ describe("MockLostFoundApi", () => {
 
   it("caps guesses per item even when the student ID keeps changing", async () => {
     const api = freshApi();
-    const guessAs = (studentId: string) => api.submitClaim({ itemId: "itm-1005", answer: "wrong", claimantName: "D", studentId, contact: "x", lostReportId: "" });
+    const guessAs = (studentId: string) => api.submitClaim({ itemId: "itm-1005", answer: "wrong", claimantName: "D", studentId, contact: "x" });
     const outcomes = [];
     for (const studentId of ["1650000010", "1650000011", "1650000012", "1650000013", "1650000014", "1650000015"]) {
       outcomes.push(await guessAs(studentId));
     }
     expect(outcomes.at(-1)).toEqual({ status: "rejected", attemptsLeft: 0 });
     await expect(guessAs("1650000016")).rejects.toMatchObject({ code: "TOO_MANY_ATTEMPTS" });
+  });
+
+  it("refuses claims from signed-out visitors", async () => {
+    const now = () => new Date("2026-10-27T10:00:00+07:00");
+    const api = new MockLostFoundApi({ database: openMockDatabase(null, now), now, latencyMs: 0 });
+    const claim = { itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" };
+    await expect(api.submitClaim(claim)).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("keeps sample finds sent to a notice off the public board", async () => {
+    const ids = (await freshApi().listFoundItems({})).map((found) => found.id);
+    expect(ids).not.toContain("itm-1101");
+    expect(ids).toContain("itm-1001");
   });
 
   it("searches Rekognition labels as well as the title", async () => {
