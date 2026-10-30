@@ -8,7 +8,7 @@ import { Badge, Card } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
-import { formatDate, formatRelative } from "../catalog/thaiTime";
+import { formatDate, formatDateTime, formatRelative } from "../catalog/thaiTime";
 import { ItemCard, NOTICE_GRID } from "../items/ItemCard";
 import { ItemVisual } from "../items/ItemVisual";
 import { RewardPanel } from "./RewardPanel";
@@ -82,11 +82,15 @@ function OpenNoticeBody({ report, onChanged }: { report: MyLostReport; onChanged
   if (report.progress === "awaiting_pickup") {
     return (
       <p role="status" className="flex gap-2 rounded-md bg-verify-soft p-3 text-[13px] leading-relaxed text-ink">
-        <PackageCheck className="mt-0.5 size-4 shrink-0 text-verify" aria-hidden /> {t.myReports.confirmedNote}
+        <PackageCheck className="mt-0.5 size-4 shrink-0 text-verify" aria-hidden />
+        <span>
+          {t.myReports.confirmedNote}
+          {report.pickupBy && <strong className="mt-1 block font-semibold">{t.myReports.pickupBy(formatDateTime(report.pickupBy))}</strong>}
+        </span>
       </p>
     );
   }
-  if (report.submissions.length > 0) return <SubmissionCarousel reportId={report.id} submissions={report.submissions} onAnswered={onChanged} />;
+  if (report.submissions.length > 0) return <SubmissionCarousel reportId={report.id} lostLocationId={report.lastSeenLocationId} submissions={report.submissions} onAnswered={onChanged} />;
   return (
     <>
       <PossibleMatches report={report} />

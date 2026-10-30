@@ -1,4 +1,19 @@
-# BU Lost & Found — API Contract (v9)
+# BU Lost & Found — API Contract (v10)
+
+> **มีอะไรใหม่ใน v10: ไม่มีเคสที่ค้างรอคนตัดสิน (ฝั่ง backend ต้องทำ)**
+> 1. **ของที่เจ้าของไม่ตอบใน 7 วัน** (`SUBMISSION_ANSWER_DAYS`):
+>    - นับจาก `found_items.answer_due_at` (ตั้งเป็น `reported_at + 7 วัน` ตอนส่ง)
+>    - ครบแล้วตั้ง `declined_by_owner = 1` อัตโนมัติ → ขึ้นบอร์ดสาธารณะ และเจ้าของ claim ไม่ได้ (เหมือนกด "ไม่ใช่ของฉัน")
+> 2. **ยืนยันแล้วไม่มารับใน 7 วัน** (`PICKUP_HOLD_DAYS`, นับจาก `claims.created_at` ของ claim ที่ผูกประกาศ):
+>    - ลบ claim นั้น (รหัสรับของใช้ไม่ได้)
+>    - ของกลับเป็น `available` และตั้ง `answer_due_at = NOW() + 7 วัน` → กลับไปรอเจ้าของตอบใหม่
+> 3. Lambda `expire-notices` (EventBridge วันละครั้ง) ทำตามลำดับ: ข้อ 2 → ข้อ 1 → ประกาศหมดอายุ 30 วัน
+> 4. **response ใหม่:**
+>    - `MyLostReport.submissions` เป็น `Submission` = `FoundItem` + `answerBy` (กำหนดตอบ)
+>    - `MyLostReport.pickupBy` = กำหนดรับของ (`null` ถ้ายังไม่ยืนยัน)
+>    - หน้าเว็บใช้ข้อมูลนี้แสดง "หายที่ X · เจอที่ Y", เวลาที่เจอ / ส่งมา และกำหนดตอบ / รับ ให้เจ้าของตัดสินได้เร็ว
+> 5. SQL v9 → v10 ท้ายข้อ 7
+
 
 > **มีอะไรใหม่ใน v9: ของที่ตอบประกาศส่งถึงเจ้าของคนเดียว, เจ้าของปิดเองไม่ได้, ประกาศหมดอายุ 30 วัน (ฝั่ง backend ต้องทำ)**
 > v9 แทนที่กลไก "รางวัลรอตรวจสอบ" ของ v8 ทั้งหมด
@@ -852,6 +867,13 @@ ALTER TABLE rewards
 ALTER TABLE lost_reports MODIFY status ENUM('searching', 'found', 'cancelled', 'expired') NOT NULL DEFAULT 'searching';
 ALTER TABLE found_items ADD COLUMN declined_by_owner TINYINT(1) NOT NULL DEFAULT 0;
 CREATE INDEX idx_found_finder ON found_items (finder_email);
+```
+
+**v9 → v10 (กำหนดเวลา 7 วัน):**
+```sql
+ALTER TABLE found_items ADD COLUMN answer_due_at DATETIME NULL;
+UPDATE found_items SET answer_due_at = reported_at + INTERVAL 7 DAY WHERE answers_lost_report_id IS NOT NULL AND declined_by_owner = 0;
+CREATE INDEX idx_found_answer_due ON found_items (answer_due_at);
 ```
 
 ## 8. ทดสอบกับหน้าเว็บ

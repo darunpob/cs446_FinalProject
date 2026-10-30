@@ -223,11 +223,44 @@ describe("refunds", () => {
     expect(await myReport(world, reportId)).toMatchObject({ status: "expired", reward: { status: "refunded", refundAmount: 90 } });
   });
 
-  it("keeps a notice open past 30 days while a find still waits for the owner", async () => {
+  it("keeps a notice open past 30 days while a find sent late still waits for the owner", async () => {
     const world = freshWorld();
     const reportId = await fileAndPay(world);
+    world.clock.current = new Date(world.clock.current.getTime() + 25 * DAY_MS);
     await answerNotice(world, reportId);
-    world.clock.current = new Date(world.clock.current.getTime() + 31 * DAY_MS);
+    world.clock.current = new Date(world.clock.current.getTime() + 6 * DAY_MS);
     expect(await myReport(world, reportId)).toMatchObject({ status: "searching", progress: "found", reward: { status: "held" } });
+  });
+});
+
+describe("deadlines keep cases from waiting on a person", () => {
+  it("publishes a find the owner leaves unanswered for 7 days, and the owner still cannot claim it", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    const item = await answerNotice(world, reportId);
+    const [submission] = (await myReport(world, reportId))?.submissions ?? [];
+    expect(submission).toMatchObject({ id: item.id, answerBy: "2026-11-05T03:00:00.000Z" });
+
+    world.clock.current = new Date(world.clock.current.getTime() + 7 * DAY_MS);
+    expect((await world.api.listFoundItems({})).map((found) => found.id)).toContain(item.id);
+    expect(await myReport(world, reportId)).toMatchObject({ progress: "searching", submissions: [] });
+    const claim = { itemId: item.id, answer: "", claimantName: "เจ้าของ", studentId: "1659999999", contact: "line" };
+    await expect(world.api.submitClaim(claim)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("lapses a pickup after 7 days and gives the owner a fresh week to answer", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    const item = await answerNotice(world, reportId);
+    await world.signInAs("student@bumail.net", "student1234");
+    await world.api.confirmSubmission(reportId, item.id);
+    expect((await myReport(world, reportId))?.pickupBy).toBe("2026-11-05T03:00:00.000Z");
+
+    world.clock.current = new Date(world.clock.current.getTime() + 7 * DAY_MS);
+    const report = await myReport(world, reportId);
+    expect(report).toMatchObject({ progress: "found", pickupBy: null, submissions: [expect.objectContaining({ id: item.id, answerBy: "2026-11-12T03:00:00.000Z" })] });
+    await world.signInAs("guard@bu.ac.th", "guard1234");
+    expect((await world.api.listPendingReturns()).map((claim) => claim.itemId)).not.toContain(item.id);
+    expect(await world.api.listFoundItems({})).not.toContainEqual(expect.objectContaining({ id: item.id }));
   });
 });

@@ -311,7 +311,12 @@ export interface Messages {
     keepOpen: string;
     submissionsTitle: (count: number) => string;
     submissionsHint: string;
-    submissionMeta: (place: string, date: string) => string;
+    foundOn: (date: string) => string;
+    lostVsFound: (lost: string, found: string) => string;
+    samePlace: string;
+    submittedAgo: (relative: string) => string;
+    answerBy: (date: string) => string;
+    pickupBy: (date: string) => string;
     confirmMine: string;
     confirmMineArmed: string;
     declineNotMine: string;
@@ -768,7 +773,12 @@ export const th: Messages = {
     keepOpen: "ยังตามหาอยู่",
     submissionsTitle: (count) => `มีคนส่งของที่อาจเป็นของคุณมา ${count} ชิ้น`,
     submissionsHint: "เห็นเฉพาะคุณเท่านั้น ถ้าใช่ของคุณ กด “นี่ของฉัน” เพื่อรับรหัสไปรับของ ถ้าไม่ใช่ ของชิ้นนั้นจะย้ายไปขึ้นบอร์ดของที่เจอแทน",
-    submissionMeta: (place, date) => `เจอที่ ${place} · ${date}`,
+    foundOn: (date) => `เจอเมื่อ ${date}`,
+    lostVsFound: (lost, found) => `หายที่ ${lost} · เจอที่ ${found}`,
+    samePlace: "จุดเดียวกับที่หาย",
+    submittedAgo: (relative) => `ส่งมาเมื่อ ${relative}`,
+    answerBy: (date) => `ตอบภายใน ${date} ไม่งั้นของจะขึ้นบอร์ดของที่เจอ`,
+    pickupBy: (date) => `ไปรับภายใน ${date} ไม่งั้นรหัสรับของจะถูกยกเลิก และของจะกลับมารอคุณตอบใหม่`,
     confirmMine: "นี่ของฉัน",
     confirmMineArmed: "ยืนยัน นี่ของฉัน",
     declineNotMine: "ไม่ใช่ของฉัน",

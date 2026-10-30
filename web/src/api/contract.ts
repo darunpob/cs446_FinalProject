@@ -133,6 +133,12 @@ export const REWARD_FEE_RATE = 0.1;
 /** A notice still open this many days after it was posted is closed as "expired" and leaves the board. */
 export const LOST_REPORT_EXPIRY_DAYS = 30;
 
+/** A find the owner has not answered within this many days goes to the public board, as if declined. */
+export const SUBMISSION_ANSWER_DAYS = 7;
+
+/** A confirmed find not picked up within this many days loses its pickup code and waits for the owner again. */
+export const PICKUP_HOLD_DAYS = 7;
+
 export function rewardFee(amount: number): number {
   return Math.round(amount * REWARD_FEE_RATE);
 }
@@ -205,9 +211,16 @@ export interface MyLostReport {
   status: LostReportStatus;
   progress: LostNoticeProgress;
   closedAt: string | null;
-  submissions: FoundItem[];
+  submissions: Submission[];
+  /** Last moment to collect a confirmed find before its pickup code lapses; null when nothing is confirmed. */
+  pickupBy: string | null;
   possibleMatches: FoundItem[];
   reward: Reward | null;
+}
+
+/** A find sent to the owner's notice. `reportedAt` is when it was sent; after `answerBy` it is published unanswered. */
+export interface Submission extends FoundItem {
+  answerBy: string;
 }
 
 /** A verified claim made while signed in, so the pickup code can be looked up again after the dialog closes. */

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Expand, Inbox, Store, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Clock3, Expand, Inbox, MapPin, Store, X } from "lucide-react";
 import { api } from "../../api/client";
-import type { FoundItem } from "../../api/contract";
+import type { FoundItem, Submission } from "../../api/contract";
 import { describeError } from "../../api/errors";
 import { Button } from "../../design-system/Button";
+import { Badge } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { useDirectory } from "../catalog/DirectoryProvider";
-import { formatDateTime } from "../catalog/thaiTime";
+import { formatDateTime, formatRelative } from "../catalog/thaiTime";
 import { ItemVisual } from "../items/ItemVisual";
 import { PhotoLightbox } from "../items/PhotoLightbox";
 
@@ -55,8 +56,36 @@ function SubmissionPhoto({ submission }: { submission: FoundItem }) {
   );
 }
 
-function SubmissionSlide({ reportId, submission, onAnswered }: { reportId: string; submission: FoundItem; onAnswered: () => void }) {
+interface SlideProps {
+  reportId: string;
+  lostLocationId: string;
+  submission: Submission;
+  onAnswered: () => void;
+}
+
+/** What the owner needs to judge a find in seconds: where it was lost versus found, and when it was found and sent. */
+function SubmissionEvidence({ lostLocationId, submission }: Pick<SlideProps, "lostLocationId" | "submission">) {
   const { placeName, dropOffPoint } = useDirectory();
+  const { t } = useI18n();
+  const text = t.myReports;
+  const samePlace = lostLocationId === submission.foundLocationId;
+  return (
+    <ul className="flex flex-col gap-1 text-[13px] text-ink-2">
+      <li className="flex flex-wrap items-center gap-1.5">
+        <MapPin className="size-3.5 shrink-0 text-ink-3" aria-hidden /> {text.lostVsFound(placeName(lostLocationId), placeName(submission.foundLocationId))}
+        {samePlace && <Badge tone="success">{text.samePlace}</Badge>}
+      </li>
+      <li className="flex items-center gap-1.5">
+        <Clock3 className="size-3.5 shrink-0 text-ink-3" aria-hidden /> {text.foundOn(formatDateTime(submission.foundAt))} · {text.submittedAgo(formatRelative(submission.reportedAt))}
+      </li>
+      <li className="flex items-center gap-1.5">
+        <Store className="size-3.5 shrink-0 text-ink-3" aria-hidden /> {t.myFinds.dropOffAt(dropOffPoint(submission.dropOffPointId)?.name ?? t.claim.dropOffFallback)}
+      </li>
+    </ul>
+  );
+}
+
+function SubmissionSlide({ reportId, lostLocationId, submission, onAnswered }: SlideProps) {
   const { t } = useI18n();
   const text = t.myReports;
   const answer = useSubmissionAnswer(reportId, submission.id, onAnswered);
@@ -66,10 +95,8 @@ function SubmissionSlide({ reportId, submission, onAnswered }: { reportId: strin
       <div className="flex min-w-0 flex-col gap-2">
         <h4 className="text-base leading-snug font-semibold wrap-anywhere">{submission.title}</h4>
         {submission.description && <p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-line text-ink-2 wrap-anywhere">{submission.description}</p>}
-        <p className="text-[13px] text-ink-2">{text.submissionMeta(placeName(submission.foundLocationId), formatDateTime(submission.foundAt))}</p>
-        <p className="flex items-center gap-1.5 text-[13px] text-ink-2">
-          <Store className="size-3.5 shrink-0 text-ink-3" aria-hidden /> {t.myFinds.dropOffAt(dropOffPoint(submission.dropOffPointId)?.name ?? t.claim.dropOffFallback)}
-        </p>
+        <SubmissionEvidence lostLocationId={lostLocationId} submission={submission} />
+        <p className="rounded-sm bg-warn-soft px-2.5 py-1.5 text-[13px] text-warn">{text.answerBy(formatDateTime(submission.answerBy))}</p>
         {answer.failure && <p role="alert" className="text-[13px] text-danger">{answer.failure}</p>}
         <div className="mt-auto flex flex-wrap justify-end gap-2 pt-2">
           <Button size="sm" variant={answer.armed === "decline" ? "danger" : "ghost"} loading={answer.saving && answer.armed === "decline"} disabled={answer.saving}
@@ -99,7 +126,7 @@ function PageDots({ count, current, onPick }: { count: number; current: number; 
 }
 
 /** Finds sent to this notice through "I found this", one at a time; only the notice owner ever sees them. */
-export function SubmissionCarousel({ reportId, submissions, onAnswered }: { reportId: string; submissions: FoundItem[]; onAnswered: () => void }) {
+export function SubmissionCarousel({ reportId, lostLocationId, submissions, onAnswered }: Omit<SlideProps, "submission"> & { submissions: Submission[] }) {
   const { t } = useI18n();
   const [requested, setRequested] = useState(0);
   const count = submissions.length;
@@ -115,7 +142,7 @@ export function SubmissionCarousel({ reportId, submissions, onAnswered }: { repo
         <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">{t.myReports.submissionsHint}</p>
       </div>
       <div aria-roledescription="slide" aria-label={t.myReports.slideLabel(current + 1, count)}>
-        <SubmissionSlide key={shown.id} reportId={reportId} submission={shown} onAnswered={onAnswered} />
+        <SubmissionSlide key={shown.id} reportId={reportId} lostLocationId={lostLocationId} submission={shown} onAnswered={onAnswered} />
       </div>
       {count > 1 && (
         <div className="flex items-center justify-between gap-3 border-t border-line pt-3">

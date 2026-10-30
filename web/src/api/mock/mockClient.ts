@@ -24,10 +24,11 @@ import type {
   PublicLostReport,
   RewardCheckout,
   Session,
+  Submission,
   StaleItem,
   UserProfile,
 } from "../contract";
-import { DESCRIPTION_MAX_LENGTH, LOST_REPORT_EXPIRY_DAYS, MAX_PHOTOS, MIN_PASSWORD_LENGTH, REWARD_MAX_BAHT, REWARD_MIN_BAHT, TITLE_MAX_LENGTH, isUniversityEmail } from "../contract";
+import { DESCRIPTION_MAX_LENGTH, LOST_REPORT_EXPIRY_DAYS, MAX_PHOTOS, PICKUP_HOLD_DAYS, SUBMISSION_ANSWER_DAYS, MIN_PASSWORD_LENGTH, REWARD_MAX_BAHT, REWARD_MIN_BAHT, TITLE_MAX_LENGTH, isUniversityEmail } from "../contract";
 import { campusDirectoryFixture, simulatedAiLabels } from "../../fixtures/mockData";
 import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
@@ -69,6 +70,10 @@ function isOpenSubmission(stored: StoredFoundItem, report: StoredLostReport): bo
 }
 
 const DAY_MS = 86_400_000;
+
+function daysAfter(iso: string, days: number): string {
+  return new Date(new Date(iso).getTime() + days * DAY_MS).toISOString();
+}
 
 function placeName(placeId: string): string {
   return campusDirectoryFixture.foundLocations.find((place) => place.id === placeId)?.name ?? "";
@@ -205,7 +210,7 @@ export class MockLostFoundApi implements LostFoundApi {
 
   getStats() {
     return this.settle((): CampusStats => {
-      this.expireOldReports();
+      this.sweepDeadlines();
       const current = this.now();
       const open = this.db.lostReports.filter((report) => report.status === "searching");
       return {
@@ -234,17 +239,18 @@ export class MockLostFoundApi implements LostFoundApi {
   }
 
   private noticeProgress(report: StoredLostReport): LostNoticeProgress {
-    if (this.db.claims.some((claim) => claim.lostReportId === report.id && claim.status === "verified")) return "awaiting_pickup";
+    if (this.pickupClaim(report)) return "awaiting_pickup";
     return this.db.foundItems.some((stored) => isOpenSubmission(stored, report)) ? "found" : "searching";
   }
 
   listFoundItems(query: FoundItemQuery) {
-    return this.settle(() =>
-      this.publicItems()
+    return this.settle(() => {
+      this.sweepDeadlines();
+      return this.publicItems()
         .filter((stored) => matchesQuery(stored, query))
         .sort((left, right) => right.foundAt.localeCompare(left.foundAt))
-        .map(toPublicItem),
-    );
+        .map(toPublicItem);
+    });
   }
 
   /** Unknown keys are dropped, the same way the real backend ignores keys it never issued. */
@@ -302,8 +308,10 @@ export class MockLostFoundApi implements LostFoundApi {
         returnedAt: null,
         finderEmail: finder.email,
         answersLostReportId: null,
+        answerDueAt: null,
       };
       stored.answersLostReportId = answered?.id ?? null;
+      stored.answerDueAt = answered ? daysAfter(stored.reportedAt, SUBMISSION_ANSWER_DAYS) : null;
       this.db.foundItems.unshift(stored);
       if (answered) this.notifyOwner(answered, stored);
       this.database.persist();
@@ -352,7 +360,7 @@ export class MockLostFoundApi implements LostFoundApi {
    * Stands in for the scheduled EventBridge job: closes notices open longer than LOST_REPORT_EXPIRY_DAYS and refunds
    * their reward minus the fee. A notice with a find still waiting for the owner, or a confirmed pickup, is left open.
    */
-  private expireOldReports(): void {
+  private expireOldReports(): number {
     const cutoff = new Date(this.now().getTime() - LOST_REPORT_EXPIRY_DAYS * DAY_MS).toISOString();
     const stale = this.db.lostReports.filter((report) => report.status === "searching" && report.createdAt <= cutoff && this.noticeProgress(report) === "searching");
     stale.forEach((report) => {
@@ -360,18 +368,53 @@ export class MockLostFoundApi implements LostFoundApi {
       report.closedAt = this.now().toISOString();
       settleWithoutFinder(report.reward, this.now());
     });
-    if (stale.length > 0) this.database.persist();
+    return stale.length;
+  }
+
+  private answerDeadline(stored: StoredFoundItem): string {
+    return stored.answerDueAt ?? daysAfter(stored.reportedAt, SUBMISSION_ANSWER_DAYS);
+  }
+
+  private pickupClaim(report: StoredLostReport): StoredClaim | undefined {
+    return this.db.claims.find((claim) => claim.lostReportId === report.id && claim.status === "verified");
+  }
+
+  /** An owner who never came: the pickup code lapses and the find waits for their answer again, with a fresh deadline. */
+  private releaseLapsedPickup(claim: StoredClaim): void {
+    this.db.claims = this.db.claims.filter((candidate) => candidate.id !== claim.id);
+    const stored = this.findStored(claim.itemId);
+    stored.status = "available";
+    stored.answerDueAt = daysAfter(this.now().toISOString(), SUBMISSION_ANSWER_DAYS);
+  }
+
+  /**
+   * Stands in for the daily scheduled job, so no case waits on a person forever: lapsed pickups are released, finds the
+   * owner ignored for SUBMISSION_ANSWER_DAYS go public as if declined, then old notices expire.
+   */
+  private sweepDeadlines(): void {
+    const nowIso = this.now().toISOString();
+    const lapsed = this.db.claims.filter((claim) => claim.lostReportId && claim.status === "verified" && daysAfter(claim.createdAt, PICKUP_HOLD_DAYS) <= nowIso);
+    lapsed.forEach((claim) => this.releaseLapsedPickup(claim));
+    const ignored = this.db.foundItems.filter((stored) => stored.status === "available" && this.isHiddenSubmission(stored) && this.answerDeadline(stored) <= nowIso);
+    ignored.forEach((stored) => { stored.declinedByOwner = true; });
+    if (lapsed.length + ignored.length + this.expireOldReports() > 0) this.database.persist();
+  }
+
+  private toSubmission(stored: StoredFoundItem): Submission {
+    return { ...toPublicItem(stored), answerBy: this.answerDeadline(stored) };
   }
 
   private toMyLostReport(report: StoredLostReport): MyLostReport {
     const { id, title, description, category, lastSeenLocationId, lostAt, imageUrls, createdAt, status, closedAt } = report;
     const searching = status === "searching";
-    const submissions = searching ? this.db.foundItems.filter((stored) => isOpenSubmission(stored, report)).map(toPublicItem) : [];
+    const submissions = searching ? this.db.foundItems.filter((stored) => isOpenSubmission(stored, report)).map((stored) => this.toSubmission(stored)) : [];
+    const pickup = searching ? this.pickupClaim(report) : undefined;
     const candidates = this.publicItems().filter((stored) => stored.answersLostReportId !== report.id).map(toPublicItem);
     return {
       id, title, description, category, lastSeenLocationId, lostAt, imageUrls, createdAt, status, closedAt,
       progress: searching ? this.noticeProgress(report) : "searching",
       submissions,
+      pickupBy: pickup ? daysAfter(pickup.createdAt, PICKUP_HOLD_DAYS) : null,
       possibleMatches: searching ? findPossibleMatches(report, candidates) : [],
       reward: toReward(report.reward),
     };
@@ -385,7 +428,7 @@ export class MockLostFoundApi implements LostFoundApi {
   listMyLostReports() {
     return this.settle((): MyLostReports => {
       const owner = this.requireSignedIn();
-      this.expireOldReports();
+      this.sweepDeadlines();
       return {
         reports: this.db.lostReports.filter((report) => report.ownerEmail === owner.email).map((report) => this.toMyLostReport(report)),
         claims: this.db.claims.filter((claim) => claim.ownerEmail === owner.email).map(toMyClaim),
@@ -495,7 +538,7 @@ export class MockLostFoundApi implements LostFoundApi {
   listMyFinds() {
     return this.settle(() => {
       const finder = this.requireSignedIn();
-      this.expireOldReports();
+      this.sweepDeadlines();
       return this.db.foundItems
         .filter((stored) => stored.finderEmail === finder.email)
         .sort((left, right) => right.reportedAt.localeCompare(left.reportedAt))
@@ -505,7 +548,7 @@ export class MockLostFoundApi implements LostFoundApi {
 
   listOpenLostReports(query: LostReportQuery = {}) {
     return this.settle(() => {
-      this.expireOldReports();
+      this.sweepDeadlines();
       return this.db.lostReports
         .filter((report) => report.status === "searching" && matchesLostQuery(report, query))
         .sort((left, right) => right.lostAt.localeCompare(left.lostAt))
@@ -584,7 +627,10 @@ export class MockLostFoundApi implements LostFoundApi {
   }
 
   listPendingReturns() {
-    return this.settle(() => this.db.claims.filter((claim) => claim.status === "verified").map(toPublicClaim));
+    return this.settle(() => {
+      this.sweepDeadlines();
+      return this.db.claims.filter((claim) => claim.status === "verified").map(toPublicClaim);
+    });
   }
 
   confirmReturn(claimId: string) {

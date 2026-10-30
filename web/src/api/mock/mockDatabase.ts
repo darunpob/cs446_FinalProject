@@ -12,6 +12,8 @@ export interface StoredFoundItem extends FoundItem {
   answersLostReportId?: string | null;
   /** The notice owner said this find is not theirs: it is public now, and that owner may not claim it. */
   declinedByOwner?: boolean;
+  /** When an unanswered find sent to a notice goes public; null for finds posted publicly. */
+  answerDueAt?: string | null;
 }
 
 export interface StoredReward extends Reward {
