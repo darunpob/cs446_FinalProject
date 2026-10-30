@@ -63,7 +63,8 @@ export interface FoundItemQuery {
 
 /**
  * Filters for the public lost board; `location` matches where the item was last seen.
- * `history` adds notices closed by a guard-confirmed return, so the board can show what was found.
+ * Without `history` only notices nobody has answered yet are listed; `history` adds the ones already found, waiting
+ * for pickup, or closed by a guard-confirmed return.
  */
 export interface LostReportQuery extends Omit<FoundItemQuery, "status"> {
   history?: boolean;
@@ -317,7 +318,7 @@ export interface CampusStats {
   waiting: number;
   awaitingPickup: number;
   returnedThisMonth: number;
-  /** Open notices on the public lost board. */
+  /** Open notices nobody has answered yet — what the lost board lists by default. */
   lostSearching: number;
   /** Lost reports closed as found this calendar month. */
   lostFoundThisMonth: number;

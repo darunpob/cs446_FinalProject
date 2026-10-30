@@ -217,7 +217,7 @@ export class MockLostFoundApi implements LostFoundApi {
         waiting: this.db.foundItems.filter((stored) => stored.status === "available").length,
         awaitingPickup: this.db.claims.filter((claim) => claim.status === "verified").length,
         returnedThisMonth: this.db.foundItems.filter((stored) => isSameMonth(stored.returnedAt, current)).length,
-        lostSearching: open.length,
+        lostSearching: open.filter((report) => this.noticeProgress(report) === "searching").length,
         lostFoundThisMonth: this.db.lostReports.filter((report) => report.status === "found" && isSameMonth(report.closedAt, current)).length,
         lostAwaitingPickup: open.filter((report) => this.noticeProgress(report) === "awaiting_pickup").length,
       };
@@ -553,7 +553,8 @@ export class MockLostFoundApi implements LostFoundApi {
       return this.db.lostReports
         .filter((report) => (report.status === "searching" || (query.history === true && report.status === "found")) && matchesLostQuery(report, query))
         .sort((left, right) => right.lostAt.localeCompare(left.lostAt))
-        .map((report) => this.toPublicLostReport(report));
+        .map((report) => this.toPublicLostReport(report))
+        .filter((notice) => query.history === true || notice.progress === "searching");
     });
   }
 

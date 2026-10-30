@@ -73,7 +73,7 @@ async function myReport(world: World, reportId: string) {
 }
 
 async function boardNotice(world: World, reportId: string) {
-  return (await world.api.listOpenLostReports()).find((notice) => notice.id === reportId);
+  return (await world.api.listOpenLostReports({ history: true })).find((notice) => notice.id === reportId);
 }
 
 async function myFinds(world: World) {
