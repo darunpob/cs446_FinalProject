@@ -332,6 +332,8 @@ export interface LostFoundApi {
   confirmReturn(claimId: string): Promise<Claim>;
   listStaleItems(minDays: number): Promise<StaleItem[]>;
   login(email: string, password: string): Promise<Session>;
+  /** Exchanges a Google ID token for a session; only verified @bumail.net / @bu.ac.th accounts get one. */
+  loginWithGoogle(idToken: string): Promise<Session>;
   register(draft: NewAccount): Promise<Session>;
   getProfile(): Promise<UserProfile>;
   updateProfile(update: ProfileUpdate): Promise<UserProfile>;

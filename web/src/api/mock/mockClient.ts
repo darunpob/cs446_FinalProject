@@ -28,6 +28,7 @@ import { DESCRIPTION_MAX_LENGTH, MAX_PHOTOS, MIN_PASSWORD_LENGTH, REWARD_MAX_BAH
 import { campusDirectoryFixture, simulatedAiLabels } from "../../fixtures/mockData";
 import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
+import { readGoogleIdentity } from "./googleIdToken";
 import type { MockDatabaseHandle, StoredAccount, StoredClaim, StoredFoundItem, StoredLostReport } from "./mockDatabase";
 import { isValidRewardAmount, openReward, refundExpiredRewards, releaseOnReturn, settleWithoutFinder, toEarnedReward, toPayout, toReward } from "./rewardLedger";
 
@@ -38,6 +39,8 @@ export interface MockApiOptions {
   randomBytes?: RandomFill;
   /** Bearer token of the signed-in user, read the same way the HTTP client reads it. */
   getAccessToken?: () => string | null;
+  /** OAuth client ID the Google ID token must be issued for; empty disables Google sign-in. */
+  googleClientId?: string;
 }
 
 function toPublicItem(stored: StoredFoundItem): FoundItem {
@@ -146,6 +149,7 @@ export class MockLostFoundApi implements LostFoundApi {
   private readonly latencyMs: number;
   private readonly randomBytes: RandomFill;
   private readonly getAccessToken: () => string | null;
+  private readonly googleClientId: string;
   private idCounter = Date.now() % 100_000;
 
   constructor(options: MockApiOptions) {
@@ -154,6 +158,7 @@ export class MockLostFoundApi implements LostFoundApi {
     this.latencyMs = options.latencyMs ?? 350;
     this.randomBytes = options.randomBytes ?? ((bytes) => crypto.getRandomValues(bytes));
     this.getAccessToken = options.getAccessToken ?? (() => null);
+    this.googleClientId = options.googleClientId ?? "";
   }
 
   private get db() {
@@ -480,7 +485,20 @@ export class MockLostFoundApi implements LostFoundApi {
   login(email: string, password: string) {
     return this.settle(() => {
       const account = this.findAccount(email);
-      if (!account || account.password !== password) throw new ApiError("UNAUTHORIZED", messages().errors.badLogin, 401);
+      if (!account || !account.password || account.password !== password) throw new ApiError("UNAUTHORIZED", messages().errors.badLogin, 401);
+      return issueSession(account, this.now().getTime());
+    });
+  }
+
+  loginWithGoogle(idToken: string) {
+    return this.settle(() => {
+      if (!this.googleClientId) throw new ApiError("UNAUTHORIZED", messages().errors.googleSignInFailed, 401);
+      const identity = readGoogleIdentity(idToken, this.googleClientId, this.now());
+      const existing = this.findAccount(identity.email);
+      if (existing) return issueSession(existing, this.now().getTime());
+      const account: StoredAccount = { ...identity, password: "", role: "student", studentId: "", phone: "", lineId: "" };
+      this.db.accounts.push(account);
+      this.database.persist();
       return issueSession(account, this.now().getTime());
     });
   }

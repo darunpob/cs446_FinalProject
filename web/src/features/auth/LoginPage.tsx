@@ -10,7 +10,9 @@ import { PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice } from "../../design-system/Surface";
 import { demoAccounts } from "../../fixtures/mockData";
 import { useI18n } from "../../i18n/useI18n";
+import type { Session } from "../../api/contract";
 import { useAuth } from "./AuthProvider";
+import { GoogleSignInSection } from "./GoogleSignInButton";
 import { safeNextPath } from "./nextPath";
 
 function DemoAccounts({ onPick }: { onPick: (email: string, password: string) => void }) {
@@ -45,14 +47,17 @@ export function LoginPage() {
   const [failure, setFailure] = useState<string | null>(null);
   const needsGuard = params.get("need") === "guard";
 
+  const goNext = (session: Session) => {
+    const fallback = session.user.role === "guard" ? "/admin" : "/";
+    navigate(safeNextPath(params.get("next"), fallback), { replace: true });
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
     setFailure(null);
     try {
-      const session = await signIn(email, password);
-      const fallback = session.user.role === "guard" ? "/admin" : "/";
-      navigate(safeNextPath(params.get("next"), fallback), { replace: true });
+      goNext(await signIn(email, password));
     } catch (loginError) {
       setFailure(describeError(loginError));
     } finally {
@@ -74,6 +79,7 @@ export function LoginPage() {
           </Field>
           <Button type="submit" size="lg" loading={submitting} className="mt-2 w-full">{t.login.title}</Button>
         </form>
+        <GoogleSignInSection onSignedIn={goNext} onError={setFailure} />
         {!needsGuard && (
           <p className="mt-5 text-center text-sm text-ink-2">
             {t.login.noAccount}{" "}

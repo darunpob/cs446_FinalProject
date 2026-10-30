@@ -269,6 +269,9 @@ export const en: Messages = {
     password: "Password",
     noAccount: "No account yet?",
     registerLink: "Create one",
+    or: "or",
+    googleHint: "Google sign-in accepts @bumail.net and @bu.ac.th accounts only",
+    googleUnavailable: "Couldn’t load Google sign-in. Use your email and password instead.",
   },
   register: {
     title: "Create account",
@@ -408,6 +411,7 @@ export const en: Messages = {
     readPhotoFailed: "Couldn't read the photo file",
     required: (field) => `Please enter ${field}`,
     badLogin: "Incorrect email or password",
+    googleSignInFailed: "Google sign-in failed. Please try again.",
     itemNotFound: "Item not found. It may have been removed.",
     alreadyClaimed: "Someone has already verified ownership of this item",
     tooManyAttempts: "Too many wrong answers. Please contact security at the drop-off point directly.",

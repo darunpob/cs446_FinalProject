@@ -101,6 +101,7 @@ export function createHttpApi(baseUrl: string, getAccessToken: TokenSource): Los
     confirmReturn: (claimId) => post<Claim>(`/admin/claims/${encodeURIComponent(claimId)}/return`, {}),
     listStaleItems: async (minDays) => (await call<{ items: StaleItem[] }>(`/admin/items/stale?days=${minDays}`)).items,
     login: (email, password) => post<Session>("/auth/login", { email, password }),
+    loginWithGoogle: (idToken) => post<Session>("/auth/google", { idToken }),
     register: (draft: NewAccount) => post<Session>("/auth/register", draft),
     getProfile: () => call<UserProfile>("/me"),
     updateProfile: (update: ProfileUpdate) => call<UserProfile>("/me", { method: "PUT", body: JSON.stringify(update) }),

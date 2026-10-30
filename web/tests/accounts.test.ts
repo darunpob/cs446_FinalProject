@@ -70,3 +70,40 @@ describe("validateRegistration", () => {
     expect(Object.keys(errors).sort()).toEqual(["confirmPassword", "email"]);
   });
 });
+
+const GOOGLE_CLIENT_ID = "test-client.apps.googleusercontent.com";
+
+function fakeGoogleToken(claims: Record<string, unknown>): string {
+  const encode = (part: object) => Buffer.from(JSON.stringify(part)).toString("base64url");
+  const base = { iss: "https://accounts.google.com", aud: GOOGLE_CLIENT_ID, exp: Date.parse("2026-10-28T11:00:00+07:00") / 1000, email_verified: true };
+  return `${encode({ alg: "RS256" })}.${encode({ ...base, ...claims })}.signature`;
+}
+
+function googleApi() {
+  const now = () => new Date("2026-10-28T10:00:00+07:00");
+  return new MockLostFoundApi({ database: openMockDatabase(null, now), now, latencyMs: 0, googleClientId: GOOGLE_CLIENT_ID });
+}
+
+describe("mock Google sign-in", () => {
+  it("creates a student account for a verified university Google account and reuses it", async () => {
+    const api = googleApi();
+    const token = fakeGoogleToken({ email: "Nida.S@bumail.net", name: "นิดา" });
+    const first = await api.loginWithGoogle(token);
+    expect(first.user).toEqual({ email: "nida.s@bumail.net", displayName: "นิดา", role: "student" });
+    await expect(api.loginWithGoogle(token)).resolves.toMatchObject({ user: { email: "nida.s@bumail.net" } });
+    await expect(api.login("nida.s@bumail.net", "")).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
+  it("accepts staff @bu.ac.th accounts", async () => {
+    await expect(googleApi().loginWithGoogle(fakeGoogleToken({ email: "staff@bu.ac.th" }))).resolves.toHaveProperty("accessToken");
+  });
+
+  it("rejects non-university, unverified, expired and foreign-audience tokens", async () => {
+    const api = googleApi();
+    await expect(api.loginWithGoogle(fakeGoogleToken({ email: "someone@gmail.com" }))).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(api.loginWithGoogle(fakeGoogleToken({ email: "a@bumail.net", email_verified: false }))).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(api.loginWithGoogle(fakeGoogleToken({ email: "a@bumail.net", exp: 1 }))).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(api.loginWithGoogle(fakeGoogleToken({ email: "a@bumail.net", aud: "other" }))).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(api.loginWithGoogle("not-a-jwt")).rejects.toBeInstanceOf(ApiError);
+  });
+});

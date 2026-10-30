@@ -1,4 +1,9 @@
-# BU Lost & Found — API Contract (v6)
+# BU Lost & Found — API Contract (v7)
+
+> **มีอะไรใหม่ใน v7 — เข้าสู่ระบบด้วย Google (ฝั่ง backend ต้องทำ):**
+> 1. endpoint ใหม่ `POST /api/auth/google` รับ Google ID token แล้วออก session เหมือน `/api/auth/login` — **รับเฉพาะ `@bumail.net` และ `@bu.ac.th`** รายละเอียดในหัวข้อ `POST /api/auth/google`
+> 2. บัญชีที่สมัครผ่าน Google ไม่มีรหัสผ่าน (`password_hash` เป็น NULL) → `/api/auth/login` ต้องตอบ `401` สำหรับบัญชีพวกนี้
+> 3. ปุ่ม Google ใช้ได้เฉพาะหน้าเว็บที่เป็น HTTPS (Vercel) หรือ localhost — Google ไม่รับ origin แบบ HTTP เลยใช้บน S3 website ไม่ได้
 
 > **มีอะไรใหม่ใน v6 — ไม่ใช้ CloudFront + หลายรูป + ปิดเลขบัตร (ฝั่ง backend ต้องทำ):**
 > 1. **ตัด CloudFront ออก** (Learner Lab ไม่ให้สร้าง) → หน้าเว็บอยู่บน S3 static website (HTTP) เรียก ALB ตรง ๆ ทาง HTTP → **API ต้องตอบ CORS** ให้ origin ของ S3 website — ข้อ 0 และข้อ 4
@@ -100,6 +105,7 @@ graph LR
 | POST | Lambda Function URL (ไม่ผ่าน `/api`) | Stripe เรียก webhook | ลายเซ็น `Stripe-Signature` |
 | POST | `/api/auth/login` | หน้าเข้าสู่ระบบ | – |
 | POST | `/api/auth/register` | หน้าสมัครสมาชิก | – |
+| POST | `/api/auth/google` | ปุ่ม Google ในหน้าเข้าสู่ระบบ / สมัครสมาชิก | – |
 | GET | `/api/me` | หน้าบัญชีของฉัน | 🔒 ทุก role |
 | PUT | `/api/me` | หน้าบัญชีของฉัน ปุ่ม "บันทึกข้อมูล" | 🔒 ทุก role |
 | POST | `/api/me/password` | หน้าบัญชีของฉัน ปุ่ม "เปลี่ยนรหัสผ่าน" | 🔒 ทุก role |
@@ -547,6 +553,19 @@ transaction: claim → `returned` + `returned_at = now`, ของ → `returned
 - อีเมลต้องเป็นโดเมนมหาวิทยาลัย (`bumail.net`, `bu.ac.th`) เก็บเป็นตัวพิมพ์เล็ก · รหัสผ่าน ≥ 8 ตัว · `displayName` ห้ามว่าง → ไม่ผ่าน `400`
 - อีเมลซ้ำ → `409 CONFLICT`
 - role เป็น `student` เสมอ (บัญชี `guard` สร้างด้วย SQL โดยผู้ดูแลเท่านั้น ห้ามรับ `role` จาก request)
+
+### `POST /api/auth/google`
+```json
+// request — credential ที่ Google Identity Services ส่งให้หน้าเว็บ
+{ "idToken": "eyJhbGciOiJSUzI1NiIs..." }
+// response: เหมือน /api/auth/login
+```
+ห้ามเชื่อ token จากหน้าเว็บตรง ๆ — ต้อง **ตรวจลายเซ็น** กับ public key ของ Google ก่อน (Node: `google-auth-library` → `OAuth2Client.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID })`, Python: `google.oauth2.id_token.verify_oauth2_token`) แล้วเช็กตามลำดับ:
+- `aud` = Client ID ของเรา, `iss` = `accounts.google.com` หรือ `https://accounts.google.com`, `exp` ยังไม่หมด (ไลบรารีเช็กให้) → ไม่ผ่าน `401 UNAUTHORIZED`
+- `email_verified === true` → ไม่ผ่าน `401`
+- โดเมนของ `email` (ตัวพิมพ์เล็ก) ต้องเป็น `bumail.net` หรือ `bu.ac.th` เท่านั้น → ไม่ใช่ `403 FORBIDDEN` · เช็กจาก `email` เสมอ อย่าเช็กแค่ `hd`
+- มีบัญชีอีเมลนี้อยู่แล้ว → เข้าสู่ระบบด้วย role เดิม · ยังไม่มี → สร้างบัญชี `student` ใหม่ (`display_name` = claim `name`, `password_hash` = NULL)
+- `GOOGLE_CLIENT_ID` เก็บใน environment ของ EC2 · backend **ไม่ต้องใช้ client secret** (flow นี้ใช้แค่ ID token) ห้ามใส่ secret ลง repo
 
 ### `GET /api/me` 🔒 → `200 UserProfile`
 อ่าน email จาก JWT ไม่รับจาก query

@@ -10,6 +10,7 @@ import { PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { useAuth } from "./AuthProvider";
+import { GoogleSignInSection } from "./GoogleSignInButton";
 import { safeNextPath } from "./nextPath";
 import { validateRegistration } from "./registerForm";
 import type { RegisterDraft, RegisterErrors } from "./registerForm";
@@ -71,6 +72,7 @@ export function RegisterPage() {
           </Field>
           <Button type="submit" size="lg" loading={submitting} className="mt-2 w-full">{text.submit}</Button>
         </form>
+        <GoogleSignInSection onSignedIn={() => navigate(safeNextPath(params.get("next"), "/account"), { replace: true })} onError={setFailure} />
         <p className="mt-5 text-center text-sm text-ink-2">
           {text.haveAccount}{" "}
           <Link to={{ pathname: "/login", search: params.toString() }} className="font-semibold text-ink underline transition-colors duration-150 hover:text-ink-2">{text.loginLink}</Link>

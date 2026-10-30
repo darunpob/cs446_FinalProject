@@ -269,6 +269,9 @@ export const zh: Messages = {
     password: "密码",
     noAccount: "还没有账户？",
     registerLink: "注册",
+    or: "或",
+    googleHint: "Google 登录仅限 @bumail.net 和 @bu.ac.th 账号",
+    googleUnavailable: "无法加载 Google 登录，请使用邮箱和密码登录",
   },
   register: {
     title: "注册",
@@ -408,6 +411,7 @@ export const zh: Messages = {
     readPhotoFailed: "无法读取照片文件",
     required: (field) => `请填写${field}`,
     badLogin: "邮箱或密码不正确",
+    googleSignInFailed: "Google 验证失败，请重试",
     itemNotFound: "未找到该物品，可能已被删除。",
     alreadyClaimed: "已有人验证了该物品的归属",
     tooManyAttempts: "答错次数已达上限，请直接联系寄存点的保安。",

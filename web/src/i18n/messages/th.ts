@@ -248,6 +248,9 @@ export interface Messages {
     password: string;
     noAccount: string;
     registerLink: string;
+    or: string;
+    googleHint: string;
+    googleUnavailable: string;
   };
   register: {
     title: string;
@@ -387,6 +390,7 @@ export interface Messages {
     readPhotoFailed: string;
     required: (field: string) => string;
     badLogin: string;
+    googleSignInFailed: string;
     itemNotFound: string;
     alreadyClaimed: string;
     tooManyAttempts: string;
@@ -662,6 +666,9 @@ export const th: Messages = {
     password: "รหัสผ่าน",
     noAccount: "ยังไม่มีบัญชี?",
     registerLink: "สมัครสมาชิก",
+    or: "หรือ",
+    googleHint: "Google ใช้ได้เฉพาะบัญชี @bumail.net และ @bu.ac.th",
+    googleUnavailable: "โหลดปุ่มเข้าสู่ระบบด้วย Google ไม่ได้ ใช้อีเมลและรหัสผ่านแทนได้",
   },
   register: {
     title: "สมัครสมาชิก",
@@ -801,6 +808,7 @@ export const th: Messages = {
     readPhotoFailed: "อ่านไฟล์รูปไม่สำเร็จ",
     required: (field) => `กรุณากรอก${field}`,
     badLogin: "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+    googleSignInFailed: "ยืนยันตัวตนกับ Google ไม่สำเร็จ ลองใหม่อีกครั้ง",
     itemNotFound: "ไม่พบรายการนี้ อาจถูกลบไปแล้ว",
     alreadyClaimed: "มีผู้ยืนยันความเป็นเจ้าของรายการนี้แล้ว",
     tooManyAttempts: "ตอบผิดครบจำนวนครั้งแล้ว กรุณาติดต่อ รปภ. ที่จุดรับฝากโดยตรง",

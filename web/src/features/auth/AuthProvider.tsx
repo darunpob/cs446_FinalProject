@@ -8,6 +8,7 @@ import { readSession, writeSession } from "./sessionStore";
 interface AuthState {
   session: Session | null;
   signIn: (email: string, password: string) => Promise<Session>;
+  signInWithGoogle: (idToken: string) => Promise<Session>;
   register: (draft: NewAccount) => Promise<Session>;
   /** Keeps the header and forms in step after the user edits their profile. */
   refreshUser: (user: SessionUser) => void;
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => adopt(await api.login(email, password)), [adopt]);
 
+  const signInWithGoogle = useCallback(async (idToken: string) => adopt(await api.loginWithGoogle(idToken)), [adopt]);
+
   const register = useCallback(async (draft: NewAccount) => adopt(await api.register(draft)), [adopt]);
 
   const refreshUser = useCallback((user: SessionUser) => {
@@ -43,7 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   }, []);
 
-  const auth = useMemo(() => ({ session, signIn, register, refreshUser, signOut }), [session, signIn, register, refreshUser, signOut]);
+  const auth = useMemo(
+    () => ({ session, signIn, signInWithGoogle, register, refreshUser, signOut }),
+    [session, signIn, signInWithGoogle, register, refreshUser, signOut],
+  );
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 }
 

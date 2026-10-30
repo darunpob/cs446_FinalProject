@@ -20,6 +20,9 @@ export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 
 export const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
+/** Public OAuth client ID for Google sign-in; empty hides the Google button. */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
 const readAccessToken = () => readSession()?.accessToken ?? null;
 
 function createApi(): LostFoundApi {
@@ -27,7 +30,7 @@ function createApi(): LostFoundApi {
     const database = openMockDatabase(browserStorage(), () => new Date());
     resetMockData = database.reset;
     testPaymentGateway = createTestPaymentGateway(database, () => new Date());
-    return new MockLostFoundApi({ database, getAccessToken: readAccessToken });
+    return new MockLostFoundApi({ database, getAccessToken: readAccessToken, googleClientId: GOOGLE_CLIENT_ID });
   }
   return createHttpApi(API_BASE, readAccessToken);
 }

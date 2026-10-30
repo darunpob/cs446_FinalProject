@@ -269,6 +269,9 @@ export const ja: Messages = {
     password: "パスワード",
     noAccount: "アカウントをお持ちでないですか？",
     registerLink: "新規登録",
+    or: "または",
+    googleHint: "Google ログインは @bumail.net と @bu.ac.th のアカウントのみ利用できます",
+    googleUnavailable: "Google ログインを読み込めませんでした。メールアドレスとパスワードでログインしてください",
   },
   register: {
     title: "新規登録",
@@ -408,6 +411,7 @@ export const ja: Messages = {
     readPhotoFailed: "写真ファイルを読み込めませんでした",
     required: (field) => `${field}を入力してください`,
     badLogin: "メールアドレスまたはパスワードが正しくありません",
+    googleSignInFailed: "Google での認証に失敗しました。もう一度お試しください",
     itemNotFound: "見つかりません。削除された可能性があります。",
     alreadyClaimed: "この物はすでに持ち主の確認が済んでいます",
     tooManyAttempts: "回答の上限回数に達しました。預かり所の警備員に直接お問い合わせください。",
