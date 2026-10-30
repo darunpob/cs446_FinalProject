@@ -163,3 +163,14 @@ describe("public lost board", () => {
     expect(Object.fromEntries(params)).toEqual({ title: "ร่ม & กุญแจ", category: "keys", location: "loc-parking", answers: "lst-1" });
   });
 });
+
+describe("lost board history", () => {
+  it("adds guard-confirmed returns only when history is asked for, stamped as returned", async () => {
+    const { api } = freshApi();
+    const openIds = (await api.listOpenLostReports()).map((notice) => notice.id);
+    expect(openIds).not.toContain("lst-9005");
+    const withHistory = await api.listOpenLostReports({ history: true });
+    expect(withHistory.find((notice) => notice.id === "lst-9005")).toMatchObject({ progress: "returned" });
+    expect(withHistory.find((notice) => notice.id === "lst-9004")).toMatchObject({ progress: "awaiting_pickup" });
+  });
+});

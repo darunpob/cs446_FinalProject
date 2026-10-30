@@ -61,8 +61,13 @@ export interface FoundItemQuery {
   status?: FoundItemStatus;
 }
 
-/** Filters for the public lost board; `location` matches where the item was last seen. */
-export type LostReportQuery = Omit<FoundItemQuery, "status">;
+/**
+ * Filters for the public lost board; `location` matches where the item was last seen.
+ * `history` adds notices closed by a guard-confirmed return, so the board can show what was found.
+ */
+export interface LostReportQuery extends Omit<FoundItemQuery, "status"> {
+  history?: boolean;
+}
 
 export interface NewFoundItem {
   title: string;
@@ -190,10 +195,10 @@ export interface LostReportReceipt {
 export type LostReportStatus = "searching" | "found" | "cancelled" | "expired";
 
 /**
- * Where an open notice stands: nobody has answered it, a finder sent something in ("found"),
- * or the owner confirmed one of those finds and is on the way to pick it up ("awaiting_pickup").
+ * Where a notice stands: nobody has answered it, a finder sent something in ("found"), the owner confirmed one of those
+ * finds and is on the way to pick it up ("awaiting_pickup"), or a guard handed it over ("returned", board history only).
  */
-export type LostNoticeProgress = "searching" | "found" | "awaiting_pickup";
+export type LostNoticeProgress = "searching" | "found" | "awaiting_pickup" | "returned";
 
 /**
  * A lost report as its owner sees it. `submissions` are finds sent in through "I found this" that wait for the owner's

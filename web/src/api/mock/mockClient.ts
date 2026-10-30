@@ -422,7 +422,8 @@ export class MockLostFoundApi implements LostFoundApi {
 
   private toPublicLostReport(report: StoredLostReport): PublicLostReport {
     const { id, title, description, category, lastSeenLocationId, lostAt, imageUrls } = report;
-    return { id, title, description, category, lastSeenLocationId, lostAt, imageUrls, hasReward: report.reward?.status === "held", progress: this.noticeProgress(report) };
+    const progress = report.status === "found" ? "returned" : this.noticeProgress(report);
+    return { id, title, description, category, lastSeenLocationId, lostAt, imageUrls, hasReward: report.reward?.status === "held", progress };
   }
 
   listMyLostReports() {
@@ -550,7 +551,7 @@ export class MockLostFoundApi implements LostFoundApi {
     return this.settle(() => {
       this.sweepDeadlines();
       return this.db.lostReports
-        .filter((report) => report.status === "searching" && matchesLostQuery(report, query))
+        .filter((report) => (report.status === "searching" || (query.history === true && report.status === "found")) && matchesLostQuery(report, query))
         .sort((left, right) => right.lostAt.localeCompare(left.lostAt))
         .map((report) => this.toPublicLostReport(report));
     });

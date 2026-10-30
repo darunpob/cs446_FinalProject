@@ -361,6 +361,7 @@ export interface Messages {
     expiryNote: (days: number) => string;
     progress: Record<LostNoticeProgress, string>;
     statAwaiting: string;
+    scopeOpen: string;
   };
   reward: {
     sectionTitle: string;
@@ -821,8 +822,9 @@ export const th: Messages = {
     noMatchTitle: "ไม่พบประกาศที่ตรงกับที่ค้นหา",
     noMatchDescription: "ลองเปลี่ยนคำค้น หมวดหมู่ หรือจุดที่หาย",
     expiryNote: (days) => `ประกาศที่เกิน ${days} วันจะถูกลบโดยอัตโนมัติ`,
-    progress: { searching: "ยังไม่เจอ", found: "เจอแล้ว", awaiting_pickup: "ยืนยันแล้ว รอรับ" },
+    progress: { searching: "ยังไม่เจอ", found: "เจอแล้ว", awaiting_pickup: "ยืนยันแล้ว รอรับ", returned: "คืนแล้ว" },
     statAwaiting: "ยืนยันแล้ว รอมารับ",
+    scopeOpen: "ยังไม่เจอ",
   },
   reward: {
     sectionTitle: "ตั้งรางวัลให้คนเก็บได้",

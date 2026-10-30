@@ -63,8 +63,8 @@ export interface MockDatabase {
   outbox: StoredNotification[];
 }
 
-/** Bumped to v3 so browsers holding a v2 database pick up the sample lost notices. */
-const STORAGE_KEY = "bu-lf-mock-db-v3";
+/** Bumped whenever the sample data changes, so browsers holding an older database pick it up (v4: board history sample). */
+const STORAGE_KEY = "bu-lf-mock-db-v4";
 const HOUR_MS = 3_600_000;
 
 function seedTimestamp(now: Date, seed: Pick<FoundItemSeed, "daysAgo" | "hour">): Date {
@@ -105,6 +105,7 @@ function seedLostReport(now: Date, seed: LostReportSeed): StoredLostReport {
   const createdAt = new Date(Math.min(lostAt.getTime() + HOUR_MS, now.getTime())).toISOString();
   const reward = openReward(`rwd-${seed.id}`, seed.rewardAmount);
   if (reward) holdReward(reward, new Date(createdAt), noticeExpiresAt(createdAt));
+  const closedAt = seed.returnedDaysAgo === undefined ? null : new Date(now.getTime() - seed.returnedDaysAgo * 24 * HOUR_MS).toISOString();
   return {
     id: seed.id,
     title: seed.title,
@@ -119,8 +120,8 @@ function seedLostReport(now: Date, seed: LostReportSeed): StoredLostReport {
     rewardAmount: seed.rewardAmount,
     createdAt,
     ownerEmail: SAMPLE_OWNER_EMAIL,
-    status: "searching",
-    closedAt: null,
+    status: closedAt ? "found" : "searching",
+    closedAt,
     reward,
   };
 }

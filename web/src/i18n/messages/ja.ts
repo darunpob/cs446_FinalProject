@@ -380,8 +380,9 @@ export const ja: Messages = {
     noMatchTitle: "条件に合う掲示はありません",
     noMatchDescription: "キーワード・カテゴリ・場所を変えてみてください",
     expiryNote: (days) => `${days}日を過ぎた届出は自動的に削除されます`,
-    progress: { searching: "未発見", found: "見つかった", awaiting_pickup: "確認済み・受取待ち" },
+    progress: { searching: "未発見", found: "見つかった", awaiting_pickup: "確認済み・受取待ち", returned: "返却済み" },
     statAwaiting: "確認済み・受取待ち",
+    scopeOpen: "未発見",
   },
   reward: {
     sectionTitle: "お礼を設定する",

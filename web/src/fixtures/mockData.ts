@@ -156,6 +156,8 @@ export interface LostReportSeed {
   hour: number;
   /** Paid and held from the start; 0 = no reward. */
   rewardAmount: number;
+  /** Set on sample history: the notice was closed this many days ago by a guard-confirmed return. */
+  returnedDaysAgo?: number;
 }
 
 export const lostReportSeeds: LostReportSeed[] = [
@@ -174,6 +176,10 @@ export const lostReportSeeds: LostReportSeed[] = [
   {
     id: "lst-9004", title: "กระติกน้ำสแตนเลส สีเขียวเข้ม", category: "bottle",
     description: "ฝาสีดำ มีรอยบุบที่ก้น", lastSeenLocationId: "loc-a5", daysAgo: 4, hour: 9, rewardAmount: 0,
+  },
+  {
+    id: "lst-9005", title: "ร่มพับสีกรมท่า ด้ามพันเทปแดง", category: "other",
+    description: "ลืมไว้หน้าห้องเรียนตอนฝนหยุด", lastSeenLocationId: "loc-b6", daysAgo: 6, hour: 14, rewardAmount: 0, returnedDaysAgo: 2,
   },
 ];
 

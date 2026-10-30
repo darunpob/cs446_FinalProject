@@ -67,9 +67,9 @@ function CategoryChips() {
   );
 }
 
-function ScopeToggle({ scope, onChange }: { scope: StatusScope; onChange: (scope: StatusScope) => void }) {
+function ScopeToggle({ scope, openLabel, onChange }: { scope: StatusScope; openLabel: string; onChange: (scope: StatusScope) => void }) {
   const { t } = useI18n();
-  const options: Array<[StatusScope, string]> = [["open", t.home.scopeOpen], ["all", t.home.all]];
+  const options: Array<[StatusScope, string]> = [["open", openLabel], ["all", t.home.all]];
   return (
     <div className="flex h-11 shrink-0 rounded-lg border border-felt-line p-1" role="radiogroup" aria-label={t.home.statusGroup}>
       {options.map(([value, label]) => (
@@ -86,10 +86,13 @@ interface FilterBarProps {
   locationLabel: string;
   allLocationsLabel: string;
   withScope?: boolean;
+  /** Label of the "still open" half of the toggle; the found board says "unclaimed", the lost board "not found yet". */
+  scopeOpenLabel?: string;
 }
 
 /** Category chips, a place picker and (on the found board) the open/all toggle, all kept in the URL. */
-export function FilterBar({ locationLabel, allLocationsLabel, withScope = false }: FilterBarProps) {
+export function FilterBar({ locationLabel, allLocationsLabel, withScope = false, scopeOpenLabel }: FilterBarProps) {
+  const { t } = useI18n();
   const { filters, update } = useItemFilters();
   const { placesByZone } = useDirectory();
   return (
@@ -107,7 +110,7 @@ export function FilterBar({ locationLabel, allLocationsLabel, withScope = false 
               ))}
             </SelectInput>
           </div>
-          {withScope && <ScopeToggle scope={filters.scope} onChange={(scope) => update({ scope })} />}
+          {withScope && <ScopeToggle scope={filters.scope} openLabel={scopeOpenLabel ?? t.home.scopeOpen} onChange={(scope) => update({ scope })} />}
         </div>
       </div>
     </div>

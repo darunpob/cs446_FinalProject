@@ -6,7 +6,7 @@ import type { LostNoticeProgress, PublicLostReport } from "../../api/contract";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ButtonLink } from "../../design-system/Button";
 import { PageHeading } from "../../design-system/FormSection";
-import { Badge, EmptyState, ErrorNotice } from "../../design-system/Surface";
+import { EmptyState, ErrorNotice } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
@@ -19,11 +19,22 @@ import { toQuery, useItemFilters, useSearchDraft } from "../items/useItemFilters
 
 const BOARD_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3";
 
-const PROGRESS_TONE: Record<LostNoticeProgress, "stamp" | "success" | "verify"> = {
-  searching: "stamp",
-  found: "success",
-  awaiting_pickup: "verify",
+/** Same ink-stamp language as the found board: round = still open, square = settled, struck = handed back. */
+const PROGRESS_STAMP: Record<LostNoticeProgress, string> = {
+  searching: "rounded-full text-stamp",
+  found: "rounded-full text-success",
+  awaiting_pickup: "rounded-sm text-verify",
+  returned: "rounded-sm text-ink-3 line-through decoration-2",
 };
+
+function ProgressStamp({ progress }: { progress: LostNoticeProgress }) {
+  const { t } = useI18n();
+  return (
+    <span className={`stamp pointer-events-none absolute right-2 bottom-2 px-2 py-px text-xs ${PROGRESS_STAMP[progress]}`}>
+      {t.lostBoard.progress[progress]}
+    </span>
+  );
+}
 
 /**
  * Only what the board itself shows is handed to the found form — never anything the owner kept private.
@@ -38,13 +49,14 @@ function NoticePhoto({ report }: { report: PublicLostReport }) {
   const { t } = useI18n();
   const [viewerOpen, setViewerOpen] = useState(false);
   const photoCount = report.imageUrls.length;
+  const faded = report.progress === "returned" ? "opacity-60 grayscale" : "";
   if (photoCount === 0) {
-    return <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: null }} className="aspect-[4/3] w-full" />;
+    return <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: null }} className={`aspect-[4/3] w-full ${faded}`} />;
   }
   return (
     <>
       <button type="button" onClick={() => setViewerOpen(true)} aria-label={t.photo.openViewer(photoCount)} className="group relative block w-full cursor-zoom-in overflow-hidden">
-        <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: report.imageUrls[0] }} className="aspect-[4/3] w-full transition-transform duration-200 group-hover:scale-[1.03]" />
+        <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: report.imageUrls[0] }} className={`aspect-[4/3] w-full transition-transform duration-200 group-hover:scale-[1.03] ${faded}`} />
         <span className="absolute top-2 right-2 grid size-8 place-items-center rounded-full bg-ink/70 text-surface opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden>
           <Expand className="size-4" />
         </span>
@@ -77,7 +89,7 @@ function LostNotice({ report }: { report: PublicLostReport }) {
       </div>
       <div className="relative">
         <NoticePhoto report={report} />
-        <Badge tone={PROGRESS_TONE[report.progress]} className="pointer-events-none absolute bottom-2 left-2 shadow-paper">{t.lostBoard.progress[report.progress]}</Badge>
+        <ProgressStamp progress={report.progress} />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h3 className="line-clamp-2 text-base leading-snug font-semibold wrap-anywhere">{report.title}</h3>
@@ -87,7 +99,7 @@ function LostNotice({ report }: { report: PublicLostReport }) {
           <span className="truncate">{t.lostBoard.lostNear(placeName(report.lastSeenLocationId))}</span>
         </p>
         <p className="text-xs text-ink-3 tabular-nums">{formatDate(report.lostAt)}</p>
-        {report.progress !== "awaiting_pickup" && (
+        {(report.progress === "searching" || report.progress === "found") && (
           <ButtonLink to={foundReportPrefillPath(report)} variant="mint" size="sm" icon={<HandHelping className="size-4" aria-hidden />} className="mt-auto self-start">
             {t.lostBoard.iFoundIt}
           </ButtonLink>
@@ -115,7 +127,8 @@ function BoardBody({ reports }: { reports: PublicLostReport[] }) {
 function BoardResults() {
   const { filters } = useItemFilters();
   const { category, location, q } = toQuery(filters);
-  const { state, reload } = useApiQuery(() => api.listOpenLostReports({ q, category, location }), [q, category, location]);
+  const history = filters.scope === "all";
+  const { state, reload } = useApiQuery(() => api.listOpenLostReports({ q, category, location, history }), [q, category, location, history]);
   if (state.phase === "failed") return <ErrorNotice message={state.message} onRetry={reload} />;
   if (state.phase === "loading") return <div className={BOARD_GRID}>{[0, 1, 2].map((slot) => <ItemCardSkeleton key={slot} />)}</div>;
   return (
@@ -155,7 +168,7 @@ export function LostBoardPage() {
   return (
     <div>
       <BoardHeader />
-      <FilterBar locationLabel={t.lostBoard.locationLabel} allLocationsLabel={t.lostBoard.allLocations} />
+      <FilterBar locationLabel={t.lostBoard.locationLabel} allLocationsLabel={t.lostBoard.allLocations} withScope scopeOpenLabel={t.lostBoard.scopeOpen} />
       <section className="pt-6" aria-label={t.lostBoard.listLabel}>
         <BoardResults />
       </section>
