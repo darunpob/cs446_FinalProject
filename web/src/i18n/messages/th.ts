@@ -515,7 +515,7 @@ export const th: Messages = {
     clothing: "เสื้อผ้า",
     other: "อื่น ๆ",
   },
-  status: { available: "รอเจ้าของ", claimed: "ยืนยันแล้ว รอรับ", returned: "คืนแล้ว" },
+  status: { available: "ยังไม่เจอ", claimed: "ยืนยันแล้ว รอรับ", returned: "คืนแล้ว" },
   time: { justNow: "เมื่อสักครู่", clockSuffix: " น." },
   directory: { unknownPlace: "ไม่ระบุสถานที่", places: {}, dropOffs: {} },
   home: {
@@ -532,7 +532,7 @@ export const th: Messages = {
     locationLabel: "จุดที่เจอ",
     allLocations: "ทุกจุดที่เจอ",
     statusGroup: "สถานะ",
-    scopeOpen: "รอเจ้าของ",
+    scopeOpen: "ยังไม่เจอ",
     resultCount: { before: "พบ", after: "รายการ" },
     clearFilters: "ล้างตัวกรอง",
     emptyTitle: "ยังไม่พบของที่ตรงกับที่ค้นหา",
