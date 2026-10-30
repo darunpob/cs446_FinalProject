@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from "../src/api/contract";
 import { validateLostReport } from "../src/features/report-lost/useLostReportForm";
 import type { LostReportDraft } from "../src/features/report-lost/useLostReportForm";
 
@@ -6,6 +7,7 @@ const completeDraft: LostReportDraft = {
   title: "บัตรนักศึกษา",
   category: "card",
   description: "",
+  photos: [],
   lastSeenLocationId: "loc-library",
   lostAtLocal: "2026-10-27T09:00",
   studentId: "",
@@ -35,5 +37,11 @@ describe("validateLostReport", () => {
   it("checks the optional student ID is 10 digits when given", () => {
     expect(validateLostReport({ ...completeDraft, studentId: "12345" })).toHaveProperty("studentId");
     expect(validateLostReport({ ...completeDraft, studentId: "1650707093" })).toEqual({});
+  });
+
+  it("caps the title so long English names cannot overflow notice cards", () => {
+    expect(validateLostReport({ ...completeDraft, title: "A".repeat(TITLE_MAX_LENGTH) })).toEqual({});
+    expect(validateLostReport({ ...completeDraft, title: "A".repeat(TITLE_MAX_LENGTH + 1) })).toHaveProperty("title");
+    expect(validateLostReport({ ...completeDraft, description: "x".repeat(DESCRIPTION_MAX_LENGTH + 1) })).toHaveProperty("description");
   });
 });

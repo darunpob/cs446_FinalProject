@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { CircleCheckBig, Gift, Megaphone, Plus, Ticket } from "lucide-react";
+import { CircleCheckBig, Gift, MailCheck, Megaphone, Plus, Ticket } from "lucide-react";
 import { api } from "../../api/client";
 import type { EarnedReward, MyClaim } from "../../api/contract";
 import { ApiError } from "../../api/errors";
@@ -24,7 +24,7 @@ function ClaimTicket({ claim }: { claim: MyClaim }) {
     <li className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
       <ItemVisual foundItem={{ category: claim.itemCategory, imageUrl: null, title: claim.itemTitle }} iconSize="size-6" className="size-14 shrink-0 rounded-sm" />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-semibold">{claim.itemTitle}</p>
+        <p className="line-clamp-2 font-semibold wrap-anywhere">{claim.itemTitle}</p>
         <p className="mt-0.5 text-[13px] text-ink-2">{point ? `${point.name} · ${point.hours}` : t.claim.dropOffFallback}</p>
         <p className="text-xs text-ink-3">{formatRelative(claim.createdAt)}</p>
       </div>
@@ -63,7 +63,7 @@ function EarnedRewards({ rewards }: { rewards: EarnedReward[] }) {
         {rewards.map((earned) => (
           <li key={earned.rewardId} className="flex flex-wrap items-center gap-3 p-4 sm:p-5">
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{earned.itemTitle}</p>
+              <p className="line-clamp-2 font-semibold wrap-anywhere">{earned.itemTitle}</p>
               <p className="text-xs text-ink-3">{formatRelative(earned.releasedAt)}</p>
             </div>
             <span className="font-semibold tabular-nums">{t.reward.amount(earned.netAmount)}</span>
@@ -97,9 +97,20 @@ export function MyReportsPage() {
     <div className="mx-auto max-w-4xl">
       <PageHeading stock="lost" title={text.title} description={text.subtitle} />
       {justPaid && (
-        <p role="status" className="paper mb-6 flex gap-3 rounded-md border-2 border-success p-4 text-sm font-medium text-ink shadow-paper">
-          <CircleCheckBig className="size-5 shrink-0 text-success" aria-hidden /> {t.reward.paidNotice}
-        </p>
+        <div className="mb-6 flex flex-col gap-3">
+          <p role="status" className="paper flex gap-3 rounded-md border-2 border-success p-4 text-sm font-medium text-ink shadow-paper">
+            <CircleCheckBig className="size-5 shrink-0 text-success" aria-hidden /> {t.reward.paidNotice}
+          </p>
+          {session && (
+            <div role="note" className="paper flex gap-3 rounded-md border-2 border-warn p-4 shadow-paper">
+              <MailCheck className="mt-0.5 size-5 shrink-0 text-warn" aria-hidden />
+              <div>
+                <p className="text-sm font-semibold text-ink">{t.reportLost.confirmEmailTitle}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink-2">{t.reportLost.confirmEmailBody(session.user.email)}</p>
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {state.phase === "loading" && <Spinner />}
       {state.phase === "failed" && <ErrorNotice message={state.message} onRetry={reload} />}

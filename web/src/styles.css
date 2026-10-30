@@ -240,17 +240,33 @@
     text-underline-offset: 4px;
   }
 
-  /* iOS Safari sizes date inputs to their content and ignores width: 100%, overflowing the card. */
+  /*
+   * iOS / iPadOS Safari sizes date inputs to their content, ignores width: 100%, and renders the value in an
+   * inner box with its own margin and line-height, so the text floats above the field's centre line.
+   * Zero the block padding and line the inner value box up with the 42px content height of the h-11 field.
+   */
   input[type="datetime-local"] {
     -webkit-appearance: none;
     appearance: none;
     display: block;
+    width: 100%;
     min-width: 0;
     max-width: 100%;
+    padding-block: 0;
+    line-height: 1.25;
   }
 
   input[type="datetime-local"]::-webkit-date-and-time-value {
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    line-height: 2.625rem;
     text-align: left;
+  }
+
+  input[type="datetime-local"]::-webkit-datetime-edit {
+    padding: 0;
+    line-height: 1.25;
   }
 
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {

@@ -1,22 +1,31 @@
 import type { FormEvent } from "react";
 import { Link } from "react-router";
 import { AtSign, BellRing, IdCard, MailCheck, MessageCircle, Phone, Sparkles } from "lucide-react";
-import type { CategoryId, LostReportReceipt } from "../../api/contract";
+import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../api/contract";
+import type { LostReportReceipt } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
 import { Field, TextArea, TextInput } from "../../design-system/Field";
 import { FormSection, PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { useAuth } from "../auth/AuthProvider";
+import { CARD_HOLDING_CATEGORIES } from "../catalog/categories";
 import { CategoryPicker } from "../catalog/CategoryPicker";
 import { PlaceSelect } from "../catalog/PlaceSelect";
 import { ItemCard, NOTICE_GRID } from "../items/ItemCard";
+import { PhotoPicker } from "../report-found/PhotoPicker";
 import { LINE_OA_URL, LineFollowCard } from "./LineFollowCard";
 import { RewardPanel } from "./RewardPanel";
 import { RewardPicker } from "./RewardPicker";
-import { useLostReportForm } from "./useLostReportForm";
+import { rewardAmountOf, useLostReportForm } from "./useLostReportForm";
+import type { LostReportDraft } from "./useLostReportForm";
 
-const CARD_HOLDING_CATEGORIES: CategoryId[] = ["card", "wallet"];
+function SubmitLabel({ draft, submitting }: { draft: LostReportDraft; submitting: boolean }) {
+  const { t } = useI18n();
+  const rewardAmount = rewardAmountOf(draft);
+  if (submitting) return <>{rewardAmount > 0 ? t.reportLost.submittingToPay : t.reportLost.submitting}</>;
+  return <>{rewardAmount > 0 ? t.reportLost.submitAndPay(rewardAmount) : t.reportLost.submit}</>;
+}
 
 function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: string }) {
   const matches = receipt.possibleMatches;
@@ -30,7 +39,7 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
           <span className="grid size-12 place-items-center rounded-sm bg-stock-pink text-stock-ink">
             <BellRing className="size-6" aria-hidden />
           </span>
-          <h1 className="mt-4 font-display text-3xl sm:text-4xl">{text.receiptTitle}</h1>
+          <h1 className="mt-4 font-display text-3xl wrap-anywhere sm:text-4xl">{text.receiptTitle}</h1>
           <p className="mt-2 max-w-xl text-ink-2">
             {text.receiptNumber} <strong className="text-ink tabular-nums">{receipt.id}</strong> · {text.receiptLead}
           </p>
@@ -71,7 +80,7 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
 
 export function ReportLostPage() {
   const { session } = useAuth();
-  const { draft, errors, setField, submit, submitting, failure, receipt } = useLostReportForm(session?.user.displayName ?? "", session?.user.email ?? "");
+  const { draft, errors, setField, submit, submitting, failure, setFailure, receipt } = useLostReportForm(session?.user.displayName ?? "", session?.user.email ?? "");
   const { t } = useI18n();
   const text = t.reportLost;
 
@@ -88,17 +97,24 @@ export function ReportLostPage() {
       <PageHeading stock="lost" title={text.title} description={text.description} />
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
         <FormSection step={1} title={text.step1Title}>
-          <Field label={text.whatLabel} error={errors.title}>
-            {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.title)} value={draft.title} onChange={(event) => setField("title", event.target.value)} placeholder={text.whatPlaceholder} />}
+          <Field label={text.whatLabel} error={errors.title} count={{ length: draft.title.length, max: TITLE_MAX_LENGTH }}>
+            {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.title)} value={draft.title} onChange={(event) => setField("title", event.target.value)} maxLength={TITLE_MAX_LENGTH} placeholder={text.whatPlaceholder} />}
           </Field>
           <div className="flex flex-col gap-1.5">
             <span id="lost-category-label" className="text-sm font-medium">{t.reportFound.categoryLabel}</span>
             <CategoryPicker value={draft.category} onChange={(category) => setField("category", category)} invalid={Boolean(errors.category)} labelledBy="lost-category-label" />
             {errors.category && <p className="text-[13px] text-danger">{errors.category}</p>}
           </div>
-          <Field label={text.featuresLabel} optional hint={text.featuresHint}>
-            {(controlId, describedBy) => <TextArea id={controlId} aria-describedby={describedBy} value={draft.description} onChange={(event) => setField("description", event.target.value)} rows={3} />}
+          <Field label={text.featuresLabel} optional error={errors.description} hint={text.featuresHint} count={{ length: draft.description.length, max: DESCRIPTION_MAX_LENGTH }}>
+            {(controlId, describedBy) => <TextArea id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.description)} value={draft.description} onChange={(event) => setField("description", event.target.value)} maxLength={DESCRIPTION_MAX_LENGTH} rows={3} />}
           </Field>
+          <div className="flex flex-col gap-1.5">
+            <span className="flex items-baseline gap-2 text-sm font-semibold">
+              {text.photosLabel} <span className="text-xs font-normal text-ink-3">{t.common.optional}</span>
+            </span>
+            <PhotoPicker photos={draft.photos} onChange={(photos) => setField("photos", photos)} onReject={setFailure} />
+            <p className="text-[13px] text-ink-3">{text.photosHint}</p>
+          </div>
           {draft.category && CARD_HOLDING_CATEGORIES.includes(draft.category) && (
             <Field label={text.studentIdLabel} optional error={errors.studentId} hint={text.studentIdHint}>
               {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.studentId)} value={draft.studentId} onChange={(event) => setField("studentId", event.target.value)} inputMode="numeric" maxLength={10} leading={<IdCard className="size-4" />} />}
@@ -144,7 +160,7 @@ export function ReportLostPage() {
         <div className="flex flex-col-reverse items-center gap-4 sm:flex-row sm:justify-between">
           <Link to="/my-reports" className="rounded text-sm font-semibold text-on-felt-2 underline underline-offset-4 transition-colors duration-150 hover:text-on-felt">{text.myReportsLink}</Link>
           <Button type="submit" size="lg" loading={submitting} className="w-full sm:w-auto sm:px-10">
-            {submitting ? text.submitting : text.submit}
+            <SubmitLabel draft={draft} submitting={submitting} />
           </Button>
         </div>
       </form>

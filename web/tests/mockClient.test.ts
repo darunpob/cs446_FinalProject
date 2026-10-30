@@ -81,7 +81,7 @@ describe("MockLostFoundApi lost reports", () => {
     token = (await api.login("student@bumail.net", "student1234")).accessToken;
     const report = {
       title: "บัตรนักศึกษา", description: "", category: "card" as const, lastSeenLocationId: "loc-library",
-      lostAt: "2026-10-27T02:00:00.000Z", studentId: "",
+      lostAt: "2026-10-27T02:00:00.000Z", imageKeys: [], studentId: "",
       contact: { name: "A", lineId: "", phone: "", email: "someone@gmail.com" },
       rewardAmount: 0,
     };

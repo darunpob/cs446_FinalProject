@@ -1,3 +1,5 @@
+import { api } from "../../api/client";
+
 const MAX_EDGE_PX = 1280;
 const JPEG_QUALITY = 0.82;
 export const MAX_SOURCE_BYTES = 15 * 1024 * 1024;
@@ -6,6 +8,16 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Canvas export failed"))), "image/jpeg", JPEG_QUALITY);
   });
+}
+
+/** Compresses and uploads photos one by one so a phone on campus Wi-Fi is not pushing several at once. */
+export async function uploadPhotos(photos: File[]): Promise<string[]> {
+  const imageKeys: string[] = [];
+  for (const photo of photos) {
+    const { imageKey } = await api.uploadImage(await compressPhoto(photo));
+    imageKeys.push(imageKey);
+  }
+  return imageKeys;
 }
 
 /** Shrinks camera photos before upload so S3 storage and mobile data stay small. */

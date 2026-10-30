@@ -10,6 +10,7 @@ import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDate } from "../catalog/thaiTime";
 import { ItemCardSkeleton } from "../items/ItemCard";
+import { ItemVisual } from "../items/ItemVisual";
 
 const BOARD_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3";
 
@@ -24,7 +25,7 @@ function LostNotice({ report }: { report: PublicLostReport }) {
   const { t } = useI18n();
   const category = categoryMeta(report.category);
   return (
-    <li className="paper relative flex flex-col rounded-sm shadow-paper">
+    <li className="paper relative flex min-w-0 flex-col rounded-sm shadow-paper">
       <span className="pin" aria-hidden />
       <div className={`flex h-9 items-center gap-2 rounded-t-sm px-3 text-sm font-bold text-stock-ink ${category.stock}`}>
         <category.icon className="size-4 shrink-0" aria-hidden />
@@ -35,8 +36,19 @@ function LostNotice({ report }: { report: PublicLostReport }) {
           </span>
         )}
       </div>
+      {report.imageUrls.length > 0 && (
+        <div className="relative">
+          <ItemVisual foundItem={{ category: report.category, title: report.title, imageUrl: report.imageUrls[0] }} className="aspect-[4/3] w-full" />
+          {report.imageUrls.length > 1 && (
+            <span className="absolute right-2 bottom-2 rounded-sm bg-ink/85 px-2 py-0.5 text-xs font-semibold text-surface tabular-nums">
+              {t.lostBoard.morePhotos(report.imageUrls.length - 1)}
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="line-clamp-2 text-base leading-snug font-semibold">{report.title}</h3>
+        <h3 className="line-clamp-2 text-base leading-snug font-semibold wrap-anywhere">{report.title}</h3>
+        {report.description && <p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-line text-ink-2 wrap-anywhere">{report.description}</p>}
         <p className="flex items-center gap-1.5 text-sm text-ink-2">
           <MapPin className="size-3.5 shrink-0 text-ink-3" aria-hidden />
           <span className="truncate">{t.lostBoard.lostNear(placeName(report.lastSeenLocationId))}</span>

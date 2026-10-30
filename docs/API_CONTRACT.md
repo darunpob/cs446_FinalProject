@@ -1,6 +1,15 @@
-# BU Lost & Found — API Contract (v5)
+# BU Lost & Found — API Contract (v6)
 
-> **มีอะไรใหม่ใน v5 — รางวัลแบบพักเงิน (escrow) · โหมดทดสอบเท่านั้น (ฝั่ง backend ต้องทำ):**
+> **มีอะไรใหม่ใน v6 — ไม่ใช้ CloudFront + หลายรูป + ปิดเลขบัตร (ฝั่ง backend ต้องทำ):**
+> 1. **ตัด CloudFront ออก** (Learner Lab ไม่ให้สร้าง) → หน้าเว็บอยู่บน S3 static website (HTTP) เรียก ALB ตรง ๆ ทาง HTTP → **API ต้องตอบ CORS** ให้ origin ของ S3 website — ข้อ 0 และข้อ 4
+> 2. `POST /api/items` และ `POST /api/lost-reports` รับ `imageKeys: string[]` (ไม่เกิน 4 รูป, รูปแรกคือรูปปก) แทน `imageKey` · `FoundItem` เพิ่ม `imageUrls`, `cardNumberMasked` · `MyLostReport` / `PublicLostReport` เพิ่ม `imageUrls`
+> 3. **ปิดเลขบัตรอัตโนมัติ** ในรูปของที่เจอด้วย Rekognition `DetectText` ก่อนเผยแพร่ — ข้อ 3
+> 4. บอร์ดสาธารณะ `GET /api/lost-reports` **ส่ง `description` แล้ว** (หน้าฟอร์มเตือนเจ้าของไม่ให้ใส่จุดสังเกตลับ) — ยังห้ามส่ง `student_id`, `contact_*`, `owner_email`
+> 5. `title` ยาวได้ไม่เกิน 60 ตัวอักษร, `description` ไม่เกิน 500 → เกิน = `400 VALIDATION`
+> 6. หน้าแจ้งของหายที่ตั้งรางวัลจะเรียก `POST /api/lost-reports/{id}/reward/checkout` ต่อทันทีหลังสร้าง แล้วพาไปจ่ายเงินเลย (ไม่ต้องแก้ backend)
+> 7. schema: ตารางใหม่ `item_images`, `lost_report_images` — SQL อยู่ท้ายข้อ 7
+
+> **v5 — รางวัลแบบพักเงิน (escrow) · โหมดทดสอบเท่านั้น (ฝั่ง backend ต้องทำ):**
 > 1. `POST /api/lost-reports` รับ `rewardAmount` (บาท, `0` = ไม่ตั้ง) · response และ `GET /api/lost-reports/mine` มี `reward`
 > 2. เพิ่ม `POST /api/lost-reports/{id}/reward/checkout` 🔒 → สร้าง Stripe Checkout Session (test mode)
 > 3. เพิ่ม Lambda รับ webhook จาก Stripe (`checkout.session.completed`) และ Lambda ที่ EventBridge Scheduler เรียกทุกวันเพื่อคืนเงินรางวัลที่ครบ 30 วัน — ข้อ 2b
@@ -21,20 +30,19 @@ Type ฝั่งหน้าเว็บอยู่ที่ [`web/src/api/con
 > ⚠️ **กฎข้อเดียวที่ห้ามพลาด:** `verificationAnswer` (คำตอบที่ถูกของคำถามยืนยัน) เก็บไว้ในฐานข้อมูลเท่านั้น
 > **ห้ามส่งกลับไปในทุก response** ไม่ว่า endpoint ไหน — backend เป็นคนตรวจคำตอบที่ `POST /api/items/{id}/claims` เอง
 
-## 0. สถาปัตยกรรม (ตกลงแล้ว: แบบ B)
+## 0. สถาปัตยกรรม (v6: ไม่มี CloudFront)
 
 ```mermaid
 graph LR
-  U[ผู้ใช้ / รปภ.] -->|HTTPS| CF[CloudFront]
-  CF -->|/*| S3W[S3: หน้าเว็บ dist/]
-  CF -->|/api/*| ALB[Application Load Balancer]
+  U[ผู้ใช้ / รปภ.] -->|HTTP| S3W[S3 static website: หน้าเว็บ dist/]
+  U -->|HTTP /api/* + CORS| ALB[Application Load Balancer]
   ALB --> ASG[EC2 Auto Scaling group<br/>2 AZ]
   ASG --> RDS[(RDS MySQL)]
   ASG -->|presigned URL| S3I[S3: รูปของที่เจอ]
   U -->|PUT รูปตรง| S3I
   ASG --> REK[Rekognition]
   ASG --> SNS[SNS → อีเมล]
-  LINE[LINE Platform] -.->|webhook ไม่บังคับ| CF
+  LINE[LINE Platform] -.->|webhook ไม่บังคับ| ALB
   ASG -->|สร้าง Checkout Session / refund| PAY[Stripe test mode]
   U -->|จ่ายด้วยบัตรทดสอบ| PAY
   PAY -->|webhook| LW[Lambda: payment webhook<br/>Function URL]
@@ -46,22 +54,26 @@ graph LR
 
 | ส่วน | ใช้อะไร | หมายเหตุ |
 |---|---|---|
-| หน้าเว็บ | S3 + CloudFront | `npm run build:aws` แล้วอัปโหลด `web/dist/` |
+| หน้าเว็บ | S3 static website hosting | `npm run build:aws` แล้วอัปโหลด `web/dist/` — URL แบบ `http://<web-bucket>.s3-website-us-east-1.amazonaws.com` |
 | API | ALB → EC2 Auto Scaling (min 1, desired 2, max 3, กระจาย 2 AZ) | target group health check `GET /api/health` |
 | ฐานข้อมูล | RDS MySQL 8 (`db.t3.micro`) | อยู่ private subnet, security group เปิด 3306 ให้ SG ของ EC2 เท่านั้น — schema ข้อ 7 |
-| รูป | S3 (bucket แยกจากหน้าเว็บ) + presigned URL | ผ่าน CloudFront ได้ถ้าต้องการ |
+| รูป | S3 (bucket แยกจากหน้าเว็บ) + presigned URL | เก็บต้นฉบับใน `private/`, รูปที่ปิดเลขบัตรแล้วใน `public/` — ข้อ 3 |
 | AI | Rekognition `DetectLabels`, `DetectText` | ข้อ 3 |
 | อีเมล | SNS | ข้อ 2 |
 | รางวัล | Stripe **test mode** + Lambda (webhook, refund) + EventBridge Scheduler | ข้อ 2b · Lambda ต้องอยู่ใน VPC/subnet เดียวกับ RDS และใช้ role `LabRole` |
 
-**ทำไม CloudFront ต้องส่ง `/api/*` ไป ALB:** ALB ใน Learner Lab ไม่มี HTTPS (ใช้ ACM ต้องมีโดเมน) หน้าเว็บที่เปิดผ่าน HTTPS เรียก `http://…elb.amazonaws.com` ตรง ๆ ไม่ได้ (mixed content) ให้สร้าง behavior `/api/*` → origin = ALB (origin protocol HTTP), cache policy `CachingDisabled`, origin request policy `AllViewerExceptHostHeader`, allowed methods ทั้งหมด (GET…DELETE) — หน้าเว็บกับ API จะอยู่ origin เดียวกันและไม่ต้องตั้ง CORS ฝั่ง API
+**ทำไมใช้ HTTP ทั้งหมด:** Learner Lab ไม่ให้สร้าง CloudFront และ ALB ไม่มี HTTPS (ACM ต้องมีโดเมน) · S3 website endpoint เป็น HTTP อยู่แล้ว หน้าเว็บ HTTP จึงเรียก `http://…elb.amazonaws.com/api` ได้โดยไม่ติด mixed content — ใส่ URL นี้ใน `VITE_API_BASE` ของ `web/.env.aws`
+- เพราะหน้าเว็บกับ API อยู่คนละ origin **API ต้องตอบ CORS** (ข้อ 4) และ security group ของ ALB ต้องเปิด 80 ให้ `0.0.0.0/0`
+- เปิด S3 website: ปิด Block Public Access ของ bucket หน้าเว็บ + bucket policy `s3:GetObject` ให้ `*` + Static website hosting (index document = `index.html`)
+- **ทางเลือก (ไม่ต้องตั้ง CORS):** ให้ EC2 เสิร์ฟไฟล์ `dist/` เองด้วย (เช่น `express.static`) แล้วเปิดเว็บที่ `http://<ALB DNS>/` — หน้าเว็บกับ API อยู่ origin เดียวกัน ใช้ `VITE_API_BASE=/api` ได้เลย แต่หน้าเว็บจะไม่ได้อยู่บน S3
+- HTTP ไม่เข้ารหัส: ใช้ได้สำหรับ demo ในวิชาเท่านั้น อย่าใช้รหัสผ่านจริง
 
 **Learner Lab (AWS Academy):**
 - Region **`us-east-1`** เท่านั้น (หรือ `us-west-2`)
 - สร้าง IAM role เองไม่ได้ → launch template ของ EC2 ใช้ instance profile **`LabInstanceProfile`** แล้ว AWS SDK บนเครื่องจะได้สิทธิ์ S3 / SNS / Rekognition เอง ไม่ต้องใส่ access key ในโค้ด
 - ปิด lab แล้ว resource อาจถูกหยุด → ก่อน demo ให้ start lab แล้วเช็กว่า EC2, RDS และ target health เป็นปกติ
 
-**Service ที่นับคะแนนได้ (ไม่นับสีม่วง):** EC2, EC2 Auto Scaling, Elastic Load Balancing, RDS, S3, CloudFront, EBS (ดิสก์ของ EC2), Rekognition, SNS · v5 เพิ่ม Lambda และ EventBridge (ตรวจกับเกณฑ์อีกครั้งว่านับคะแนนหรือไม่)
+**Service ที่นับคะแนนได้ (ไม่นับสีม่วง):** EC2, EC2 Auto Scaling, Elastic Load Balancing, RDS, S3, EBS (ดิสก์ของ EC2), Rekognition, SNS · v5 เพิ่ม Lambda และ EventBridge (ตรวจกับเกณฑ์อีกครั้งว่านับคะแนนหรือไม่)
 
 ## 1. สรุป endpoint
 
@@ -113,7 +125,7 @@ graph LR
    await sns.publish({
      TopicArn: report.sns_topic_arn,
      Subject: "มีคนแจ้งเจอของที่อาจเป็นของคุณ",   // ≤ 100 ตัวอักษร
-     Message: `${item.title}\nฝากไว้ที่: ${dropOff.name} (${dropOff.hours})\nดูรายละเอียด: https://<cloudfront-domain>/#/items/${item.id}`,
+     Message: `${item.title}\nฝากไว้ที่: ${dropOff.name} (${dropOff.hours})\nดูรายละเอียด: ${WEB_URL}/#/items/${item.id}`,   // WEB_URL = http://<web-bucket>.s3-website-us-east-1.amazonaws.com (env ของ EC2)
    });
    ```
 3. **ปิดเรื่อง** (คืนของแล้ว หรือเจ้าของกดปิดเองที่ `POST /api/lost-reports/{id}/close`) → `lost_reports.status` เป็น `'found'` หรือ `'cancelled'` แล้วไม่ต้อง publish อีก ไม่ต้องลบ topic · publish เฉพาะรายงานที่ `status = 'searching'`
@@ -154,8 +166,8 @@ stateDiagram-v2
      mode: "payment",
      line_items: [{ price_data: { currency: "thb", unit_amount: reward.amount * 100, product_data: { name: `รางวัล: ${report.title}` } }, quantity: 1 }],
      metadata: { rewardId: reward.id, lostReportId: report.id },
-     success_url: "https://<cloudfront-domain>/#/my-reports?paid=1",
-     cancel_url: "https://<cloudfront-domain>/#/my-reports",
+     success_url: `${WEB_URL}/#/my-reports?paid=1`,
+     cancel_url: `${WEB_URL}/#/my-reports`,
    });
    // UPDATE rewards SET checkout_session_id = session.id → ตอบ { "checkoutUrl": session.url }
    ```
@@ -184,6 +196,16 @@ stateDiagram-v2
 
 ถ้า Rekognition error ให้บันทึกของต่อไปตามปกติด้วย `aiLabels: []` (log error ไว้) — อย่าให้การแจ้งเจอของล้มเพราะ AI
 
+**ปิดเลขบัตรในรูปอัตโนมัติ (v6)** — ทำกับ**ทุกรูป**ของ `POST /api/items` (คนถ่ายบัตรมาโดยไม่ได้เลือกหมวด card ก็มี):
+1. หน้าเว็บอัปโหลดต้นฉบับไปที่ `private/<key>` (bucket นี้ไม่เปิดสาธารณะ)
+2. `DetectText` ต่อรูป → เลือก `TextDetections` ที่ `Type = "WORD"` และตัดช่องว่าง/ขีดออกแล้วเป็นตัวเลข ≥ 4 หลักติดกัน หรือ `LINE` ที่เข้า `/\d[\d\s-]{8,}\d/` (เลขนักศึกษา 10 หลัก, บัตรประชาชน 13 หลัก, เลขบัตรเครดิต 16 หลัก)
+3. วาดสี่เหลี่ยมทึบทับ `Geometry.BoundingBox` (ค่าเป็นสัดส่วน 0–1 → คูณกว้าง/สูงของรูป, ขยายขอบ ~15%) ด้วย [`sharp`](https://sharp.pixelplumbing.com/) `composite` แล้วบันทึกเป็น `public/<key>` · ไม่เจอเลข = คัดลอกต้นฉบับไป `public/<key>` เฉย ๆ
+4. `imageUrls` ใน response ชี้ไป `public/…` เท่านั้น · `cardNumberMasked = true` ถ้าปิดไปอย่างน้อย 1 จุด
+5. เลขที่อ่านได้ใช้จับคู่ `student_id` ตามขั้นที่ 2–3 ข้างบนได้ แต่**ห้ามเก็บลงฟิลด์สาธารณะ**และห้ามส่งออก
+6. ถ้า `DetectText` error → **อย่าเผยแพร่ต้นฉบับ**: บันทึกของโดยไม่มีรูปนั้น (`imageUrls` ไม่มีรูปนั้น) แล้ว log error ไว้
+
+รูปของ `POST /api/lost-reports` เป็นรูปของเจ้าของเอง ไม่ต้องปิดเลข (คัดลอกไป `public/` ได้เลย)
+
 ## 4. หลักทั่วไป
 
 | เรื่อง | ข้อตกลง |
@@ -193,7 +215,7 @@ stateDiagram-v2
 | เวลา | ISO 8601 UTC เช่น `2026-10-27T03:15:00.000Z` (เก็บใน RDS เป็น UTC `DATETIME`) |
 | ID | string มี prefix: `itm-` (ของที่เจอ), `lst-` (แจ้งหาย), `clm-` (คำขอรับคืน) |
 | Auth | `Authorization: Bearer <token>` — จำเป็นสำหรับ `/api/admin/*` (ต้องเป็น role `guard`), `/api/me*`, `POST /api/lost-reports`, `/api/lost-reports/mine` และ `/api/lost-reports/{id}/close` (role ใดก็ได้) · `POST /api/items/{id}/claims` รับ token แบบไม่บังคับ |
-| CORS | ไม่ต้องตั้งสำหรับ API (origin เดียวกันผ่าน CloudFront) · **bucket รูปต้องตั้ง CORS** ให้ `PUT` จาก `https://<cloudfront-domain>` |
+| CORS | **API ต้องตั้ง** (v6): `Access-Control-Allow-Origin: http://<web-bucket>.s3-website-us-east-1.amazonaws.com` (และ `http://localhost:5173` ตอนพัฒนา), `Allow-Headers: Authorization, Content-Type`, `Allow-Methods: GET, POST, PUT, OPTIONS` · ตอบ `OPTIONS` (preflight) ด้วย `204` โดย**ไม่ต้องมี token** — เช่น Express: `app.use(cors({ origin: [WEB_URL, "http://localhost:5173"] }))` ก่อน middleware ตรวจ JWT · **bucket รูปต้องตั้ง CORS** ให้ `PUT` จาก origin เดียวกันนี้ |
 | Error | HTTP status ตามตาราง + body `{ "error": { "code": "NOT_FOUND", "message": "ข้อความที่แสดงให้ผู้ใช้ได้" } }` — หน้าเว็บแสดง `message` ตรง ๆ |
 
 | Status | code | ใช้เมื่อ |
@@ -220,7 +242,9 @@ interface FoundItem {            // ไม่มี verificationAnswer — ด�
   dropOffPointId: string;
   foundAt: string;
   reportedAt: string;
-  imageUrl: string | null;       // URL รูปที่เปิดได้จากเบราว์เซอร์ (CloudFront หรือ presigned GET)
+  imageUrl: string | null;       // = imageUrls[0] ?? null (รูปปก)
+  imageUrls: string[];           // v6: ไม่เกิน 4 รูป · URL ของ public/… (ปิดเลขบัตรแล้ว) ที่เปิดได้จากเบราว์เซอร์
+  cardNumberMasked: boolean;     // v6: true ถ้าปิดเลขบัตรในรูปอย่างน้อย 1 จุด
   status: FoundItemStatus;
   verificationQuestion: string;
   aiLabels: string[];            // Rekognition DetectLabels, อังกฤษ, ไม่เกิน 5 · [] ถ้าไม่มีรูป
@@ -250,6 +274,7 @@ interface MyLostReport {          // เห็นเฉพาะเจ้าข�
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  imageUrls: string[];            // v6
   createdAt: string;
   status: LostReportStatus;
   closedAt: string | null;
@@ -267,12 +292,14 @@ interface MyClaim {               // claim ที่ทำตอนล็อก�
   createdAt: string;
 }
 
-interface PublicLostReport {      // บอร์ดสาธารณะ — มีแค่ 6 ฟิลด์นี้เท่านั้น
+interface PublicLostReport {      // บอร์ดสาธารณะ — มีแค่ 8 ฟิลด์นี้เท่านั้น
   id: string;
   title: string;
+  description: string;            // v6
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  imageUrls: string[];            // v6
   hasReward: boolean;             // true เมื่อรางวัล status = "held" · ห้ามส่งจำนวนเงิน
 }
 
@@ -352,12 +379,14 @@ interface RewardPayout {          // หน้า รปภ. แท็บ "ร�
 {
   "uploadUrl": "https://<image-bucket>.s3.us-east-1.amazonaws.com/uploads/2026/10/abc.jpg?X-Amz-Signature=...",
   "imageKey": "uploads/2026/10/abc.jpg",
-  "imageUrl": "https://<cloudfront-domain>/uploads/2026/10/abc.jpg"
+  "imageUrl": "https://<image-bucket>.s3.us-east-1.amazonaws.com/uploads/2026/10/abc.jpg?X-Amz-Signature=..."
 }
 ```
+- `uploadUrl` ชี้ไป `private/<imageKey>` · `imageUrl` เป็น presigned GET ของต้นฉบับ (หน้าเว็บไม่ได้ใช้แสดงผลสาธารณะ)
+- หน้าเว็บเรียก endpoint นี้ 1 ครั้งต่อรูป (ไม่เกิน 4 ครั้งต่อประกาศ)
 1. หน้าเว็บย่อรูปให้ด้านยาวสุดไม่เกิน 1280px (JPEG) ก่อน
 2. หน้าเว็บ `PUT` ไฟล์ไปที่ `uploadUrl` พร้อม header `Content-Type` ตรงกับที่ขอ
-3. หน้าเว็บส่ง `imageKey` ไปใน `POST /api/items`
+3. หน้าเว็บส่ง `imageKeys` ไปใน `POST /api/items` หรือ `POST /api/lost-reports`
 
 presigned URL อายุ 5 นาทีก็พอ · ยอมรับเฉพาะ `contentType` ที่ขึ้นต้นด้วย `image/`
 
@@ -370,12 +399,13 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
   "foundLocationId": "loc-library",
   "dropOffPointId": "drop-library",
   "foundAt": "2026-10-27T03:00:00.000Z",
-  "imageKey": "uploads/2026/10/abc.jpg",
+  "imageKeys": ["uploads/2026/10/abc.jpg", "uploads/2026/10/def.jpg"],
   "verificationQuestion": "รูปพื้นหลังหน้าจอล็อกเป็นรูปอะไร",
   "verificationAnswer": "แมว"
 }
 ```
-- `imageKey` เป็น `null` ได้ (ไม่มีรูป)
+- `imageKeys` เป็น `[]` ได้ (ไม่มีรูป) · เกิน 4 → `400` · key ที่ไม่ได้ออกโดย `POST /api/uploads` ให้ข้าม · ปิดเลขบัตรทุกรูปตามข้อ 3 ก่อนตอบกลับ
+- `title` 1–60 ตัวอักษร, `description` ไม่เกิน 500 → ไม่งั้น `400`
 - backend ตั้ง `status = "available"`, `reportedAt = now`, `aiLabels` ตามข้อ 3
 - response คือ `FoundItem` **ที่ไม่มี** `verificationAnswer`
 - token ไม่บังคับ: ถ้ามี token ที่ถูกต้อง ให้บันทึก `finder_email` = email ใน JWT (คนเดียวที่รับรางวัลได้ ดูข้อ 2b) · **ห้ามส่ง `finder_email` ออกใน response ใด ๆ**
@@ -391,6 +421,7 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
   "category": "card",
   "lastSeenLocationId": "loc-canteen",
   "lostAt": "2026-10-26T05:00:00.000Z",
+  "imageKeys": ["uploads/2026/10/ghi.jpg"],
   "studentId": "1650707093",
   "contact": { "name": "ธนพล", "email": "thanaphon.j@bumail.net", "lineId": "thanaphon.j", "phone": "" },
   "rewardAmount": 100
@@ -400,6 +431,7 @@ presigned URL อายุ 5 นาทีก็พอ · ยอมรับเ�
 ```
 - **`contact.email` บังคับ และต้องเป็นอีเมลมหาวิทยาลัย** — ส่วนหลัง `@` ต้องเท่ากับ `bumail.net` หรือ `bu.ac.th` พอดี (ไม่สนตัวพิมพ์เล็ก/ใหญ่) ไม่ใช่แค่ลงท้าย เช่น `x@bumail.net.evil.com` ต้องถูกปฏิเสธ · ไม่ผ่าน → `400 VALIDATION` (หน้าเว็บตรวจแล้ว แต่ backend ต้องตรวจซ้ำ)
 - `lineId`, `phone` ไม่บังคับ ส่งมาเป็น `""` ถ้าไม่กรอก
+- `imageKeys` ไม่เกิน 4 (`[]` ได้) · `title` 1–60 ตัวอักษร, `description` ไม่เกิน 500 → ไม่งั้น `400`
 - `studentId` ไม่บังคับ (`""` ได้) — หน้าเว็บให้กรอกเฉพาะหมวด `card` / `wallet` · ถ้ามีต้องเป็นเลข 10 หลัก
 - `rewardAmount` = `0` หรือจำนวนเต็ม 20–500 ไม่งั้น `400` · ถ้า > 0 ให้ `INSERT rewards (status='awaiting_payment', fee=round(amount×0.1))` แล้วส่ง `reward` กลับ (ไม่งั้น `"reward": null`) — หน้าเว็บจะโชว์ปุ่ม "ชำระรางวัล"
 - `possibleMatches` = ของสถานะ `available` ที่ตรงที่สุด ไม่เกิน 3 ชิ้น
@@ -443,10 +475,10 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 
 ### `GET /api/lost-reports` — บอร์ด "ประกาศตามหา" (สาธารณะ) → `200`
 ```json
-{ "reports": [{ "id": "lst-8f2a", "title": "บัตรนักศึกษา", "category": "card", "lastSeenLocationId": "loc-canteen", "lostAt": "2026-10-26T05:00:00.000Z", "hasReward": true }] }
+{ "reports": [{ "id": "lst-8f2a", "title": "บัตรนักศึกษา", "description": "อยู่ในซองใสสีฟ้า", "category": "card", "lastSeenLocationId": "loc-canteen", "lostAt": "2026-10-26T05:00:00.000Z", "imageUrls": [], "hasReward": true }] }
 ```
 - เฉพาะ `status = 'searching'` เรียงจาก `lost_at` ใหม่สุด
-- ⚠️ **SELECT แค่ 5 คอลัมน์นี้เท่านั้น** ห้ามส่ง `description`, `student_id`, `contact_*`, `owner_email` เด็ดขาด — ถ้าเจ้าของเขียนว่า "กระเป๋ามีสติกเกอร์โดราเอมอน" แล้วคนเก็บได้ตั้งคำถามยืนยันว่า "บนกระเป๋ามีสติกเกอร์อะไร" มิจฉาชีพแค่เปิดบอร์ดก็ได้คำตอบไปเคลมของทันที
+- ⚠️ **ห้ามส่ง `student_id`, `contact_*`, `owner_email` เด็ดขาด** · v6 ส่ง `description` แล้วตามที่ทีมตกลง — ความเสี่ยง: ถ้าเจ้าของเขียนจุดสังเกตลับ (เช่น "มีสติกเกอร์โดราเอมอน") มิจฉาชีพอ่านบอร์ดแล้วเอาไปตอบคำถามยืนยันได้ หน้าฟอร์มจึงเตือนเจ้าของไว้ที่ช่อง "ลักษณะเด่น"
 - ปุ่ม "ฉันเจอของชิ้นนี้" ในหน้าเว็บพาไปหน้าแจ้งเจอของ (`/report-found?title=&category=&location=`) — ไม่มีช่องทางติดต่อเจ้าของโดยตรง backend ไม่ต้องทำอะไรเพิ่ม
 
 ### `POST /api/items/{id}/claims` — ปุ่ม "นี่ของฉัน" → `200`
@@ -666,6 +698,32 @@ ALTER TABLE found_items ADD COLUMN finder_email VARCHAR(254) NULL;   -- จา�
 ALTER TABLE claims      ADD COLUMN lost_report_id VARCHAR(32) NULL;  -- ต้องเป็นรายงาน searching ของคนที่ล็อกอินอยู่ ไม่งั้น 400
 ```
 
+**v5 → v6 (หลายรูป):**
+```sql
+CREATE TABLE item_images (
+  item_id      VARCHAR(32)  NOT NULL REFERENCES found_items(id),
+  position     TINYINT      NOT NULL,                -- 0 = รูปปก, สูงสุด 3
+  private_key  VARCHAR(255) NOT NULL,                -- ต้นฉบับ ห้ามส่งออก
+  public_key   VARCHAR(255) NOT NULL,                -- ปิดเลขบัตรแล้ว
+  card_masked  BOOLEAN      NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (item_id, position)
+);
+
+CREATE TABLE lost_report_images (
+  lost_report_id VARCHAR(32)  NOT NULL REFERENCES lost_reports(id),
+  position       TINYINT      NOT NULL,
+  public_key     VARCHAR(255) NOT NULL,
+  PRIMARY KEY (lost_report_id, position)
+);
+
+-- ย้ายรูปเดิม (1 รูปต่อของ) เข้าตารางใหม่ แล้วค่อยลบคอลัมน์เก่า
+INSERT INTO item_images (item_id, position, private_key, public_key)
+  SELECT id, 0, image_key, image_key FROM found_items WHERE image_key IS NOT NULL;
+ALTER TABLE found_items DROP COLUMN image_key;
+ALTER TABLE found_items  MODIFY title VARCHAR(60) NOT NULL;   -- ถ้ามีข้อมูลเดิมยาวกว่านี้ ให้ตัดก่อน
+ALTER TABLE lost_reports MODIFY title VARCHAR(60) NOT NULL;
+```
+
 > ถ้าย้ายไปใช้ DynamoDB ภายหลัง: ทำ GSI partition key = `ownerEmail`, sort key = `createdAt` บนตาราง lost reports และ claims แทน index ข้างบน
 
 ข้อมูลตั้งต้นของ `locations` คัดลอกจาก `campusDirectoryFixture` ใน [`web/src/fixtures/mockData.ts`](../web/src/fixtures/mockData.ts) ได้เลย (แก้ชื่อให้ตรงกับมหาวิทยาลัยจริง)
@@ -674,9 +732,9 @@ ALTER TABLE claims      ADD COLUMN lost_report_id VARCHAR(32) NULL;  -- ต้�
 
 ```bash
 cd web
-# ใส่ VITE_LINE_OA_URL ใน .env.aws ถ้ามี LINE OA
-npm run build:aws   # ได้ dist/ ที่เรียก /api จริง ไม่มี mock data / บัญชีทดลอง
+# ใส่ VITE_API_BASE=http://<ALB DNS>/api (และ VITE_LINE_OA_URL ถ้ามี LINE OA) ใน .env.aws ก่อน
+npm run build:aws   # ได้ dist/ ที่เรียก API จริง ไม่มี mock data / บัญชีทดลอง
 aws s3 sync dist/ s3://<web-bucket>/ --delete
-aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
+# เปิด http://<web-bucket>.s3-website-us-east-1.amazonaws.com
 ```
 ระหว่างพัฒนา หน้าเว็บใช้ mock ที่ทำตามเอกสารนี้ (ยกเว้นการส่งอีเมล/LINE และ Rekognition ที่จำลองด้วย label ตามหมวด) ดูพฤติกรรมอ้างอิงได้ที่ `web/src/api/mock/mockClient.ts`

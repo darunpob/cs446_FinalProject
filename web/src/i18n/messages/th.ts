@@ -38,6 +38,11 @@ export interface Messages {
     mobileMenu: string;
     homeLabel: string;
     lostBoard: string;
+    myReports: string;
+    myReportsTab: string;
+    reportMenu: string;
+    reportLostHint: string;
+    reportFoundHint: string;
   };
   footer: { credit: string; mockData: string; resetMock: string };
   theme: { toLight: string; toDark: string };
@@ -89,6 +94,8 @@ export interface Messages {
     viewAll: string;
     aiLabelsTitle: string;
     aiLabelsHint: string;
+    cardMasked: string;
+    photosLabel: string;
   };
   claim: {
     answerRequired: string;
@@ -119,11 +126,13 @@ export interface Messages {
     onlyImages: string;
     tooLarge: string;
     pickLabel: string;
-    previewAlt: string;
-    change: string;
-    remove: string;
+    previewAlt: (position: number) => string;
+    removeAt: (position: number) => string;
+    cover: string;
+    addMore: string;
+    limit: (max: number) => string;
     dropHere: string;
-    formats: string;
+    formats: (max: number) => string;
     choose: string;
   };
   reportFound: {
@@ -136,6 +145,7 @@ export interface Messages {
     categoryLabel: string;
     descriptionLabel: string;
     descriptionHint: string;
+    cardMaskNote: string;
     step2Title: string;
     locationLabel: string;
     locationPlaceholder: string;
@@ -177,6 +187,10 @@ export interface Messages {
     whatPlaceholder: string;
     featuresLabel: string;
     featuresHint: string;
+    photosLabel: string;
+    photosHint: string;
+    submitAndPay: (amount: number) => string;
+    submittingToPay: string;
     step2Title: string;
     whereLabel: string;
     whenLabel: string;
@@ -289,6 +303,7 @@ export interface Messages {
     emptyTitle: string;
     emptyDescription: string;
     listLabel: string;
+    morePhotos: (count: number) => string;
   };
   reward: {
     sectionTitle: string;
@@ -378,6 +393,9 @@ export interface Messages {
     lostReportNotFound: string;
     lostReportClosed: string;
     rewardInvalid: (min: number, max: number) => string;
+    tooLong: (field: string, max: number) => string;
+    titleTooLong: (max: number) => string;
+    tooManyPhotos: (max: number) => string;
     rewardNotPayable: string;
     payoutNotFound: string;
     payoutDone: string;
@@ -385,7 +403,7 @@ export interface Messages {
     checkoutNotFound: string;
     cardDeclined: string;
     testCardOnly: string;
-    fields: { itemTitle: string; question: string; answer: string; lostWhat: string; reporterName: string; displayName: string };
+    fields: { itemTitle: string; question: string; answer: string; lostWhat: string; reporterName: string; displayName: string; description: string };
   };
 }
 
@@ -411,6 +429,11 @@ export const th: Messages = {
     mobileMenu: "เมนูมือถือ",
     homeLabel: "BU Lost & Found หน้าแรก",
     lostBoard: "ประกาศตามหา",
+    myReports: "ของที่ฉันแจ้งหาย",
+    myReportsTab: "ของที่หาย",
+    reportMenu: "แจ้ง",
+    reportLostHint: "ทำของหาย ประกาศตามหาและตั้งรางวัลได้",
+    reportFoundHint: "เก็บของได้ ประกาศให้เจ้าของมารับ",
   },
   footer: {
     credit: "BU Lost & Found · โปรเจกต์ CS446 Cloud Computing · มหาวิทยาลัยกรุงเทพ",
@@ -474,6 +497,8 @@ export const th: Messages = {
     viewAll: "ดูของที่เจอทั้งหมด",
     aiLabelsTitle: "แท็กจาก AI",
     aiLabelsHint: "Amazon Rekognition วิเคราะห์จากรูปอัตโนมัติ",
+    cardMasked: "ปิดเลขบัตรแล้ว",
+    photosLabel: "รูปทั้งหมด",
   },
   claim: {
     answerRequired: "กรุณาตอบคำถามยืนยัน",
@@ -504,11 +529,13 @@ export const th: Messages = {
     onlyImages: "รองรับเฉพาะไฟล์รูปภาพ",
     tooLarge: "ไฟล์ใหญ่เกิน 15 MB",
     pickLabel: "เลือกรูปถ่าย",
-    previewAlt: "ตัวอย่างรูปที่เลือก",
-    change: "เปลี่ยนรูป",
-    remove: "ลบรูป",
+    previewAlt: (position) => `รูปที่ ${position}`,
+    removeAt: (position) => `ลบรูปที่ ${position}`,
+    cover: "รูปปก",
+    addMore: "เพิ่มรูป",
+    limit: (max) => `ใส่รูปได้สูงสุด ${max} รูป`,
     dropHere: "ถ่ายรูปหรือลากรูปมาวางที่นี่",
-    formats: "JPG, PNG หรือ HEIC ไม่เกิน 15 MB · ระบบจะย่อขนาดให้อัตโนมัติ",
+    formats: (max) => `JPG, PNG หรือ HEIC ไม่เกิน 15 MB ต่อรูป สูงสุด ${max} รูป · ระบบจะย่อขนาดให้อัตโนมัติ`,
     choose: "เลือกรูป",
   },
   reportFound: {
@@ -521,6 +548,7 @@ export const th: Messages = {
     categoryLabel: "หมวดหมู่",
     descriptionLabel: "รายละเอียดเพิ่มเติม",
     descriptionHint: "บอกลักษณะทั่วไป แต่เก็บจุดสังเกตเฉพาะไว้ตั้งเป็นคำถามยืนยัน",
+    cardMaskNote: "ถ้าในรูปเห็นเลขบัตร ระบบจะตรวจและปิดเลขบัตรให้อัตโนมัติก่อนแสดงบนหน้าเว็บ",
     step2Title: "เจอที่ไหน เมื่อไร",
     locationLabel: "จุดที่เจอ",
     locationPlaceholder: "เลือกอาคาร / พื้นที่",
@@ -565,7 +593,11 @@ export const th: Messages = {
     whatLabel: "สิ่งที่หาย",
     whatPlaceholder: "เช่น กระเป๋าสตางค์หนังสีน้ำตาล",
     featuresLabel: "ลักษณะเด่น",
-    featuresHint: "สี ยี่ห้อ ขนาด หรือของที่อยู่ข้างใน",
+    featuresHint: "สี ยี่ห้อ ขนาด — ข้อความนี้แสดงบนบอร์ดประกาศตามหา อย่าใส่จุดสังเกตลับที่ใช้ยืนยันความเป็นเจ้าของ",
+    photosLabel: "รูปของที่หาย",
+    photosHint: "รูปที่เคยถ่ายไว้ช่วยให้คนเก็บได้จำของได้ง่ายขึ้น รูปจะแสดงบนบอร์ดประกาศตามหา",
+    submitAndPay: (amount) => `แจ้งของหายและชำระรางวัล ${amount} บาท`,
+    submittingToPay: "กำลังไปหน้าชำระเงิน",
     step2Title: "หายแถวไหน",
     whereLabel: "บริเวณที่น่าจะหาย",
     whenLabel: "เห็นครั้งล่าสุดเมื่อ",
@@ -672,12 +704,13 @@ export const th: Messages = {
   lostBoard: {
     title: "ประกาศตามหา",
     subtitle: "ของที่เพื่อน ๆ กำลังตามหาอยู่ ถ้าคุณเก็บได้ กด “ฉันเจอของชิ้นนี้” แล้วแจ้งเจอของตามปกติ ระบบจะแจ้งเจ้าของให้เอง",
-    privacyNote: "บอร์ดนี้แสดงแค่ชื่อของ หมวด บริเวณที่หาย และวันที่ ไม่แสดงรายละเอียดหรือช่องทางติดต่อของเจ้าของ เพื่อไม่ให้ใครเอาไปตอบคำถามยืนยันแทนเจ้าของตัวจริง",
+    privacyNote: "บอร์ดนี้แสดงชื่อของ รายละเอียด รูป บริเวณที่หาย และวันที่ ไม่แสดงรหัสนักศึกษาหรือช่องทางติดต่อของเจ้าของ",
     lostNear: (place) => `หายแถว ${place}`,
     iFoundIt: "ฉันเจอของชิ้นนี้",
     emptyTitle: "ยังไม่มีใครตามหาของ",
     emptyDescription: "เมื่อมีคนแจ้งของหาย ประกาศจะขึ้นที่นี่",
     listLabel: "รายการประกาศตามหา",
+    morePhotos: (count) => `+${count} รูป`,
   },
   reward: {
     sectionTitle: "ตั้งรางวัลให้คนเก็บได้",
@@ -767,6 +800,9 @@ export const th: Messages = {
     lostReportNotFound: "ไม่พบประกาศนี้",
     lostReportClosed: "ประกาศนี้ปิดไปแล้ว",
     rewardInvalid: (min, max) => `รางวัลต้องเป็นจำนวนเต็ม ${min}–${max} บาท`,
+    tooLong: (field, max) => `${field}ยาวเกิน ${max} ตัวอักษร`,
+    titleTooLong: (max) => `ชื่อยาวได้ไม่เกิน ${max} ตัวอักษร`,
+    tooManyPhotos: (max) => `ใส่รูปได้สูงสุด ${max} รูป`,
     rewardNotPayable: "ประกาศนี้ไม่มีรางวัลที่รอชำระ",
     payoutNotFound: "ไม่พบรายการรางวัลนี้",
     payoutDone: "รางวัลนี้ยืนยันการโอนไปแล้ว",
@@ -774,6 +810,6 @@ export const th: Messages = {
     checkoutNotFound: "ลิงก์ชำระเงินนี้ใช้ไม่ได้แล้ว",
     cardDeclined: "บัตรถูกปฏิเสธ ลองใช้บัตรอื่น",
     testCardOnly: "โหมดทดสอบรับเฉพาะบัตรทดสอบ 4242 4242 4242 4242",
-    fields: { itemTitle: "ชื่อสิ่งของ", question: "คำถามยืนยัน", answer: "คำตอบยืนยัน", lostWhat: "สิ่งที่หาย", reporterName: "ชื่อผู้แจ้ง", displayName: "ชื่อ" },
+    fields: { itemTitle: "ชื่อสิ่งของ", question: "คำถามยืนยัน", answer: "คำตอบยืนยัน", lostWhat: "สิ่งที่หาย", reporterName: "ชื่อผู้แจ้ง", displayName: "ชื่อ", description: "รายละเอียด" },
   },
 };

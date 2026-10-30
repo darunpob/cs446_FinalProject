@@ -12,7 +12,7 @@ import { categoryMeta, placeCode } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDateTime, formatRelative } from "../catalog/thaiTime";
 import { ClaimDialog } from "./ClaimDialog";
-import { ItemVisual } from "./ItemVisual";
+import { PhotoGallery } from "./PhotoGallery";
 
 function AiLabels({ labels }: { labels: string[] }) {
   const { t } = useI18n();
@@ -98,20 +98,20 @@ function ItemDetail({ foundItem, onChanged }: { foundItem: FoundItem; onChanged:
     <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
       <div className="lg:sticky lg:top-28 lg:self-start">
         <Card pinned className="p-3">
-          <ItemVisual foundItem={foundItem} iconSize="size-24" className="aspect-[16/10] w-full rounded-sm sm:aspect-[4/3]" />
+          <PhotoGallery title={foundItem.title} category={foundItem.category} imageUrls={foundItem.imageUrls} cardNumberMasked={foundItem.cardNumberMasked} iconSize="size-24" className="aspect-[16/10] sm:aspect-[4/3]" />
         </Card>
       </div>
-      <Card pinned className="overflow-hidden">
+      <Card pinned className="min-w-0 overflow-hidden">
         <div className={`flex h-11 items-center gap-2 px-5 text-sm font-bold text-stock-ink ${category.stock}`}>
           <category.icon className="size-4" aria-hidden /> {t.categories[category.id]}
         </div>
         <div className="flex flex-col gap-6 p-5 sm:p-7">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-start justify-between gap-4">
-              <h1 className="font-display text-3xl leading-tight sm:text-4xl">{foundItem.title}</h1>
+              <h1 className="min-w-0 font-display text-3xl leading-tight wrap-anywhere sm:text-4xl">{foundItem.title}</h1>
               <StatusStamp key={foundItem.status} status={foundItem.status} size="lg" pressed className="mt-1 shrink-0" />
             </div>
-            {foundItem.description && <p className="mt-3 max-w-prose leading-relaxed text-ink-2">{foundItem.description}</p>}
+            {foundItem.description && <p className="mt-3 max-w-prose leading-relaxed whitespace-pre-line text-ink-2 wrap-anywhere">{foundItem.description}</p>}
             {foundItem.aiLabels.length > 0 && <AiLabels labels={foundItem.aiLabels} />}
           </div>
           <ItemSegments foundItem={foundItem} />

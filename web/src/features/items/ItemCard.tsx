@@ -28,7 +28,7 @@ export function ItemCard({ foundItem }: { foundItem: FoundItem }) {
         <StatusStamp status={foundItem.status} size="sm" className="absolute right-1 bottom-1.5 sm:right-2 sm:bottom-2" />
       </div>
       <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-1.5 sm:p-3.5">
-        <h3 className="line-clamp-2 text-[13px] leading-snug font-semibold underline-offset-2 group-hover:underline sm:text-base">
+        <h3 className="line-clamp-2 text-[13px] leading-snug font-semibold wrap-anywhere underline-offset-2 group-hover:underline sm:text-base">
           {foundItem.title}
         </h3>
         <p className="mt-auto truncate text-xs text-ink-2 sm:text-sm">

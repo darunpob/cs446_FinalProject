@@ -28,6 +28,7 @@ const lostBag: NewLostReport = {
   category: "bag",
   lastSeenLocationId: "loc-library",
   lostAt: "2026-10-28T09:00:00.000Z",
+  imageKeys: [],
   studentId: "",
   contact: { name: "นักศึกษาทดลอง", email: "student@bumail.net", lineId: "", phone: "" },
   rewardAmount: 100,
@@ -40,7 +41,7 @@ const foundBag: NewFoundItem = {
   foundLocationId: "loc-library",
   dropOffPointId: "drop-library",
   foundAt: "2026-10-29T01:00:00.000Z",
-  imageKey: null,
+  imageKeys: [],
   verificationQuestion: "บนกระเป๋ามีสติกเกอร์อะไร",
   verificationAnswer: "โดราเอมอน",
 };
@@ -89,7 +90,10 @@ describe("setting a reward", () => {
     const reportId = await fileAndPay(world);
     expect((await myReport(world, reportId))?.reward).toMatchObject({ status: "held", expiresAt: "2026-11-28T03:00:00.000Z" });
     const [notice] = await world.api.listOpenLostReports();
-    expect(notice).toEqual({ id: reportId, title: lostBag.title, category: "bag", lastSeenLocationId: "loc-library", lostAt: lostBag.lostAt, hasReward: true });
+    expect(notice).toEqual({
+      id: reportId, title: lostBag.title, description: lostBag.description, category: "bag", lastSeenLocationId: "loc-library",
+      lostAt: lostBag.lostAt, imageUrls: [], hasReward: true,
+    });
   });
 
   it("leaves the reward unpaid when the test card is declined", async () => {

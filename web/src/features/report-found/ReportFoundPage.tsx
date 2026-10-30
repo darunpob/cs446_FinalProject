@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
-import { CircleCheckBig, Clock3, EyeOff, Gift, HandHelping, Lightbulb, Lock, ShieldCheck, Store } from "lucide-react";
+import { CircleCheckBig, Clock3, EyeOff, Gift, HandHelping, IdCard, Lightbulb, Lock, ShieldCheck, Store } from "lucide-react";
+import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../api/contract";
 import type { FoundItem } from "../../api/contract";
 import { Button, ButtonLink } from "../../design-system/Button";
 import { Field, TextArea, TextInput } from "../../design-system/Field";
@@ -8,7 +9,7 @@ import { FormSection, PageHeading } from "../../design-system/FormSection";
 import { Card, ErrorNotice, StatusStamp } from "../../design-system/Surface";
 import { useI18n } from "../../i18n/useI18n";
 import { useAuth } from "../auth/AuthProvider";
-import { isCategoryId } from "../catalog/categories";
+import { CARD_HOLDING_CATEGORIES, isCategoryId } from "../catalog/categories";
 import { CategoryPicker } from "../catalog/CategoryPicker";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { PlaceSelect } from "../catalog/PlaceSelect";
@@ -20,7 +21,7 @@ import type { FoundReportPrefill } from "./useFoundReportForm";
 function readPrefill(params: URLSearchParams): FoundReportPrefill {
   const category = params.get("category");
   const prefill: FoundReportPrefill = {
-    title: params.get("title")?.slice(0, 200),
+    title: params.get("title")?.slice(0, TITLE_MAX_LENGTH),
     category: isCategoryId(category) ? category : undefined,
     foundLocationId: params.get("location") ?? undefined,
   };
@@ -93,7 +94,7 @@ function FoundSuccess({ foundItem, onAnother }: { foundItem: FoundItem; onAnothe
       <Card pinned className="mt-8 flex items-center gap-4 p-3 pt-5 text-left">
         <ItemVisual foundItem={foundItem} iconSize="size-7" className="size-16 shrink-0 rounded-sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{foundItem.title}</p>
+          <p className="line-clamp-2 font-semibold wrap-anywhere">{foundItem.title}</p>
           <p className="text-sm text-ink-3 tabular-nums">{t.reportFound.itemRef} {foundItem.id}</p>
         </div>
         <StatusStamp status={foundItem.status} pressed className="shrink-0" />
@@ -142,17 +143,22 @@ export function ReportFoundPage() {
       <form onSubmit={handleSubmit} noValidate className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-6">
           <FormSection step={1} title={text.step1Title} description={text.step1Description}>
-            <PhotoPicker photo={draft.photo} onChange={(photo) => setField("photo", photo)} onReject={setFailure} />
-            <Field label={text.titleLabel} error={errors.title}>
-              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.title)} value={draft.title} onChange={(event) => setField("title", event.target.value)} placeholder={text.titlePlaceholder} />}
+            <PhotoPicker photos={draft.photos} onChange={(photos) => setField("photos", photos)} onReject={setFailure} />
+            {draft.photos.length > 0 && draft.category && CARD_HOLDING_CATEGORIES.includes(draft.category) && (
+              <p role="note" className="-mt-2 flex gap-2 rounded-sm bg-verify-soft px-3 py-2 text-[13px] leading-relaxed text-ink">
+                <IdCard className="mt-0.5 size-4 shrink-0 text-verify" aria-hidden /> {text.cardMaskNote}
+              </p>
+            )}
+            <Field label={text.titleLabel} error={errors.title} count={{ length: draft.title.length, max: TITLE_MAX_LENGTH }}>
+              {(controlId, describedBy) => <TextInput id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.title)} value={draft.title} onChange={(event) => setField("title", event.target.value)} maxLength={TITLE_MAX_LENGTH} placeholder={text.titlePlaceholder} />}
             </Field>
             <div className="flex flex-col gap-1.5">
               <span id="found-category-label" className="text-sm font-medium">{text.categoryLabel}</span>
               <CategoryPicker value={draft.category} onChange={(category) => setField("category", category)} invalid={Boolean(errors.category)} labelledBy="found-category-label" />
               {errors.category && <p className="text-[13px] text-danger">{errors.category}</p>}
             </div>
-            <Field label={text.descriptionLabel} optional hint={text.descriptionHint}>
-              {(controlId, describedBy) => <TextArea id={controlId} aria-describedby={describedBy} value={draft.description} onChange={(event) => setField("description", event.target.value)} rows={3} />}
+            <Field label={text.descriptionLabel} optional error={errors.description} hint={text.descriptionHint} count={{ length: draft.description.length, max: DESCRIPTION_MAX_LENGTH }}>
+              {(controlId, describedBy) => <TextArea id={controlId} aria-describedby={describedBy} invalid={Boolean(errors.description)} value={draft.description} onChange={(event) => setField("description", event.target.value)} maxLength={DESCRIPTION_MAX_LENGTH} rows={3} />}
             </Field>
           </FormSection>
 

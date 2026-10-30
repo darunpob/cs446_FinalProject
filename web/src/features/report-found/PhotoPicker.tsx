@@ -1,72 +1,100 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
-import { Camera, ImagePlus, RefreshCw, Trash2 } from "lucide-react";
+import { Camera, ImagePlus, Plus, X } from "lucide-react";
+import { MAX_PHOTOS } from "../../api/contract";
 import { messages } from "../../i18n/locale";
 import { useI18n } from "../../i18n/useI18n";
 import { Button } from "../../design-system/Button";
 import { MAX_SOURCE_BYTES } from "./photoCompression";
 
 interface PhotoPickerProps {
-  photo: File | null;
-  onChange: (photo: File | null) => void;
+  photos: File[];
+  onChange: (photos: File[]) => void;
   onReject: (reason: string) => void;
 }
 
-function acceptFile(file: File | undefined, onChange: (photo: File) => void, onReject: (reason: string) => void) {
-  if (!file) return;
-  if (!file.type.startsWith("image/")) return onReject(messages().photo.onlyImages);
-  if (file.size > MAX_SOURCE_BYTES) return onReject(messages().photo.tooLarge);
-  onChange(file);
+/** Keeps every acceptable file up to the photo limit and reports the first reason anything was left out. */
+function acceptFiles(current: File[], incoming: File[], onChange: (photos: File[]) => void, onReject: (reason: string) => void) {
+  const text = messages().photo;
+  const images = incoming.filter((file) => file.type.startsWith("image/"));
+  const sized = images.filter((file) => file.size <= MAX_SOURCE_BYTES);
+  const room = MAX_PHOTOS - current.length;
+  const accepted = sized.slice(0, Math.max(room, 0));
+  if (images.length < incoming.length) onReject(text.onlyImages);
+  else if (sized.length < images.length) onReject(text.tooLarge);
+  else if (accepted.length < sized.length) onReject(text.limit(MAX_PHOTOS));
+  if (accepted.length > 0) onChange([...current, ...accepted]);
 }
 
-export function PhotoPicker({ photo, onChange, onReject }: PhotoPickerProps) {
+function usePreviewUrls(photos: File[]): string[] {
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  useEffect(() => {
+    const objectUrls = photos.map((photo) => URL.createObjectURL(photo));
+    setPreviewUrls(objectUrls);
+    return () => objectUrls.forEach((objectUrl) => URL.revokeObjectURL(objectUrl));
+  }, [photos]);
+  return previewUrls;
+}
+
+export function PhotoPicker({ photos, onChange, onReject }: PhotoPickerProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewUrls = usePreviewUrls(photos);
   const [dragging, setDragging] = useState(false);
-
-  useEffect(() => {
-    if (!photo) return setPreviewUrl(null);
-    const objectUrl = URL.createObjectURL(photo);
-    setPreviewUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [photo]);
+  const full = photos.length >= MAX_PHOTOS;
 
   const handleInput = (event: ChangeEvent<HTMLInputElement>) => {
-    acceptFile(event.target.files?.[0], onChange, onReject);
+    acceptFiles(photos, Array.from(event.target.files ?? []), onChange, onReject);
     event.target.value = "";
   };
 
   const handleDrop = (event: DragEvent) => {
     event.preventDefault();
     setDragging(false);
-    acceptFile(event.dataTransfer.files[0], onChange, onReject);
+    acceptFiles(photos, Array.from(event.dataTransfer.files), onChange, onReject);
   };
 
-  const picker = <input ref={inputRef} type="file" accept="image/*" className="sr-only" onChange={handleInput} aria-label={t.photo.pickLabel} />;
+  const removeAt = (photoIndex: number) => onChange(photos.filter((_, index) => index !== photoIndex));
 
-  if (previewUrl) {
+  const dropHandlers = {
+    onDragOver: (event: DragEvent) => { event.preventDefault(); setDragging(true); },
+    onDragLeave: () => setDragging(false),
+    onDrop: handleDrop,
+  };
+
+  const picker = <input ref={inputRef} type="file" accept="image/*" multiple className="sr-only" onChange={handleInput} aria-label={t.photo.pickLabel} />;
+
+  if (photos.length > 0) {
     return (
-      <div className="overflow-hidden rounded-md border-2 border-dashed border-line-strong">
+      <div {...dropHandlers} className={`rounded-md border-2 border-dashed p-2.5 transition-colors duration-150 ${dragging ? "border-ink bg-stock-mint/40" : "border-line-strong"}`}>
         {picker}
-        <img src={previewUrl} alt={t.photo.previewAlt} className="aspect-[4/3] w-full object-cover" />
-        <div className="flex justify-end gap-2 border-t border-line-strong p-2.5">
-          <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()} icon={<RefreshCw className="size-4" aria-hidden />}>
-            {t.photo.change}
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => onChange(null)} aria-label={t.photo.remove} className="w-9 px-0">
-            <Trash2 className="size-4" aria-hidden />
-          </Button>
-        </div>
+        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {photos.map((photo, photoIndex) => (
+            <li key={`${photo.name}-${photo.lastModified}-${photoIndex}`} className="relative overflow-hidden rounded-sm bg-surface-2">
+              {previewUrls[photoIndex] && <img src={previewUrls[photoIndex]} alt={t.photo.previewAlt(photoIndex + 1)} className="aspect-square w-full object-cover" />}
+              {photoIndex === 0 && <span className="absolute top-1.5 left-1.5 rounded-sm bg-ink px-1.5 py-0.5 text-[11px] font-bold text-surface">{t.photo.cover}</span>}
+              <button type="button" onClick={() => removeAt(photoIndex)} aria-label={t.photo.removeAt(photoIndex + 1)}
+                className="absolute top-1.5 right-1.5 grid size-8 cursor-pointer place-items-center rounded-full bg-ink/80 text-surface transition-colors duration-150 hover:bg-danger">
+                <X className="size-4" aria-hidden />
+              </button>
+            </li>
+          ))}
+          {!full && (
+            <li>
+              <button type="button" onClick={() => inputRef.current?.click()}
+                className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-sm border-2 border-dashed border-line-strong text-sm font-semibold text-ink-2 transition-colors duration-150 hover:border-ink hover:text-ink">
+                <Plus className="size-6" aria-hidden /> {t.photo.addMore}
+              </button>
+            </li>
+          )}
+        </ul>
+        <p className="mt-2 text-right text-xs text-ink-3 tabular-nums">{photos.length}/{MAX_PHOTOS}</p>
       </div>
     );
   }
 
   return (
-    <div
-      onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
+    <div {...dropHandlers}
       className={`flex flex-col items-center gap-3 rounded-md border-2 border-dashed px-6 py-10 text-center transition-colors duration-150 ${dragging ? "border-ink bg-stock-mint/40" : "border-line-strong"}`}
     >
       {picker}
@@ -75,7 +103,7 @@ export function PhotoPicker({ photo, onChange, onReject }: PhotoPickerProps) {
       </span>
       <div>
         <p className="font-semibold">{t.photo.dropHere}</p>
-        <p className="mt-1 text-sm text-ink-3">{t.photo.formats}</p>
+        <p className="mt-1 text-sm text-ink-3">{t.photo.formats(MAX_PHOTOS)}</p>
       </div>
       <Button variant="secondary" onClick={() => inputRef.current?.click()} icon={<Camera className="size-4" aria-hidden />} className="mt-1">
         {t.photo.choose}

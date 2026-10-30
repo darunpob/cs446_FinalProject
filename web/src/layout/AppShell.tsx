@@ -1,29 +1,31 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import { useEffect } from "react";
-import { CirclePlus, House, LogIn, LogOut, Megaphone, SearchCheck, ShieldCheck, UserRound } from "lucide-react";
+import { House, LogIn, LogOut, NotebookText, SearchCheck, ShieldCheck, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../features/auth/AuthProvider";
 import { USE_MOCK, resetMockData } from "../api/client";
-import { ButtonLink } from "../design-system/Button";
 import { ROUTE_STOCK } from "../design-system/FormSection";
 import type { RouteStock } from "../design-system/FormSection";
 import type { Messages } from "../i18n/messages/th";
 import { useI18n } from "../i18n/useI18n";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { PageErrorBoundary } from "./PageErrorBoundary";
+import { ReportMenuButton, ReportMenuFab } from "./ReportMenu";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface NavEntry {
   to: string;
   labelKey: keyof Messages["nav"];
+  /** Shorter label for the mobile tab bar, where each tab is about 64px wide. */
+  tabLabelKey?: keyof Messages["nav"];
   icon: LucideIcon;
   stock: RouteStock;
 }
 
 const PUBLIC_NAV: NavEntry[] = [
   { to: "/", labelKey: "found", icon: House, stock: "found" },
-  { to: "/report-lost", labelKey: "reportLost", icon: Megaphone, stock: "lost" },
   { to: "/looking-for", labelKey: "lostBoard", icon: SearchCheck, stock: "lost" },
+  { to: "/my-reports", labelKey: "myReports", tabLabelKey: "myReportsTab", icon: NotebookText, stock: "lost" },
 ];
 
 const GUARD_NAV: NavEntry = { to: "/admin", labelKey: "guard", icon: ShieldCheck, stock: "guard" };
@@ -88,10 +90,8 @@ function Header({ navEntries }: { navEntries: NavEntry[] }) {
             <LanguageSwitcher />
             <ThemeToggle />
             <AccountControl />
-            <span className="ml-2 hidden sm:block">
-              <ButtonLink to="/report-found" size="sm" variant="mint" icon={<CirclePlus className="size-4" aria-hidden />}>
-                {t.nav.reportFound}
-              </ButtonLink>
+            <span className="ml-2 hidden md:block">
+              <ReportMenuButton />
             </span>
           </div>
         </div>
@@ -104,15 +104,14 @@ function Header({ navEntries }: { navEntries: NavEntry[] }) {
 function MobileTabBar({ navEntries }: { navEntries: NavEntry[] }) {
   const { session } = useAuth();
   const { t } = useI18n();
-  const tabs = [...navEntries, { to: session ? "/account" : "/login", labelKey: "account" as const, icon: UserRound, stock: "account" as const }];
+  const accountTab: NavEntry = { to: session ? "/account" : "/login", labelKey: "account", icon: UserRound, stock: "account" };
+  const tabs = [...navEntries, accountTab];
   const splitAt = Math.floor(tabs.length / 2);
   return (
     <nav aria-label={t.nav.mobileMenu} className="paper fixed inset-x-0 bottom-0 z-40 border-t-4 border-stock-yellow pb-[env(safe-area-inset-bottom)] shadow-sheet md:hidden">
       <div className="mx-auto flex max-w-md items-center justify-around px-2">
         {tabs.slice(0, splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
-        <Link to="/report-found" aria-label={t.nav.reportFound} className="-mt-6 grid size-14 place-items-center rounded-lg bg-stock-mint text-stock-ink shadow-lifted transition-[translate] duration-150 active:translate-y-px">
-          <CirclePlus className="size-6" aria-hidden />
-        </Link>
+        <ReportMenuFab />
         {tabs.slice(splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}
       </div>
     </nav>
@@ -123,13 +122,13 @@ function MobileTab({ entry }: { entry: NavEntry }) {
   const { t } = useI18n();
   const Icon = entry.icon;
   return (
-    <NavLink to={entry.to} end className={({ isActive }) => `group flex min-w-16 flex-col items-center gap-0.5 py-2 text-xs font-semibold transition-colors duration-150 ${isActive ? "text-ink" : "text-ink-3"}`}>
+    <NavLink to={entry.to} end className={({ isActive }) => `group flex min-w-14 flex-1 flex-col items-center gap-0.5 py-2 text-xs font-semibold transition-colors duration-150 ${isActive ? "text-ink" : "text-ink-3"}`}>
       {({ isActive }) => (
         <>
           <span className={`grid h-7 w-11 place-items-center rounded-md transition-colors duration-150 ${isActive ? ROUTE_STOCK[entry.stock] : ""}`}>
             <Icon className="size-5" aria-hidden />
           </span>
-          {t.nav[entry.labelKey]}
+          <span className="text-center leading-tight">{t.nav[entry.tabLabelKey ?? entry.labelKey]}</span>
         </>
       )}
     </NavLink>

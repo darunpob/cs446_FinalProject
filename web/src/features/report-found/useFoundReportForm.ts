@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { api } from "../../api/client";
+import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../api/contract";
 import type { CategoryId, FoundItem } from "../../api/contract";
 import { describeError } from "../../api/errors";
 import { messages } from "../../i18n/locale";
 import { fromLocalInputValue, toLocalInputValue } from "../catalog/thaiTime";
-import { compressPhoto } from "./photoCompression";
+import { uploadPhotos } from "./photoCompression";
 
 export interface FoundReportDraft {
-  photo: File | null;
+  photos: File[];
   title: string;
   category: CategoryId | null;
   description: string;
@@ -25,7 +26,7 @@ export type FoundReportPrefill = Partial<Pick<FoundReportDraft, "title" | "categ
 
 function blankDraft(prefill: FoundReportPrefill = {}): FoundReportDraft {
   return {
-    photo: null,
+    photos: [],
     title: "",
     category: null,
     description: "",
@@ -45,10 +46,18 @@ function foundAtError(foundAtLocal: string, now: Date): string | undefined {
   return undefined;
 }
 
+/** Shared by the found and lost forms: titles must fit a notice card on a phone. */
+export function titleError(title: string, tooShort: string): string | undefined {
+  const length = title.trim().length;
+  if (length < 3) return tooShort;
+  return length > TITLE_MAX_LENGTH ? messages().errors.titleTooLong(TITLE_MAX_LENGTH) : undefined;
+}
+
 export function validateFoundReport(draft: FoundReportDraft, now: Date = new Date()): FoundReportErrors {
   const text = messages().reportFound;
   const checks: FoundReportErrors = {
-    title: draft.title.trim().length < 3 ? text.titleTooShort : undefined,
+    title: titleError(draft.title, text.titleTooShort),
+    description: draft.description.trim().length > DESCRIPTION_MAX_LENGTH ? messages().errors.tooLong(messages().errors.fields.description, DESCRIPTION_MAX_LENGTH) : undefined,
     category: draft.category ? undefined : text.categoryRequired,
     foundLocationId: draft.foundLocationId ? undefined : text.locationRequired,
     foundAtLocal: foundAtError(draft.foundAtLocal, now),
@@ -78,15 +87,15 @@ export function useFoundReportForm(prefill: FoundReportPrefill = {}) {
     setSubmitting(true);
     setFailure(null);
     try {
-      const uploaded = draft.photo ? await api.uploadImage(await compressPhoto(draft.photo)) : null;
+      const imageKeys = await uploadPhotos(draft.photos);
       const foundItem = await api.createFoundItem({
-        title: draft.title,
-        description: draft.description,
+        title: draft.title.trim(),
+        description: draft.description.trim(),
         category: draft.category,
         foundLocationId: draft.foundLocationId,
         dropOffPointId: draft.dropOffPointId,
         foundAt: fromLocalInputValue(draft.foundAtLocal),
-        imageKey: uploaded?.imageKey ?? null,
+        imageKeys,
         verificationQuestion: draft.verificationQuestion,
         verificationAnswer: draft.verificationAnswer,
       });

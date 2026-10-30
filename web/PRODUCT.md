@@ -24,7 +24,7 @@ Campus-scoped and tied to the physical drop-off points (security booths, library
 
 - Primary use is mobile web on campus; the guard panel is used at a booth on a phone or desktop.
 - Delivered as a CS446 Cloud Computing final project and demoed to the instructor and guards; it must read as a real, usable product.
-- Static build hosted on S3 + CloudFront, API on ALB + EC2 Auto Scaling + RDS, photos on S3, labels from Rekognition, email via SNS. A mock mode (localStorage) is used for the Vercel demo.
+- Static build hosted on S3 static website hosting (no CloudFront in Learner Lab), API on ALB + EC2 Auto Scaling + RDS, photos on S3, labels from Rekognition, email via SNS. A mock mode (localStorage) is used for the Vercel demo.
 
 ## Capabilities and Constraints
 

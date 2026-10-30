@@ -20,6 +20,7 @@ const lostKeys: NewLostReport = {
   category: "keys",
   lastSeenLocationId: "loc-parking",
   lostAt: "2026-10-28T09:00:00.000Z",
+  imageKeys: [],
   studentId: "1650707093",
   contact: { name: "ธนพล", email: "someone.else@bumail.net", lineId: "thanaphon.j", phone: "0812345678" },
   rewardAmount: 0,
@@ -54,7 +55,7 @@ describe("lost reports belong to the signed-in account", () => {
 
     const umbrella = await api.createFoundItem({
       title: "ร่มสีดำ ด้ามไม้", description: "", category: "other", foundLocationId: "loc-parking", dropOffPointId: "drop-gate2",
-      foundAt: "2026-10-29T01:00:00.000Z", imageKey: null, verificationQuestion: "ด้ามร่มมีอะไรติดอยู่", verificationAnswer: "พวงกุญแจ",
+      foundAt: "2026-10-29T01:00:00.000Z", imageKeys: [], verificationQuestion: "ด้ามร่มมีอะไรติดอยู่", verificationAnswer: "พวงกุญแจ",
     });
     expect(before).not.toContain(umbrella.id);
     expect(await matchIds()).toContain(umbrella.id);
@@ -116,12 +117,18 @@ describe("public lost board", () => {
     await api.closeLostReport(withdrawn.id, "cancelled");
 
     const board = await api.listOpenLostReports();
-    expect(board).toEqual([{ id: kept.id, title: lostKeys.title, category: "keys", lastSeenLocationId: "loc-parking", lostAt: lostKeys.lostAt, hasReward: false }]);
-    expect(JSON.stringify(board)).not.toMatch(/โดราเอมอน|1650707093|bumail|0812345678|thanaphon/);
+    expect(board).toEqual([{
+      id: kept.id, title: lostKeys.title, description: lostKeys.description, category: "keys", lastSeenLocationId: "loc-parking",
+      lostAt: lostKeys.lostAt, imageUrls: [], hasReward: false,
+    }]);
+    expect(JSON.stringify(board)).not.toMatch(/1650707093|bumail|0812345678|thanaphon/);
   });
 
   it("hands the found form only what the board already shows", () => {
-    const path = foundReportPrefillPath({ id: "lst-1", title: "ร่ม & กุญแจ", category: "keys", lastSeenLocationId: "loc-parking", lostAt: "2026-10-28T09:00:00.000Z", hasReward: false });
+    const path = foundReportPrefillPath({
+      id: "lst-1", title: "ร่ม & กุญแจ", description: "สีดำ", category: "keys", lastSeenLocationId: "loc-parking",
+      lostAt: "2026-10-28T09:00:00.000Z", imageUrls: [], hasReward: false,
+    });
     const params = new URLSearchParams(path.split("?")[1]);
     expect(path.startsWith("/report-found?")).toBe(true);
     expect(Object.fromEntries(params)).toEqual({ title: "ร่ม & กุญแจ", category: "keys", location: "loc-parking" });

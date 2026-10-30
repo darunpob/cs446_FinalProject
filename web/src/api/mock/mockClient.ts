@@ -24,7 +24,7 @@ import type {
   StaleItem,
   UserProfile,
 } from "../contract";
-import { MIN_PASSWORD_LENGTH, REWARD_MAX_BAHT, REWARD_MIN_BAHT, isUniversityEmail } from "../contract";
+import { DESCRIPTION_MAX_LENGTH, MAX_PHOTOS, MIN_PASSWORD_LENGTH, REWARD_MAX_BAHT, REWARD_MIN_BAHT, TITLE_MAX_LENGTH, isUniversityEmail } from "../contract";
 import { campusDirectoryFixture, simulatedAiLabels } from "../../fixtures/mockData";
 import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
@@ -56,14 +56,14 @@ function toMyClaim(stored: StoredClaim): MyClaim {
 }
 
 function toMyLostReport(report: StoredLostReport, candidates: FoundItem[]): MyLostReport {
-  const { id, title, description, category, lastSeenLocationId, lostAt, createdAt, status, closedAt } = report;
+  const { id, title, description, category, lastSeenLocationId, lostAt, imageUrls, createdAt, status, closedAt } = report;
   const possibleMatches = status === "searching" ? findPossibleMatches(report, candidates) : [];
-  return { id, title, description, category, lastSeenLocationId, lostAt, createdAt, status, closedAt, possibleMatches, reward: toReward(report.reward) };
+  return { id, title, description, category, lastSeenLocationId, lostAt, imageUrls, createdAt, status, closedAt, possibleMatches, reward: toReward(report.reward) };
 }
 
 function toPublicLostReport(report: StoredLostReport): PublicLostReport {
-  const { id, title, category, lastSeenLocationId, lostAt } = report;
-  return { id, title, category, lastSeenLocationId, lostAt, hasReward: report.reward?.status === "held" };
+  const { id, title, description, category, lastSeenLocationId, lostAt, imageUrls } = report;
+  return { id, title, description, category, lastSeenLocationId, lostAt, imageUrls, hasReward: report.reward?.status === "held" };
 }
 
 const CLOSE_REASONS: LostReportCloseReason[] = ["found", "cancelled"];
@@ -92,6 +92,16 @@ function readBlobAsDataUrl(photo: Blob): Promise<string> {
 
 function requireText(value: string, fieldLabel: string): void {
   if (!value.trim()) throw new ApiError("VALIDATION", messages().errors.required(fieldLabel), 400);
+}
+
+function requireMaxLength(value: string, maxLength: number, fieldLabel: string): void {
+  if (value.trim().length > maxLength) throw new ApiError("VALIDATION", messages().errors.tooLong(fieldLabel, maxLength), 400);
+}
+
+function requireNoticeText(title: string, description: string, titleLabel: string): void {
+  requireText(title, titleLabel);
+  requireMaxLength(title, TITLE_MAX_LENGTH, titleLabel);
+  requireMaxLength(description, DESCRIPTION_MAX_LENGTH, messages().errors.fields.description);
 }
 
 function isSameMonth(iso: string | null, reference: Date): boolean {
@@ -199,6 +209,12 @@ export class MockLostFoundApi implements LostFoundApi {
     );
   }
 
+  /** Unknown keys are dropped, the same way the real backend ignores keys it never issued. */
+  private resolveImages(imageKeys: string[]): string[] {
+    if (imageKeys.length > MAX_PHOTOS) throw new ApiError("VALIDATION", messages().errors.tooManyPhotos(MAX_PHOTOS), 400);
+    return imageKeys.flatMap((imageKey) => this.db.images[imageKey] ?? []);
+  }
+
   getFoundItem(itemId: string) {
     return this.settle(() => toPublicItem(this.findStored(itemId)));
   }
@@ -212,9 +228,10 @@ export class MockLostFoundApi implements LostFoundApi {
 
   createFoundItem(draft: NewFoundItem) {
     return this.settle(() => {
-      requireText(draft.title, messages().errors.fields.itemTitle);
+      requireNoticeText(draft.title, draft.description, messages().errors.fields.itemTitle);
       requireText(draft.verificationQuestion, messages().errors.fields.question);
       requireText(draft.verificationAnswer, messages().errors.fields.answer);
+      const imageUrls = this.resolveImages(draft.imageKeys);
       const stored: StoredFoundItem = {
         id: this.nextId("itm"),
         title: draft.title.trim(),
@@ -224,11 +241,13 @@ export class MockLostFoundApi implements LostFoundApi {
         dropOffPointId: draft.dropOffPointId,
         foundAt: draft.foundAt,
         reportedAt: this.now().toISOString(),
-        imageUrl: draft.imageKey ? this.db.images[draft.imageKey] ?? null : null,
+        imageUrl: imageUrls[0] ?? null,
+        imageUrls,
+        cardNumberMasked: false,
         status: "available",
         verificationQuestion: draft.verificationQuestion.trim(),
         verificationAnswer: draft.verificationAnswer.trim(),
-        aiLabels: draft.imageKey ? simulatedAiLabels[draft.category] : [],
+        aiLabels: imageUrls.length > 0 ? simulatedAiLabels[draft.category] : [],
         returnedAt: null,
         finderEmail: this.signedInAccount()?.email ?? null,
       };
@@ -241,12 +260,13 @@ export class MockLostFoundApi implements LostFoundApi {
   createLostReport(draft: NewLostReport) {
     return this.settle((): LostReportReceipt => {
       const owner = this.requireSignedIn();
-      requireText(draft.title, messages().errors.fields.lostWhat);
+      requireNoticeText(draft.title, draft.description, messages().errors.fields.lostWhat);
       requireText(draft.contact.name, messages().errors.fields.reporterName);
       if (!isUniversityEmail(draft.contact.email)) throw new ApiError("VALIDATION", messages().reportLost.emailNotUniversity, 400);
       if (!isValidRewardAmount(draft.rewardAmount)) throw new ApiError("VALIDATION", messages().errors.rewardInvalid(REWARD_MIN_BAHT, REWARD_MAX_BAHT), 400);
       const report: StoredLostReport = {
         ...draft,
+        imageUrls: this.resolveImages(draft.imageKeys),
         id: this.nextId("lst"),
         createdAt: this.now().toISOString(),
         ownerEmail: owner.email,

@@ -20,6 +20,7 @@ export interface StoredLostReport extends NewLostReport {
   createdAt: string;
   /** Account email taken from the session token, never from the contact form. */
   ownerEmail: string;
+  imageUrls: string[];
   status: LostReportStatus;
   closedAt: string | null;
   reward: StoredReward | null;
@@ -70,6 +71,8 @@ function seedFoundItem(now: Date, seed: FoundItemSeed): StoredFoundItem {
     foundAt: foundAt.toISOString(),
     reportedAt: reportedAt.toISOString(),
     imageUrl: null,
+    imageUrls: [],
+    cardNumberMasked: false,
     status: seed.status,
     verificationQuestion: seed.verificationQuestion,
     aiLabels: seed.aiLabels,
@@ -150,9 +153,16 @@ function upgradeOwnership(db: MockDatabase): void {
     closedAt: report.closedAt ?? null,
     rewardAmount: report.rewardAmount ?? 0,
     reward: report.reward ?? null,
+    imageKeys: report.imageKeys ?? [],
+    imageUrls: report.imageUrls ?? [],
   }));
   db.claims = db.claims.map((claim) => ({ ...claim, ownerEmail: claim.ownerEmail ?? null, lostReportId: claim.lostReportId ?? null }));
-  db.foundItems = db.foundItems.map((stored) => ({ ...stored, finderEmail: stored.finderEmail ?? null }));
+  db.foundItems = db.foundItems.map((stored) => ({
+    ...stored,
+    finderEmail: stored.finderEmail ?? null,
+    imageUrls: stored.imageUrls ?? (stored.imageUrl ? [stored.imageUrl] : []),
+    cardNumberMasked: stored.cardNumberMasked ?? false,
+  }));
 }
 
 function loadDatabase(storage: Storage | null): MockDatabase | null {

@@ -22,6 +22,9 @@ export const CATEGORIES: CategoryMeta[] = [
   { id: "other", icon: Package, stock: "bg-stock-sand", stockWash: "bg-stock-sand/45" },
 ];
 
+/** Categories whose photos usually show a card number: the backend masks it, and lost reports may carry a student ID. */
+export const CARD_HOLDING_CATEGORIES: CategoryId[] = ["card", "wallet"];
+
 const CATEGORY_BY_ID = new Map(CATEGORIES.map((category) => [category.id, category]));
 
 export function categoryMeta(categoryId: CategoryId): CategoryMeta {

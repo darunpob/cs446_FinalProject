@@ -6,7 +6,7 @@
  *
  * Both are read from .env files at build time:
  *   npm run build      → .env      (mock, for Vercel / local demos)
- *   npm run build:aws  → .env.aws  (real API, for S3 + CloudFront)
+ *   npm run build:aws  → .env.aws  (real API, for the S3 static website + ALB)
  */
 import type { LostFoundApi } from "./contract";
 import { createHttpApi } from "./httpClient";

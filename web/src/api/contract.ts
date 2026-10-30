@@ -1,5 +1,5 @@
 /**
- * Shared shapes for the REST API (CloudFront /api/* → ALB → EC2 Auto Scaling → RDS).
+ * Shared shapes for the REST API (ALB /api/* → EC2 Auto Scaling → RDS).
  * Mirrors docs/API_CONTRACT.md — change both together.
  */
 
@@ -42,7 +42,12 @@ export interface FoundItem {
   dropOffPointId: string;
   foundAt: string;
   reportedAt: string;
+  /** Cover photo — always imageUrls[0], or null when there are no photos. */
   imageUrl: string | null;
+  /** Up to MAX_PHOTOS public photo URLs, cover first. Card numbers are already masked out of them. */
+  imageUrls: string[];
+  /** True when the backend found and blacked out a card / ID number in at least one photo. */
+  cardNumberMasked: boolean;
   status: FoundItemStatus;
   verificationQuestion: string;
   /** Amazon Rekognition DetectLabels output (English, top 5). Empty until the photo is analysed. */
@@ -63,10 +68,15 @@ export interface NewFoundItem {
   foundLocationId: string;
   dropOffPointId: string;
   foundAt: string;
-  imageKey: string | null;
+  /** Keys from uploadImage, cover first, at most MAX_PHOTOS. */
+  imageKeys: string[];
   verificationQuestion: string;
   verificationAnswer: string;
 }
+
+export const MAX_PHOTOS = 4;
+export const TITLE_MAX_LENGTH = 60;
+export const DESCRIPTION_MAX_LENGTH = 500;
 
 export interface UploadedImage {
   imageKey: string;
@@ -98,6 +108,8 @@ export interface NewLostReport {
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  /** Keys from uploadImage, cover first, at most MAX_PHOTOS. Shown on the public board. */
+  imageKeys: string[];
   /** 10-digit student ID, or "" — lets the backend match a photographed student card to this report. */
   studentId: string;
   contact: ContactChannels;
@@ -177,6 +189,7 @@ export interface MyLostReport {
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  imageUrls: string[];
   createdAt: string;
   status: LostReportStatus;
   closedAt: string | null;
@@ -203,15 +216,17 @@ export interface MyLostReports {
 }
 
 /**
- * All the public "still looking for" board may show. Description, student ID and contact are left out
- * on purpose: an owner's description often holds the answer to a finder's verification question.
+ * All the public "still looking for" board may show. Student ID and contact are left out on purpose.
+ * The description is public, so the lost form warns owners to keep secret marks out of it.
  */
 export interface PublicLostReport {
   id: string;
   title: string;
+  description: string;
   category: CategoryId;
   lastSeenLocationId: string;
   lostAt: string;
+  imageUrls: string[];
   /** Only whether a reward is held — never the amount, so the board does not price stolen goods. */
   hasReward: boolean;
 }

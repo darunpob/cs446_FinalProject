@@ -10,6 +10,7 @@ import { categoryMeta } from "../catalog/categories";
 import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatDate, formatRelative } from "../catalog/thaiTime";
 import { ItemCard, NOTICE_GRID } from "../items/ItemCard";
+import { ItemVisual } from "../items/ItemVisual";
 import { RewardPanel } from "./RewardPanel";
 
 const STATUS_TONE: Record<LostReportStatus, "stamp" | "success" | "neutral"> = {
@@ -87,14 +88,24 @@ export function MyReportCard({ report, onClosed }: { report: MyLostReport; onClo
             <category.icon className="size-5" aria-label={t.categories[category.id]} />
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="text-lg leading-snug font-semibold">{report.title}</h3>
-            <p className="text-sm text-ink-2">{t.myReports.lostAtPlace(placeName(report.lastSeenLocationId), formatDate(report.lostAt))}</p>
+            <h3 className="text-lg leading-snug font-semibold wrap-anywhere">{report.title}</h3>
+            <p className="text-sm text-ink-2 wrap-anywhere">{t.myReports.lostAtPlace(placeName(report.lastSeenLocationId), formatDate(report.lostAt))}</p>
             <p className="text-xs text-ink-3 tabular-nums">
               {report.id}{report.closedAt && ` · ${t.myReports.closedAgo(formatRelative(report.closedAt))}`}
             </p>
           </div>
           <Badge tone={STATUS_TONE[report.status]}>{t.myReports.status[report.status]}</Badge>
         </header>
+        {report.description && <p className="text-sm leading-relaxed whitespace-pre-line text-ink-2 wrap-anywhere">{report.description}</p>}
+        {report.imageUrls.length > 0 && (
+          <ul className="flex flex-wrap gap-2" aria-label={t.item.photosLabel}>
+            {report.imageUrls.map((imageUrl, photoIndex) => (
+              <li key={imageUrl}>
+                <ItemVisual foundItem={{ category: report.category, title: t.photo.previewAlt(photoIndex + 1), imageUrl }} className="size-20 rounded-sm" />
+              </li>
+            ))}
+          </ul>
+        )}
         {report.reward && <RewardPanel reportId={report.id} reward={report.reward} />}
         {searching && <PossibleMatches report={report} />}
         {searching && <CloseActions reportId={report.id} onClosed={onClosed} />}

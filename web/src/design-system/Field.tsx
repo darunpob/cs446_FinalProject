@@ -17,10 +17,12 @@ interface FieldProps {
   hint?: string;
   error?: string;
   optional?: boolean;
+  /** Live character count shown beside the label, for inputs with a maxLength. */
+  count?: { length: number; max: number };
   children: (controlId: string, describedBy: string | undefined) => ReactNode;
 }
 
-export function Field({ label, hint, error, optional, children }: FieldProps) {
+export function Field({ label, hint, error, optional, count, children }: FieldProps) {
   const { t } = useI18n();
   const controlId = useId();
   const messageId = `${controlId}-message`;
@@ -30,6 +32,11 @@ export function Field({ label, hint, error, optional, children }: FieldProps) {
       <label htmlFor={controlId} className="flex items-baseline gap-2 text-sm font-semibold text-ink">
         {label}
         {optional && <span className="text-xs font-normal text-ink-3">{t.common.optional}</span>}
+        {count && (
+          <span className={`ml-auto text-xs font-normal tabular-nums ${count.length >= count.max ? "text-danger" : "text-ink-3"}`} aria-hidden>
+            {count.length}/{count.max}
+          </span>
+        )}
       </label>
       {children(controlId, message ? messageId : undefined)}
       {message && (
