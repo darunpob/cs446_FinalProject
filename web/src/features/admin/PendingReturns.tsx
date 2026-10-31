@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Check, IdCard, Inbox, MessageCircle, Search, Store } from "lucide-react";
+import { Check, IdCard, Inbox, MessageCircle, Search, Store, X } from "lucide-react";
 import { api } from "../../api/client";
+import { REWARD_FEE_RATE } from "../../api/contract";
 import type { Claim } from "../../api/contract";
 import { describeError } from "../../api/errors";
 import { Button } from "../../design-system/Button";
@@ -17,27 +18,37 @@ function matchesLookup(claim: Claim, lookup: string): boolean {
   return [claim.pickupCode, claim.studentId, claim.claimantName, claim.itemTitle].some((field) => field.toLowerCase().includes(needle));
 }
 
-function ClaimRow({ claim, onReturned }: { claim: Claim; onReturned: (claimId: string) => void }) {
-  const { dropOffPoint } = useDirectory();
-  const { t } = useI18n();
-  const [armed, setArmed] = useState(false);
+type GuardDecision = "return" | "cancel";
+
+/** Two-step buttons: the first press arms a decision, the second sends it. */
+function useGuardDecision(claimId: string, onSettled: (claimId: string) => void) {
+  const [armed, setArmed] = useState<GuardDecision | null>(null);
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const confirm = async () => {
-    if (!armed) return setArmed(true);
+  const choose = async (decision: GuardDecision) => {
+    if (armed !== decision) return setArmed(decision);
     setSaving(true);
     setFailure(null);
     try {
-      await api.confirmReturn(claim.id);
-      onReturned(claim.id);
-    } catch (confirmError) {
-      setFailure(describeError(confirmError));
-      setArmed(false);
+      if (decision === "return") await api.confirmReturn(claimId);
+      else await api.cancelPickup(claimId);
+      onSettled(claimId);
+    } catch (decisionError) {
+      setFailure(describeError(decisionError));
+      setArmed(null);
     } finally {
       setSaving(false);
     }
   };
+  return { armed, saving, failure, choose, disarm: () => setArmed(null) };
+}
+
+function ClaimRow({ claim, onReturned }: { claim: Claim; onReturned: (claimId: string) => void }) {
+  const { dropOffPoint } = useDirectory();
+  const { t } = useI18n();
+  const decision = useGuardDecision(claim.id, onReturned);
+  const cancelNote = claim.fromNotice ? t.admin.cancelNoticeNote(REWARD_FEE_RATE * 100) : t.admin.cancelItemNote;
 
   return (
     <li className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5">
@@ -52,15 +63,23 @@ function ClaimRow({ claim, onReturned }: { claim: Claim; onReturned: (claimId: s
           <span className="inline-flex items-center gap-1"><MessageCircle className="size-3.5 text-ink-3" /> {claim.contact}</span>
           <span className="inline-flex items-center gap-1"><Store className="size-3.5 text-ink-3" /> {dropOffPoint(claim.dropOffPointId)?.name}</span>
         </div>
-        {failure && <p className="mt-2 text-[13px] text-danger">{failure}</p>}
+        {decision.armed === "cancel" && <p className="mt-2 rounded-sm bg-warn-soft px-2.5 py-1.5 text-[13px] text-warn">{cancelNote}</p>}
+        {decision.failure && <p className="mt-2 text-[13px] text-danger">{decision.failure}</p>}
       </div>
-      <div className="flex items-center gap-2 sm:flex-col sm:items-end">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end">
         <span className="text-xs text-ink-2">{t.admin.confirmedAgo(formatRelative(claim.createdAt))}</span>
-        <div className="flex gap-2">
-          {armed && !saving && <Button size="sm" variant="ghost" onClick={() => setArmed(false)}>{t.common.cancel}</Button>}
-          <Button size="sm" variant={armed ? "success" : "secondary"} loading={saving} onClick={confirm} icon={<Check className="size-4" />}>
-            {armed ? t.admin.confirmArmed : t.admin.confirm}
-          </Button>
+        <div className="flex flex-wrap gap-2">
+          {decision.armed && !decision.saving && <Button size="sm" variant="ghost" onClick={decision.disarm}>{t.admin.keepPending}</Button>}
+          {decision.armed !== "return" && (
+            <Button size="sm" variant={decision.armed === "cancel" ? "danger" : "ghost"} loading={decision.saving} onClick={() => decision.choose("cancel")} icon={<X className="size-4" />}>
+              {decision.armed === "cancel" ? t.admin.cancelPickupArmed : t.admin.cancelPickup}
+            </Button>
+          )}
+          {decision.armed !== "cancel" && (
+            <Button size="sm" variant={decision.armed === "return" ? "success" : "secondary"} loading={decision.saving} onClick={() => decision.choose("return")} icon={<Check className="size-4" />}>
+              {decision.armed === "return" ? t.admin.confirmArmed : t.admin.confirm}
+            </Button>
+          )}
         </div>
       </div>
     </li>

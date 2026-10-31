@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_PHOTOS, TITLE_MAX_LENGTH } from "../src/api/contract";
 import type { NewFoundItem, NewLostReport } from "../src/api/contract";
 import { MockLostFoundApi } from "../src/api/mock/mockClient";
 import { openMockDatabase } from "../src/api/mock/mockDatabase";
+import type { CardNumberMasker } from "../src/api/mock/cardNumberMask";
 
 function worldWithImages(imageKeys: string[]) {
   const now = () => new Date("2026-10-29T10:00:00+07:00");
@@ -59,5 +60,54 @@ describe("photos on notices", () => {
     const longTitle = "W".repeat(TITLE_MAX_LENGTH + 1);
     await expect(api.createFoundItem({ ...foundPhone, title: longTitle })).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(api.createLostReport({ ...lostPhone, title: longTitle })).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+});
+
+describe("card numbers in uploaded photos", () => {
+  const photo = new Blob(["original"], { type: "image/jpeg" });
+
+  class BlobReader {
+    result = "";
+    onload = () => {};
+    onerror = () => {};
+    readAsDataURL(blob: Blob) {
+      void blob.text().then((content) => {
+        this.result = `data:${blob.type};base64,${btoa(content)}`;
+        this.onload();
+      });
+    }
+  }
+
+  beforeEach(() => vi.stubGlobal("FileReader", BlobReader));
+  afterEach(() => vi.unstubAllGlobals());
+
+  function worldWithMasker(maskCardNumbers: CardNumberMasker) {
+    const now = () => new Date("2026-10-29T10:00:00+07:00");
+    const database = openMockDatabase(null, now);
+    let token: string | null = null;
+    const api = new MockLostFoundApi({ database, now, latencyMs: 0, getAccessToken: () => token, maskCardNumbers });
+    return { api, database, signIn: async () => { token = (await api.login("student@bumail.net", "student1234")).accessToken; } };
+  }
+
+  it("stores the masked photo and flags the item", async () => {
+    const { api, signIn } = worldWithMasker(async () => ({ photo: new Blob(["masked"], { type: "image/jpeg" }), masked: true }));
+    await signIn();
+    const { imageKey, imageUrl } = await api.uploadImage(photo);
+    expect(atob(imageUrl.split(",")[1])).toBe("masked");
+    expect(await api.createFoundItem({ ...foundPhone, imageKeys: [imageKey] })).toMatchObject({ cardNumberMasked: true, imageUrls: [imageUrl] });
+  });
+
+  it("does not flag a photo without a number", async () => {
+    const { api, signIn } = worldWithMasker(async (original) => ({ photo: original, masked: false }));
+    await signIn();
+    const { imageKey } = await api.uploadImage(photo);
+    expect(await api.createFoundItem({ ...foundPhone, imageKeys: [imageKey] })).toMatchObject({ cardNumberMasked: false });
+  });
+
+  it("never stores a photo it could not scan", async () => {
+    const { api, database, signIn } = worldWithMasker(async () => { throw new Error("OCR unavailable"); });
+    await signIn();
+    await expect(api.uploadImage(photo)).rejects.toMatchObject({ code: "SERVER" });
+    expect(database.db.images).toEqual({});
   });
 });

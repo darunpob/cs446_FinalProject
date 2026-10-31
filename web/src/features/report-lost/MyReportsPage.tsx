@@ -2,7 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router";
 import { CircleCheckBig, MailCheck, Megaphone, Plus, Ticket } from "lucide-react";
 import { api } from "../../api/client";
-import type { MyClaim } from "../../api/contract";
+import type { ClaimStatus, MyClaim } from "../../api/contract";
 import { ApiError } from "../../api/errors";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ButtonLink } from "../../design-system/Button";
@@ -20,6 +20,7 @@ function ClaimTicket({ claim }: { claim: MyClaim }) {
   const { t } = useI18n();
   const point = dropOffPoint(claim.dropOffPointId);
   const waiting = claim.status === "verified";
+  const statusLabel: Record<ClaimStatus, string> = { verified: t.myReports.claimWaiting, returned: t.myReports.claimReturned, cancelled: t.myReports.claimCancelled };
   return (
     <li className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
       <ItemVisual foundItem={{ category: claim.itemCategory, imageUrl: null, title: claim.itemTitle }} iconSize="size-6" className="size-14 shrink-0 rounded-sm" />
@@ -30,7 +31,7 @@ function ClaimTicket({ claim }: { claim: MyClaim }) {
       </div>
       <div className="flex flex-col items-end gap-1.5">
         <span className={`rounded-sm px-3 py-1 font-mono text-xl font-bold tracking-[0.2em] tabular-nums ${waiting ? "bg-ink text-surface" : "bg-surface-2 text-ink-3 line-through"}`}>{claim.pickupCode}</span>
-        <Badge tone={waiting ? "verify" : "neutral"}>{waiting ? t.myReports.claimWaiting : t.myReports.claimReturned}</Badge>
+        <Badge tone={waiting ? "verify" : "neutral"}>{statusLabel[claim.status]}</Badge>
       </div>
     </li>
   );

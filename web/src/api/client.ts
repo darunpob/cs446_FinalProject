@@ -10,6 +10,7 @@
  */
 import type { LostFoundApi } from "./contract";
 import { createHttpApi } from "./httpClient";
+import { maskCardNumbersInBrowser } from "./mock/cardNumberMask";
 import { MockLostFoundApi } from "./mock/mockClient";
 import { browserStorage, openMockDatabase } from "./mock/mockDatabase";
 import { createTestPaymentGateway } from "./mock/testPayments";
@@ -30,7 +31,7 @@ function createApi(): LostFoundApi {
     const database = openMockDatabase(browserStorage(), () => new Date());
     resetMockData = database.reset;
     testPaymentGateway = createTestPaymentGateway(database, () => new Date());
-    return new MockLostFoundApi({ database, getAccessToken: readAccessToken, googleClientId: GOOGLE_CLIENT_ID });
+    return new MockLostFoundApi({ database, getAccessToken: readAccessToken, googleClientId: GOOGLE_CLIENT_ID, maskCardNumbers: maskCardNumbersInBrowser });
   }
   return createHttpApi(API_BASE, readAccessToken);
 }

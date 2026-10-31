@@ -298,6 +298,7 @@ export interface Messages {
     claimsHint: string;
     claimWaiting: string;
     claimReturned: string;
+    claimCancelled: string;
     reportsTitle: string;
     emptyTitle: string;
     emptyDescription: string;
@@ -408,12 +409,24 @@ export interface Messages {
     metricAwaiting: string;
     metricWaiting: string;
     metricStale: (days: number) => string;
+    metricLostSearching: string;
     metricReturned: string;
     tabReturns: string;
     tabStale: string;
+    tabHistory: string;
     confirmedAgo: (relative: string) => string;
     confirmArmed: string;
     confirm: string;
+    cancelPickup: string;
+    cancelPickupArmed: string;
+    keepPending: string;
+    cancelNoticeNote: (feePercent: number) => string;
+    cancelItemNote: string;
+    historyEmptyTitle: string;
+    historyEmptyDescription: string;
+    historyReturned: string;
+    historyCancelled: string;
+    handledBy: (name: string) => string;
     emptyReturnsTitle: string;
     emptyReturnsDescription: string;
     lookupPlaceholder: string;
@@ -439,6 +452,10 @@ export interface Messages {
     tooManyAttempts: string;
     claimNotFound: string;
     alreadyReturned: string;
+    pickupAlreadyCancelled: string;
+    pickupRefused: string;
+    guardOnly: string;
+    photoScanFailed: string;
     passwordTooShort: (min: number) => string;
     emailTaken: string;
     wrongCurrentPassword: string;
@@ -763,6 +780,7 @@ export const th: Messages = {
     claimsHint: "แสดงรหัสนี้พร้อมบัตรนักศึกษาที่จุดรับฝาก",
     claimWaiting: "รอรับที่จุดรับฝาก",
     claimReturned: "รับของแล้ว",
+    claimCancelled: "ยกเลิกแล้ว",
     reportsTitle: "ประกาศของฉัน",
     emptyTitle: "ยังไม่มีประกาศของหาย",
     emptyDescription: "เมื่อแจ้งของหาย รายการจะขึ้นที่นี่พร้อมของที่อาจตรงกัน",
@@ -799,7 +817,7 @@ export const th: Messages = {
     emptyTitle: "ยังไม่มีของที่คุณแจ้งเจอ",
     emptyDescription: "เก็บของได้ใช่ไหม? ลองดูบอร์ดประกาศตามหาว่ามีใครกำลังหาอยู่",
     browseBoard: "ดูประกาศตามหา",
-    stage: { posted: "ขึ้นบอร์ดแล้ว รอเจ้าของ", sent: "ส่งให้เจ้าของประกาศแล้ว รอยืนยัน", confirmed: "เจ้าของยืนยันแล้ว รอมารับ", returned: "เจ้าของรับของแล้ว" },
+    stage: { posted: "ขึ้นบอร์ดแล้ว รอเจ้าของ", declined: "ไม่ใช่ของเจ้าของประกาศทำการส่งไปที่ของที่เจอแล้ว รอเจ้าของ", sent: "ส่งให้เจ้าของประกาศแล้ว รอยืนยัน", confirmed: "เจ้าของยืนยันแล้ว รอมารับ", returned: "เจ้าของรับของแล้ว" },
     answersNotice: (title) => `ตอบประกาศ “${title}”`,
     dropOffAt: (place) => `ฝากไว้ที่ ${place}`,
     rewardLine: (net) => `รางวัล ${net} บาท (หักค่าธรรมเนียมแล้ว)`,
@@ -873,12 +891,24 @@ export const th: Messages = {
     metricAwaiting: "รอเจ้าของมารับ",
     metricWaiting: "ของที่ยังไม่มีเจ้าของ",
     metricStale: (days) => `ค้างเกิน ${days} วัน`,
+    metricLostSearching: "ประกาศที่กำลังตามหา",
     metricReturned: "คืนแล้วเดือนนี้",
     tabReturns: "รอส่งคืน",
     tabStale: "ของค้างนาน",
+    tabHistory: "ประวัติการยืนยัน",
     confirmedAgo: (relative) => `ยืนยันเมื่อ ${relative}`,
     confirmArmed: "ตรวจบัตรแล้ว ยืนยัน",
     confirm: "ยืนยันคืนแล้ว",
+    cancelPickup: "ยกเลิก",
+    cancelPickupArmed: "ตรวจแล้ว ยกเลิกการคืน",
+    keepPending: "กลับ",
+    cancelNoticeNote: (feePercent) => `ผู้มารับแสดงความเป็นเจ้าของไม่ได้: ระบบจะลบประกาศนี้ ของกลับไปรอเจ้าของ และคืนเงินรางวัล (ถ้ามี) หักค่าธรรมเนียม ${feePercent}%`,
+    cancelItemNote: "ผู้มารับแสดงความเป็นเจ้าของไม่ได้: ของจะกลับไปรอเจ้าของเหมือนเดิม และรหัสรับของนี้ใช้ไม่ได้อีก",
+    historyEmptyTitle: "ยังไม่มีประวัติการยืนยัน",
+    historyEmptyDescription: "เมื่อกดยืนยันคืนหรือยกเลิกการคืน รายการจะขึ้นที่นี่",
+    historyReturned: "คืนแล้ว",
+    historyCancelled: "ยกเลิกการคืน",
+    handledBy: (name) => `โดย ${name}`,
     emptyReturnsTitle: "ไม่มีรายการรอส่งคืน",
     emptyReturnsDescription: "เมื่อมีคนตอบคำถามยืนยันถูก รายการจะขึ้นที่นี่พร้อมรหัสรับของ",
     lookupPlaceholder: "ค้นหารหัสรับของ / รหัสนักศึกษา",
@@ -904,6 +934,10 @@ export const th: Messages = {
     tooManyAttempts: "ตอบผิดครบจำนวนครั้งแล้ว กรุณาติดต่อ รปภ. ที่จุดรับฝากโดยตรง",
     claimNotFound: "ไม่พบคำขอรับคืนนี้",
     alreadyReturned: "รายการนี้ยืนยันการคืนไปแล้ว",
+    pickupAlreadyCancelled: "รายการนี้ถูกยกเลิกการคืนไปแล้ว",
+    pickupRefused: "การรับของชิ้นนี้ของคุณถูก รปภ. ยกเลิกแล้ว จึงยื่นซ้ำไม่ได้ ถ้าเป็นของคุณจริง ติดต่อ รปภ. ที่จุดฝากพร้อมหลักฐาน",
+    guardOnly: "ทำรายการนี้ได้เฉพาะ รปภ.",
+    photoScanFailed: "ตรวจเลขบัตรในรูปไม่สำเร็จ จึงยังไม่อัปโหลดรูป ลองใหม่อีกครั้ง หรือเอารูปออกก่อน",
     passwordTooShort: (min) => `รหัสผ่านต้องมีอย่างน้อย ${min} ตัวอักษร`,
     emailTaken: "อีเมลนี้มีบัญชีอยู่แล้ว ลองเข้าสู่ระบบแทน",
     wrongCurrentPassword: "รหัสผ่านปัจจุบันไม่ถูกต้อง",

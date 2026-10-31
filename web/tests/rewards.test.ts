@@ -179,7 +179,7 @@ describe("answering a notice", () => {
     await world.signInAs("friend@bumail.net", "friend1234");
     await expect(world.api.submitClaim({ ...claim, studentId: lostBag.studentId })).rejects.toMatchObject({ code: "FORBIDDEN" });
 
-    expect(await myFinds(world)).toEqual([expect.objectContaining({ stage: "posted", noticeTitle: null, reward: null })]);
+    expect(await myFinds(world)).toEqual([expect.objectContaining({ stage: "declined", noticeTitle: null, reward: null })]);
   });
 
   it("requires a signed-in finder, and treats an owner answering their own notice as a public post", async () => {
@@ -262,5 +262,121 @@ describe("deadlines keep cases from waiting on a person", () => {
     await world.signInAs("guard@bu.ac.th", "guard1234");
     expect((await world.api.listPendingReturns()).map((claim) => claim.itemId)).not.toContain(item.id);
     expect(await world.api.listFoundItems({})).not.toContainEqual(expect.objectContaining({ id: item.id }));
+  });
+});
+
+describe("the owner picks one of several finds", () => {
+  async function twoFinds(world: World) {
+    const reportId = await fileAndPay(world);
+    await registerFinder(world);
+    await world.signInAs("finder.k@bumail.net", "finder1234");
+    const picked = await world.api.createFoundItem({ ...foundBag, answersLostReportId: reportId });
+    const other = await world.api.createFoundItem({ ...foundBag, title: "กระเป๋าอีกใบ", answersLostReportId: reportId });
+    return { reportId, picked, other };
+  }
+
+  const stageOf = async (world: World, itemId: string) => (await world.api.listMyFinds()).find((find) => find.item.id === itemId)?.stage;
+
+  it("moves the finds not chosen to the public board as not the owner's", async () => {
+    const world = freshWorld();
+    const { reportId, picked, other } = await twoFinds(world);
+    await world.signInAs("student@bumail.net", "student1234");
+    await world.api.confirmSubmission(reportId, picked.id);
+
+    const board = (await world.api.listFoundItems({})).map((item) => item.id);
+    expect(board).toContain(other.id);
+    await world.signInAs("finder.k@bumail.net", "finder1234");
+    expect(await stageOf(world, other.id)).toBe("declined");
+    expect(await stageOf(world, picked.id)).toBe("confirmed");
+  });
+
+  it("labels a find the owner turned down the same way", async () => {
+    const world = freshWorld();
+    const { reportId, other } = await twoFinds(world);
+    await world.signInAs("student@bumail.net", "student1234");
+    await world.api.declineSubmission(reportId, other.id);
+    await world.signInAs("finder.k@bumail.net", "finder1234");
+    expect(await stageOf(world, other.id)).toBe("declined");
+  });
+
+  it("keeps a plain public find labelled as posted", async () => {
+    const world = freshWorld();
+    await registerFinder(world);
+    await world.signInAs("finder.k@bumail.net", "finder1234");
+    const plain = await world.api.createFoundItem(foundBag);
+    expect(await stageOf(world, plain.id)).toBe("posted");
+  });
+
+  it("does not call a find the owner never answered not theirs", async () => {
+    const world = freshWorld();
+    const { picked } = await twoFinds(world);
+    world.clock.current = new Date(world.clock.current.getTime() + 8 * DAY_MS);
+    expect(await stageOf(world, picked.id)).toBe("posted");
+  });
+});
+
+describe("a guard cancels a pickup the claimant could not back up", () => {
+  const signInGuard = (world: World) => world.signInAs("guard@bu.ac.th", "guard1234");
+
+  it("removes the notice, refunds minus the fee and frees the find", async () => {
+    const world = freshWorld();
+    const reportId = await fileAndPay(world);
+    await registerFinder(world);
+    await world.signInAs("finder.k@bumail.net", "finder1234");
+    const find = await world.api.createFoundItem({ ...foundBag, answersLostReportId: reportId });
+    await world.signInAs("student@bumail.net", "student1234");
+    const pickup = await world.api.confirmSubmission(reportId, find.id);
+
+    await signInGuard(world);
+    const cancelled = await world.api.cancelPickup(pickup.claimId);
+    expect(cancelled).toMatchObject({ status: "cancelled", fromNotice: true, handledBy: expect.any(String) });
+    expect((await world.api.listFoundItems({})).find((item) => item.id === find.id)).toMatchObject({ status: "available" });
+    expect((await world.api.listOpenLostReports({ history: true })).map((notice) => notice.id)).not.toContain(reportId);
+    expect((await world.api.listPendingReturns()).map((claim) => claim.id)).not.toContain(pickup.claimId);
+
+    await world.signInAs("student@bumail.net", "student1234");
+    const [report] = (await world.api.listMyLostReports()).reports.filter((candidate) => candidate.id === reportId);
+    expect(report).toMatchObject({ status: "cancelled", reward: { status: "refunded", refundAmount: 90 } });
+    await expect(world.api.submitClaim({ itemId: find.id, answer: "โดราเอมอน", claimantName: "A", studentId: "1650000000", contact: "x" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("puts a public item back and refuses the same claimant a second code", async () => {
+    const world = freshWorld();
+    await world.signInAs("student@bumail.net", "student1234");
+    const draft = { itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" };
+    const outcome = await world.api.submitClaim(draft);
+    if (outcome.status !== "verified") throw new Error("expected a verified claim");
+
+    await signInGuard(world);
+    await world.api.cancelPickup(outcome.claimId);
+    await expect(world.api.cancelPickup(outcome.claimId)).rejects.toMatchObject({ code: "CONFLICT" });
+    await expect(world.api.confirmReturn(outcome.claimId)).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await world.api.getFoundItem("itm-1003")).status).toBe("available");
+
+    await world.signInAs("student@bumail.net", "student1234");
+    await expect(world.api.submitClaim(draft)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await signInGuard(world);
+    await expect(world.api.submitClaim({ ...draft, studentId: "1650000001" })).resolves.toMatchObject({ status: "verified" });
+  });
+
+  it("lists confirmed and cancelled pickups for guards only, latest first", async () => {
+    const world = freshWorld();
+    await world.signInAs("student@bumail.net", "student1234");
+    const first = await world.api.submitClaim({ itemId: "itm-1003", answer: "Honda", claimantName: "B", studentId: "1650000000", contact: "line" });
+    if (first.status !== "verified") throw new Error("expected a verified claim");
+    await expect(world.api.listClaimHistory()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(world.api.cancelPickup(first.claimId)).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    await signInGuard(world);
+    const other = (await world.api.listPendingReturns()).find((claim) => claim.id !== first.claimId);
+    if (!other) throw new Error("expected a seeded pending return");
+    await world.api.confirmReturn(other.id);
+    world.clock.current = new Date(world.clock.current.getTime() + 60_000);
+    await world.api.cancelPickup(first.claimId);
+
+    const history = await world.api.listClaimHistory();
+    expect(history.map((claim) => claim.status)).toEqual(["cancelled", "returned"]);
+    expect(history[1].handledBy).toBeTruthy();
+    expect(history[0]).not.toHaveProperty("ownerEmail");
   });
 });

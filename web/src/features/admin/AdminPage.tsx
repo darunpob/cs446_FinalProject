@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Hourglass, PackageCheck, PackageSearch, TimerReset } from "lucide-react";
+import { Hourglass, Megaphone, PackageCheck, PackageSearch, TimerReset } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../../api/client";
 import { useApiQuery } from "../../api/useApiQuery";
@@ -7,15 +7,16 @@ import { PageHeading } from "../../design-system/FormSection";
 import { useI18n } from "../../i18n/useI18n";
 import { STALE_AFTER_DAYS } from "../catalog/categories";
 import { useAuth } from "../auth/AuthProvider";
+import { ClaimHistory } from "./ClaimHistory";
 import { PendingPayouts } from "./PendingPayouts";
 import { PendingReturns } from "./PendingReturns";
 import { StaleItems } from "./StaleItems";
 
-type AdminTab = "returns" | "payouts" | "stale";
+type AdminTab = "returns" | "payouts" | "stale" | "history";
 
-function Metric({ icon: Icon, label, value, stock }: { icon: LucideIcon; label: string; value: number | null; stock: string }) {
+function Metric({ icon: Icon, label, value, stock, className = "" }: { icon: LucideIcon; label: string; value: number | null; stock: string; className?: string }) {
   return (
-    <div className="paper rounded-sm shadow-paper">
+    <div className={`paper rounded-sm shadow-paper ${className}`}>
       <div className={`flex h-8 items-center px-3 text-stock-ink ${stock}`}>
         <Icon className="size-4" aria-hidden />
       </div>
@@ -45,36 +46,43 @@ export function AdminPage() {
   const pending = useApiQuery(() => api.listPendingReturns(), []);
   const stale = useApiQuery(() => api.listStaleItems(STALE_AFTER_DAYS), []);
   const payouts = useApiQuery(() => api.listPendingPayouts(), []);
+  const history = useApiQuery(() => api.listClaimHistory(), []);
 
   const statValues = stats.state.phase === "ready" ? stats.state.value : null;
   const claims = pending.state.phase === "ready" ? pending.state.value : null;
   const staleItems = stale.state.phase === "ready" ? stale.state.value : null;
   const payoutList = payouts.state.phase === "ready" ? payouts.state.value : null;
+  const closedClaims = history.state.phase === "ready" ? history.state.value : null;
 
   const handleReturned = () => {
     pending.reload();
     stats.reload();
     payouts.reload();
+    stale.reload();
+    history.reload();
   };
 
   return (
     <div>
       <PageHeading stock="guard" title={t.admin.greeting(session?.user.displayName ?? "")} />
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
         <Metric icon={Hourglass} label={t.admin.metricAwaiting} value={statValues?.awaitingPickup ?? null} stock="bg-stock-sky" />
         <Metric icon={PackageSearch} label={t.admin.metricWaiting} value={statValues?.waiting ?? null} stock="bg-stock-yellow" />
         <Metric icon={TimerReset} label={t.admin.metricStale(STALE_AFTER_DAYS)} value={staleItems?.length ?? null} stock="bg-stock-orange" />
-        <Metric icon={PackageCheck} label={t.admin.metricReturned} value={statValues?.returnedThisMonth ?? null} stock="bg-stock-mint" />
+        <Metric icon={Megaphone} label={t.admin.metricLostSearching} value={statValues?.lostSearching ?? null} stock="bg-stock-pink" />
+        <Metric icon={PackageCheck} label={t.admin.metricReturned} value={statValues?.returnedThisMonth ?? null} stock="bg-stock-mint" className="col-span-2 sm:col-span-1" />
       </div>
       <div role="tablist" className="mt-10 flex gap-1 overflow-x-auto border-b-2 border-felt-line [scrollbar-width:none]">
         <TabButton active={tab === "returns"} count={claims?.length ?? null} label={t.admin.tabReturns} onClick={() => setTab("returns")} />
         <TabButton active={tab === "payouts"} count={payoutList?.length ?? null} label={t.reward.tabPayouts} onClick={() => setTab("payouts")} />
         <TabButton active={tab === "stale"} count={staleItems?.length ?? null} label={t.admin.tabStale} onClick={() => setTab("stale")} />
+        <TabButton active={tab === "history"} count={closedClaims?.length ?? null} label={t.admin.tabHistory} onClick={() => setTab("history")} />
       </div>
       <div className="pt-6" role="tabpanel">
         {tab === "returns" && <PendingReturns claims={claims} failure={pending.state.phase === "failed" ? pending.state.message : null} onRetry={pending.reload} onReturned={handleReturned} />}
         {tab === "payouts" && <PendingPayouts payouts={payoutList} failure={payouts.state.phase === "failed" ? payouts.state.message : null} onRetry={payouts.reload} onPaid={payouts.reload} />}
         {tab === "stale" && <StaleItems staleItems={staleItems} failure={stale.state.phase === "failed" ? stale.state.message : null} onRetry={stale.reload} />}
+        {tab === "history" && <ClaimHistory claims={closedClaims} failure={history.state.phase === "failed" ? history.state.message : null} onRetry={history.reload} />}
       </div>
     </div>
   );

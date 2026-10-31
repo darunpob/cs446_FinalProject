@@ -247,10 +247,11 @@ export interface MyLostReports {
 }
 
 /**
- * How far a find has travelled: on the public board ("posted"), sent privately to a notice owner ("sent"),
- * confirmed by the owner and waiting at the drop-off point ("confirmed"), or handed over ("returned").
+ * How far a find has travelled: on the public board ("posted"), sent privately to a notice owner ("sent"), moved to the
+ * board because it turned out not to be that owner's ("declined"), confirmed by the owner and waiting at the drop-off
+ * point ("confirmed"), or handed over ("returned").
  */
-export type FindStage = "posted" | "sent" | "confirmed" | "returned";
+export type FindStage = "posted" | "sent" | "declined" | "confirmed" | "returned";
 
 /** "promised" until the owner picks the item up; "forfeited" when the notice closed without this find being returned. */
 export type FinderRewardStatus = "promised" | "pending_payout" | "paid_out" | "forfeited";
@@ -293,7 +294,8 @@ export type ClaimOutcome =
   | { status: "verified"; claimId: string; pickupCode: string; dropOffPointId: string }
   | { status: "rejected"; attemptsLeft: number };
 
-export type ClaimStatus = "verified" | "returned";
+/** "cancelled": the claimant could not prove ownership in front of the guard, so the item waits for its owner again. */
+export type ClaimStatus = "verified" | "returned" | "cancelled";
 
 export interface Claim {
   id: string;
@@ -308,6 +310,11 @@ export interface Claim {
   status: ClaimStatus;
   createdAt: string;
   returnedAt: string | null;
+  cancelledAt: string | null;
+  /** Display name of the guard who confirmed or cancelled the return. */
+  handledBy: string | null;
+  /** The claim came from a lost notice, so cancelling it also closes the notice and refunds its reward. */
+  fromNotice: boolean;
 }
 
 export interface StaleItem extends FoundItem {
@@ -390,6 +397,10 @@ export interface LostFoundApi {
   submitClaim(draft: NewClaim): Promise<ClaimOutcome>;
   listPendingReturns(): Promise<Claim[]>;
   confirmReturn(claimId: string): Promise<Claim>;
+  /** Guard only. Puts the item back on the board; a claim from a notice also closes the notice and refunds minus the fee. */
+  cancelPickup(claimId: string): Promise<Claim>;
+  /** Guard only. Returns and cancelled pickups, latest first. */
+  listClaimHistory(): Promise<Claim[]>;
   listStaleItems(minDays: number): Promise<StaleItem[]>;
   login(email: string, password: string): Promise<Session>;
   /** Exchanges a Google ID token for a session; only verified @bumail.net / @bu.ac.th accounts get one. */

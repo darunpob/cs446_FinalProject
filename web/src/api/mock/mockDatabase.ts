@@ -14,6 +14,8 @@ export interface StoredFoundItem extends FoundItem {
   declinedByOwner?: boolean;
   /** When an unanswered find sent to a notice goes public; null for finds posted publicly. */
   answerDueAt?: string | null;
+  /** The owner never answered: declinedByOwner was set by the deadline, not because they said it is not theirs. */
+  answerLapsed?: boolean;
 }
 
 export interface StoredReward extends Reward {
@@ -33,7 +35,7 @@ export interface StoredLostReport extends NewLostReport {
   reward: StoredReward | null;
 }
 
-export interface StoredClaim extends Claim {
+export interface StoredClaim extends Omit<Claim, "fromNotice"> {
   /** Account email of a signed-in claimant; null for anonymous claims. */
   ownerEmail: string | null;
   lostReportId: string | null;
@@ -59,6 +61,8 @@ export interface MockDatabase {
   claims: StoredClaim[];
   failedAttempts: Record<string, number>;
   images: Record<string, string>;
+  /** Image keys of photos a card number was blacked out of. */
+  maskedImageKeys: string[];
   accounts: StoredAccount[];
   outbox: StoredNotification[];
 }
@@ -143,6 +147,8 @@ function seedClaims(now: Date, foundItems: StoredFoundItem[]): StoredClaim[] {
       status: "verified" as const,
       createdAt: new Date(now.getTime() - seed.hoursAgo * HOUR_MS).toISOString(),
       returnedAt: null,
+      cancelledAt: null,
+      handledBy: null,
       ownerEmail: seed.ownerEmail ?? null,
       lostReportId: seed.lostReportId ?? null,
     }];
@@ -162,6 +168,7 @@ export function seedDatabase(now: Date): MockDatabase {
     claims: seedClaims(now, foundItems),
     failedAttempts: {},
     images: {},
+    maskedImageKeys: [],
     accounts: seedAccounts(),
     outbox: [],
   };
@@ -201,7 +208,7 @@ function upgradeOwnership(db: MockDatabase): void {
     imageKeys: report.imageKeys ?? [],
     imageUrls: report.imageUrls ?? [],
   }));
-  db.claims = db.claims.map((claim) => ({ ...claim, ownerEmail: claim.ownerEmail ?? null, lostReportId: claim.lostReportId ?? null }));
+  db.claims = db.claims.map((claim) => ({ ...claim, ownerEmail: claim.ownerEmail ?? null, lostReportId: claim.lostReportId ?? null, cancelledAt: claim.cancelledAt ?? null, handledBy: claim.handledBy ?? null }));
   db.foundItems = db.foundItems.map((stored) => ({
     ...stored,
     finderEmail: stored.finderEmail ?? null,
@@ -209,6 +216,7 @@ function upgradeOwnership(db: MockDatabase): void {
     cardNumberMasked: stored.cardNumberMasked ?? false,
   }));
   db.outbox = db.outbox ?? [];
+  db.maskedImageKeys = db.maskedImageKeys ?? [];
 }
 
 function loadDatabase(storage: Storage | null): MockDatabase | null {

@@ -1,4 +1,12 @@
-# BU Lost & Found — API Contract (v10)
+# BU Lost & Found — API Contract (v11)
+
+> **มีอะไรใหม่ใน v11: รปภ. ยกเลิกการคืนได้ + ประวัติการยืนยัน (ฝั่ง backend ต้องทำ)**
+> 1. **endpoint ใหม่** `POST /api/admin/claims/{claimId}/cancel` และ `GET /api/admin/claims/history` (เฉพาะ guard)
+> 2. `Claim` เพิ่ม `cancelledAt`, `handledBy`, `fromNotice` · `status` เพิ่มค่า `cancelled`
+> 3. `POST /api/lost-reports/{id}/submissions/{itemId}/confirm`: ของชิ้นอื่นที่ยังรอตอบของประกาศนี้ตั้ง `declined_by_owner = 1` ทันที → ขึ้นบอร์ดสาธารณะ
+> 4. `MyFind.stage` เพิ่ม `declined` (ไม่ใช่ของเจ้าของประกาศ ย้ายไปของที่เจอแล้ว)
+> 5. `POST /api/items/{id}/claims`: คนที่ถูก รปภ. ยกเลิก (`owner_email` หรือ `student_id` ตรง) claim ของชิ้นนั้นอีกไม่ได้ → `403`
+> 6. schema: `claims.status` เพิ่ม `cancelled` + คอลัมน์ `cancelled_at`, `handled_by` · `found_items.answer_lapsed` (แยกของที่เจ้าของไม่ตอบ ออกจากของที่เจ้าของปฏิเสธ)
 
 > **มีอะไรใหม่ใน v10: ไม่มีเคสที่ค้างรอคนตัดสิน (ฝั่ง backend ต้องทำ)**
 > 1. **ของที่เจ้าของไม่ตอบใน 7 วัน** (`SUBMISSION_ANSWER_DAYS`):
@@ -161,6 +169,8 @@ graph LR
 | POST | `/api/items/{id}/claims` | ปุ่ม "นี่ของฉัน" | 🔒 ทุก role (v9) |
 | GET | `/api/admin/claims?status=verified` | หน้า รปภ. แท็บ "รอส่งคืน" | 🔒 guard |
 | POST | `/api/admin/claims/{claimId}/return` | หน้า รปภ. ปุ่ม "ยืนยันคืนแล้ว" | 🔒 guard |
+| POST | `/api/admin/claims/{claimId}/cancel` | หน้า รปภ. ปุ่ม "ยกเลิก" (v11) | 🔒 guard |
+| GET | `/api/admin/claims/history` | หน้า รปภ. แท็บ "ประวัติการยืนยัน" (v11) | 🔒 guard |
 | GET | `/api/admin/items/stale?days=30` | หน้า รปภ. แท็บ "ของค้างนาน" | 🔒 guard |
 | POST | `/api/lost-reports/{id}/reward/checkout` | ปุ่ม "ชำระรางวัล" | 🔒 เจ้าของรายงาน |
 | GET | `/api/admin/payouts?status=pending_payout` | หน้า รปภ. แท็บ "รอโอนรางวัล" | 🔒 guard |
@@ -338,9 +348,12 @@ interface Claim {
   contact: string;
   dropOffPointId: string;
   pickupCode: string;            // 6 ตัว จาก A-Z และ 2-9 (ไม่มี I, O, 0, 1)
-  status: "verified" | "returned";
+  status: "verified" | "returned" | "cancelled";   // v11: cancelled = รปภ. ยกเลิก เพราะแสดงความเป็นเจ้าของไม่ได้
   createdAt: string;
   returnedAt: string | null;
+  cancelledAt: string | null;     // v11
+  handledBy: string | null;       // v11: ชื่อ รปภ. ที่กดยืนยันหรือยกเลิก
+  fromNotice: boolean;            // v11: claim นี้มาจากประกาศ (ยกเลิกแล้วประกาศถูกปิดและคืนเงิน)
 }
 
 type LostReportStatus = "searching" | "found" | "cancelled" | "expired";   // DB: lost_reports.status · v9 เพิ่ม expired
@@ -369,7 +382,7 @@ interface MyClaim {               // claim ที่ทำตอนล็อก�
   itemCategory: CategoryId;
   pickupCode: string;
   dropOffPointId: string;
-  status: "verified" | "returned";
+  status: "verified" | "returned" | "cancelled";
   createdAt: string;
 }
 
@@ -400,7 +413,7 @@ interface Reward {                // อยู่ใน MyLostReport.reward แ�
 
 interface MyFind {                // v9 · GET /api/items/mine (ฉันเป็นคนเก็บได้) — แทน EarnedReward
   item: FoundItem;
-  stage: "posted" | "sent" | "confirmed" | "returned";   // บนบอร์ด / ส่งให้เจ้าของแล้ว / เจ้าของยืนยัน รอรับ / คืนแล้ว
+  stage: "posted" | "sent" | "declined" | "confirmed" | "returned";   // บนบอร์ด / ส่งให้เจ้าของแล้ว / ไม่ใช่ของเจ้าของประกาศ ย้ายขึ้นบอร์ด / เจ้าของยืนยัน รอรับ / คืนแล้ว
   noticeTitle: string | null;     // ชื่อประกาศที่ตอบ (null ถ้าไม่ได้ตอบ หรือเจ้าของ decline)
   reward: { netAmount: number; status: "promised" | "pending_payout" | "paid_out" | "forfeited" } | null;
 }
@@ -563,6 +576,7 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 `found_items WHERE finder_email = ? ORDER BY reported_at DESC`
 - `stage`:
   - `returned` / `confirmed` ตาม `status` ของของ
+  - `declined` (v11) ถ้า `declined_by_owner = 1` และ `answer_lapsed = 0`
   - `sent` ถ้าเป็นของส่วนตัวที่ประกาศยัง `searching`
   - นอกนั้น `posted`
 - `reward` (เฉพาะของที่ตอบประกาศและไม่ถูก decline, รางวัลไม่ใช่ `awaiting_payment` / `voided`):
@@ -625,6 +639,17 @@ WHERE id = ? AND owner_email = ? AND status = 'searching'
 transaction: claim → `returned` + `returned_at = now`, ของ → `returned` + `returned_at`, lost report ที่เกี่ยวข้อง (`claims.lost_report_id`, ถ้ามีและยัง `searching`) → `status = 'found'`, `closed_at = now` · `409` ถ้าคืนไปแล้ว
 
 **ปล่อยรางวัล (ใน transaction เดียวกัน):** ถ้ารายงานนั้นมีรางวัล `held` และ `found_items.finder_email` ไม่ว่างและ ≠ `lost_reports.owner_email` → `rewards.status = 'pending_payout'`, `finder_email`, `settled_at = now` · ไม่เข้าเงื่อนไข → refund (หักค่าธรรมเนียม) แล้ว `refunded` · รางวัล `awaiting_payment` → `voided` · v9: ของส่วนตัวอื่นที่ยังรอตอบของประกาศนี้จะขึ้นบอร์ดสาธารณะเอง (ประกาศไม่ใช่ `searching` แล้ว)
+
+### `POST /api/admin/claims/{claimId}/cancel` 🔒 guard (v11) → `200 Claim`
+ผู้มารับตอบคำถามถูก แต่แสดงความเป็นเจ้าของต่อหน้า รปภ. ไม่ได้ · transaction: claim → `cancelled` + `cancelled_at = now` + `handled_by`, ของ → `available`
+- ถ้า claim ผูกประกาศ (`lost_report_id`, ยัง `searching`): ของและของอื่นที่รอตอบ → `declined_by_owner = 1`, ประกาศ → `cancelled` + `closed_at = now`, รางวัล `held` → refund หักค่าธรรมเนียม แล้ว `refunded`, `awaiting_payment` → `voided`
+- `409` ถ้าคืนหรือยกเลิกไปแล้ว · `403` ถ้าไม่ใช่ guard
+
+### `GET /api/admin/claims/history` 🔒 guard (v11)
+```json
+{ "claims": [Claim, ...] }
+```
+claim สถานะ `returned` และ `cancelled` เรียงจาก `returned_at` / `cancelled_at` ล่าสุด
 
 ### `GET /api/admin/payouts?status=pending_payout` 🔒 guard
 ```json
@@ -755,9 +780,11 @@ CREATE TABLE claims (
   contact        VARCHAR(200) NOT NULL,
   pickup_code    CHAR(6)      NOT NULL,
   owner_email    VARCHAR(254) NULL,          -- จาก JWT ถ้าเคลมตอนล็อกอินอยู่
-  status         ENUM('verified', 'returned') NOT NULL DEFAULT 'verified',
+  status         ENUM('verified', 'returned', 'cancelled') NOT NULL DEFAULT 'verified',
   created_at     DATETIME     NOT NULL,
   returned_at    DATETIME     NULL,
+  cancelled_at   DATETIME     NULL,
+  handled_by     VARCHAR(100) NULL,
   INDEX idx_claims_status (status),
   INDEX idx_claims_owner (owner_email, created_at)
 );
@@ -893,4 +920,4 @@ npm run build:aws   # ได้ dist/ ที่เรียก API จริง 
 aws s3 sync dist/ s3://<web-bucket>/ --delete
 # เปิด http://<web-bucket>.s3-website-us-east-1.amazonaws.com
 ```
-ระหว่างพัฒนา หน้าเว็บใช้ mock ที่ทำตามเอกสารนี้ (ยกเว้นการส่งอีเมล/LINE และ Rekognition ที่จำลองด้วย label ตามหมวด) ดูพฤติกรรมอ้างอิงได้ที่ `web/src/api/mock/mockClient.ts`
+ระหว่างพัฒนา หน้าเว็บใช้ mock ที่ทำตามเอกสารนี้ (ยกเว้นการส่งอีเมล/LINE และ Rekognition ที่จำลองด้วย label ตามหมวด) ดูพฤติกรรมอ้างอิงได้ที่ `web/src/api/mock/mockClient.ts` · การปิดเลขบัตรใน mock ใช้ tesseract.js ในเบราว์เซอร์แทน `DetectText` (`web/src/api/mock/cardNumberMask.ts`) ทำกับรูปทุกแบบตอนอัปโหลด ถ้าสแกนไม่สำเร็จจะแจ้ง error และไม่เก็บรูป

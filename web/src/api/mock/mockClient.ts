@@ -30,6 +30,7 @@ import type {
 } from "../contract";
 import { DESCRIPTION_MAX_LENGTH, LOST_REPORT_EXPIRY_DAYS, MAX_PHOTOS, PICKUP_HOLD_DAYS, SUBMISSION_ANSWER_DAYS, MIN_PASSWORD_LENGTH, REWARD_MAX_BAHT, REWARD_MIN_BAHT, TITLE_MAX_LENGTH, isUniversityEmail } from "../contract";
 import { campusDirectoryFixture, simulatedAiLabels } from "../../fixtures/mockData";
+import type { CardNumberMasker, MaskedPhoto } from "./cardNumberMask";
 import { MAX_CLAIM_ATTEMPTS, MAX_ITEM_ATTEMPTS, answerMatches, daysBetween, findPossibleMatches, generatePickupCode } from "./claimRules";
 import type { RandomFill } from "./claimRules";
 import { readGoogleIdentity } from "./googleIdToken";
@@ -47,16 +48,18 @@ export interface MockApiOptions {
   getAccessToken?: () => string | null;
   /** OAuth client ID the Google ID token must be issued for; empty disables Google sign-in. */
   googleClientId?: string;
+  /** Blacks out card numbers on upload; without one, photos are stored as they are. */
+  maskCardNumbers?: CardNumberMasker;
 }
 
 function toPublicItem(stored: StoredFoundItem): FoundItem {
-  const { verificationAnswer: _hiddenAnswer, returnedAt: _returnedAt, finderEmail: _finderEmail, answersLostReportId: _answers, declinedByOwner: _declined, ...publicFields } = stored;
+  const { verificationAnswer: _hiddenAnswer, returnedAt: _returnedAt, finderEmail: _finderEmail, answersLostReportId: _answers, declinedByOwner: _declined, answerLapsed: _lapsed, ...publicFields } = stored;
   return publicFields;
 }
 
 function toPublicClaim(stored: StoredClaim): Claim {
-  const { ownerEmail: _ownerEmail, lostReportId: _lostReportId, ...claim } = stored;
-  return claim;
+  const { ownerEmail: _ownerEmail, lostReportId, ...claim } = stored;
+  return { ...claim, fromNotice: lostReportId !== null };
 }
 
 function toMyClaim(stored: StoredClaim): MyClaim {
@@ -164,6 +167,7 @@ export class MockLostFoundApi implements LostFoundApi {
   private readonly randomBytes: RandomFill;
   private readonly getAccessToken: () => string | null;
   private readonly googleClientId: string;
+  private readonly maskCardNumbers: CardNumberMasker;
   private idCounter = Date.now() % 100_000;
 
   constructor(options: MockApiOptions) {
@@ -173,6 +177,7 @@ export class MockLostFoundApi implements LostFoundApi {
     this.randomBytes = options.randomBytes ?? ((bytes) => crypto.getRandomValues(bytes));
     this.getAccessToken = options.getAccessToken ?? (() => null);
     this.googleClientId = options.googleClientId ?? "";
+    this.maskCardNumbers = options.maskCardNumbers ?? (async (photo) => ({ photo, masked: false }));
   }
 
   private get db() {
@@ -272,10 +277,22 @@ export class MockLostFoundApi implements LostFoundApi {
     return this.settle(() => toPublicItem(this.findVisible(itemId)));
   }
 
+  /** A photo that could not be scanned is never stored: publishing it could expose a card number. */
+  private async scanPhoto(photo: Blob): Promise<MaskedPhoto> {
+    try {
+      return await this.maskCardNumbers(photo);
+    } catch (scanError) {
+      console.error("Card number scan failed", scanError);
+      throw new ApiError("SERVER", messages().errors.photoScanFailed);
+    }
+  }
+
   async uploadImage(photo: Blob) {
-    const imageUrl = await readBlobAsDataUrl(photo);
+    const scanned = await this.scanPhoto(photo);
+    const imageUrl = await readBlobAsDataUrl(scanned.photo);
     const imageKey = `uploads/${this.nextId("img")}.jpg`;
     this.db.images[imageKey] = imageUrl;
+    if (scanned.masked) this.db.maskedImageKeys.push(imageKey);
     return this.settle(() => ({ imageKey, imageUrl }));
   }
 
@@ -300,7 +317,7 @@ export class MockLostFoundApi implements LostFoundApi {
         reportedAt: this.now().toISOString(),
         imageUrl: imageUrls[0] ?? null,
         imageUrls,
-        cardNumberMasked: false,
+        cardNumberMasked: draft.imageKeys.some((imageKey) => this.db.maskedImageKeys.includes(imageKey)),
         status: "available",
         verificationQuestion: draft.verificationQuestion.trim(),
         verificationAnswer: draft.verificationAnswer.trim(),
@@ -396,7 +413,10 @@ export class MockLostFoundApi implements LostFoundApi {
     const lapsed = this.db.claims.filter((claim) => claim.lostReportId && claim.status === "verified" && daysAfter(claim.createdAt, PICKUP_HOLD_DAYS) <= nowIso);
     lapsed.forEach((claim) => this.releaseLapsedPickup(claim));
     const ignored = this.db.foundItems.filter((stored) => stored.status === "available" && this.isHiddenSubmission(stored) && this.answerDeadline(stored) <= nowIso);
-    ignored.forEach((stored) => { stored.declinedByOwner = true; });
+    ignored.forEach((stored) => {
+      stored.declinedByOwner = true;
+      stored.answerLapsed = true;
+    });
     if (lapsed.length + ignored.length + this.expireOldReports() > 0) this.database.persist();
   }
 
@@ -509,8 +529,16 @@ export class MockLostFoundApi implements LostFoundApi {
       if (this.noticeProgress(report) === "awaiting_pickup") throw new ApiError("CONFLICT", messages().errors.submissionAlreadyConfirmed, 409);
       const contact = report.contact.phone || report.contact.lineId || owner.email;
       const claimant = { claimantName: report.contact.name || owner.displayName, studentId: report.studentId || owner.studentId, contact };
-      return toMyClaim(this.recordVerifiedClaim(stored, claimant, report.id));
+      const claim = this.recordVerifiedClaim(stored, claimant, report.id);
+      this.declineOpenSubmissions(report);
+      this.database.persist();
+      return toMyClaim(claim);
     });
+  }
+
+  /** Once the owner has settled on a find, the others sent to the notice are not theirs: they go to the public board. */
+  private declineOpenSubmissions(report: StoredLostReport): void {
+    this.db.foundItems.filter((stored) => isOpenSubmission(stored, report)).forEach((stored) => { stored.declinedByOwner = true; });
   }
 
   declineSubmission(reportId: string, itemId: string) {
@@ -523,6 +551,7 @@ export class MockLostFoundApi implements LostFoundApi {
   private findStage(stored: StoredFoundItem, report: StoredLostReport | undefined): FindStage {
     if (stored.status === "returned") return "returned";
     if (stored.status === "claimed") return "confirmed";
+    if (stored.declinedByOwner && !stored.answerLapsed) return "declined";
     return report?.status === "searching" ? "sent" : "posted";
   }
 
@@ -573,11 +602,18 @@ export class MockLostFoundApi implements LostFoundApi {
     if (claimant.email === report.ownerEmail || sameStudent) throw new ApiError("FORBIDDEN", messages().errors.declinedOwnFind, 403);
   }
 
+  /** Whoever failed the guard's check already knows the answer, so it must not buy them a second pickup code. */
+  private requireNoCancelledPickup(stored: StoredFoundItem, claimant: StoredAccount, studentId: string): void {
+    const refused = this.db.claims.some((claim) => claim.itemId === stored.id && claim.status === "cancelled" && (claim.ownerEmail === claimant.email || claim.studentId === studentId.trim()));
+    if (refused) throw new ApiError("FORBIDDEN", messages().errors.pickupRefused, 403);
+  }
+
   private evaluateClaim(draft: NewClaim): ClaimOutcome {
     const claimant = this.requireSignedIn();
     const stored = this.findVisible(draft.itemId);
     if (stored.status !== "available") throw new ApiError("CONFLICT", messages().errors.alreadyClaimed, 409);
     this.requireNotDeclinedOwner(stored, claimant, draft.studentId);
+    this.requireNoCancelledPickup(stored, claimant, draft.studentId);
     const attemptKey = `${draft.itemId}:${draft.studentId.trim()}`;
     const itemKey = `${draft.itemId}:*`;
     const usedAttempts = this.db.failedAttempts[attemptKey] ?? 0;
@@ -611,6 +647,8 @@ export class MockLostFoundApi implements LostFoundApi {
       status: "verified",
       createdAt: this.now().toISOString(),
       returnedAt: null,
+      cancelledAt: null,
+      handledBy: null,
       ownerEmail: this.signedInAccount()?.email ?? null,
       lostReportId,
     };
@@ -623,9 +661,29 @@ export class MockLostFoundApi implements LostFoundApi {
   private closeLinkedReport(claim: StoredClaim, returnedItem: StoredFoundItem): void {
     const report = this.db.lostReports.find((candidate) => candidate.id === claim.lostReportId);
     if (report?.status !== "searching") return;
+    this.declineOpenSubmissions(report);
     report.status = "found";
     report.closedAt = this.now().toISOString();
     releaseOnReturn(report, returnedItem, this.now());
+  }
+
+  /** The notice's owner could not prove the find is theirs: the notice ends and its reward goes back minus the fee. */
+  private withdrawLinkedReport(claim: StoredClaim, stored: StoredFoundItem): void {
+    const report = this.db.lostReports.find((candidate) => candidate.id === claim.lostReportId);
+    if (report?.status !== "searching") return;
+    stored.declinedByOwner = true;
+    this.declineOpenSubmissions(report);
+    report.status = "cancelled";
+    report.closedAt = this.now().toISOString();
+    settleWithoutFinder(report.reward, this.now());
+  }
+
+  private findPendingClaim(claimId: string): StoredClaim {
+    const claim = this.db.claims.find((candidate) => candidate.id === claimId);
+    if (!claim) throw new ApiError("NOT_FOUND", messages().errors.claimNotFound, 404);
+    if (claim.status === "returned") throw new ApiError("CONFLICT", messages().errors.alreadyReturned, 409);
+    if (claim.status === "cancelled") throw new ApiError("CONFLICT", messages().errors.pickupAlreadyCancelled, 409);
+    return claim;
   }
 
   listPendingReturns() {
@@ -637,18 +695,43 @@ export class MockLostFoundApi implements LostFoundApi {
 
   confirmReturn(claimId: string) {
     return this.settle(() => {
-      const claim = this.db.claims.find((candidate) => candidate.id === claimId);
-      if (!claim) throw new ApiError("NOT_FOUND", messages().errors.claimNotFound, 404);
-      if (claim.status === "returned") throw new ApiError("CONFLICT", messages().errors.alreadyReturned, 409);
+      const claim = this.findPendingClaim(claimId);
       const returnedAt = this.now().toISOString();
       claim.status = "returned";
       claim.returnedAt = returnedAt;
+      claim.handledBy = this.signedInAccount()?.displayName ?? null;
       const stored = this.findStored(claim.itemId);
       stored.status = "returned";
       stored.returnedAt = returnedAt;
       this.closeLinkedReport(claim, stored);
       this.database.persist();
       return toPublicClaim(claim);
+    });
+  }
+
+  cancelPickup(claimId: string) {
+    return this.settle(() => {
+      const guard = this.requireGuard();
+      const claim = this.findPendingClaim(claimId);
+      claim.status = "cancelled";
+      claim.cancelledAt = this.now().toISOString();
+      claim.handledBy = guard.displayName;
+      const stored = this.findStored(claim.itemId);
+      stored.status = "available";
+      this.withdrawLinkedReport(claim, stored);
+      this.database.persist();
+      return toPublicClaim(claim);
+    });
+  }
+
+  listClaimHistory() {
+    return this.settle(() => {
+      this.requireGuard();
+      const closedAt = (claim: StoredClaim) => claim.returnedAt ?? claim.cancelledAt ?? "";
+      return this.db.claims
+        .filter((claim) => claim.status !== "verified")
+        .sort((left, right) => closedAt(right).localeCompare(closedAt(left)))
+        .map(toPublicClaim);
     });
   }
 
@@ -675,6 +758,12 @@ export class MockLostFoundApi implements LostFoundApi {
   private requireSignedIn(): StoredAccount {
     const account = this.signedInAccount();
     if (!account) throw new ApiError("UNAUTHORIZED", messages().errors.sessionExpired, 401);
+    return account;
+  }
+
+  private requireGuard(): StoredAccount {
+    const account = this.requireSignedIn();
+    if (account.role !== "guard") throw new ApiError("FORBIDDEN", messages().errors.guardOnly, 403);
     return account;
   }
 

@@ -106,6 +106,8 @@ export function createHttpApi(baseUrl: string, getAccessToken: TokenSource): Los
     submitClaim: ({ itemId, ...answerForm }: NewClaim) => post<ClaimOutcome>(`/items/${encodeURIComponent(itemId)}/claims`, answerForm),
     listPendingReturns: async () => (await call<{ claims: Claim[] }>("/admin/claims?status=verified")).claims,
     confirmReturn: (claimId) => post<Claim>(`/admin/claims/${encodeURIComponent(claimId)}/return`, {}),
+    cancelPickup: (claimId) => post<Claim>(`/admin/claims/${encodeURIComponent(claimId)}/cancel`, {}),
+    listClaimHistory: async () => (await call<{ claims: Claim[] }>("/admin/claims/history")).claims,
     listStaleItems: async (minDays) => (await call<{ items: StaleItem[] }>(`/admin/items/stale?days=${minDays}`)).items,
     login: (email, password) => post<Session>("/auth/login", { email, password }),
     loginWithGoogle: (idToken) => post<Session>("/auth/google", { idToken }),

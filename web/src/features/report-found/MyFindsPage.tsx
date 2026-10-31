@@ -17,6 +17,7 @@ import { ItemVisual } from "../items/ItemVisual";
 const STAGE_TONE: Record<FindStage, "neutral" | "verify" | "warn" | "success"> = {
   posted: "neutral",
   sent: "warn",
+  declined: "neutral",
   confirmed: "verify",
   returned: "success",
 };
