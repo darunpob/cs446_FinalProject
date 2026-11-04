@@ -135,7 +135,7 @@ function PrefillNotes() {
   const { t } = useI18n();
   return (
     <div className="mb-6 flex max-w-3xl flex-col gap-3">
-      <p role="note" className="paper flex gap-3 rounded-md border-2 border-stock-mint p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
+      <p role="note" className="paper flex gap-3 rounded-md border-2 border-stock-mint-strong p-4 text-sm leading-relaxed text-ink-2 shadow-paper">
         <HandHelping className="mt-0.5 size-5 shrink-0 text-ink" aria-hidden /> {t.reportFound.prefillNote}
       </p>
       <p role="note" className="paper flex gap-3 rounded-md border-2 border-verify p-4 text-sm leading-relaxed text-ink-2 shadow-paper">

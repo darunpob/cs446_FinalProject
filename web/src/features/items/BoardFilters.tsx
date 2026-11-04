@@ -33,7 +33,7 @@ export function BoardSearch({ value, onChange, label, placeholder, className = "
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="paper h-13 w-full sm:h-14 rounded-lg pr-4 pl-12 text-base shadow-paper outline-none transition-shadow duration-150 placeholder:text-ink-3 focus:ring-4 focus:ring-stock-yellow"
+        className="paper h-13 w-full sm:h-14 rounded-lg pr-4 pl-12 text-base shadow-paper outline-none transition-shadow duration-150 placeholder:text-ink-3 focus:ring-4 focus:ring-stock-yellow-strong/35"
       />
     </label>
   );
@@ -54,11 +54,11 @@ function CategoryChips() {
       <button type="button" className={chipClass(filters.category === null, "bg-stock-yellow")} aria-pressed={filters.category === null} onClick={() => update({ category: null })}>
         <LayoutGrid className="size-4" aria-hidden /> {t.home.all}
       </button>
-      {CATEGORIES.map(({ id, icon: Icon, stock }) => {
+      {CATEGORIES.map(({ id, icon: Icon, stock, stockStrong }) => {
         const active = filters.category === id;
         return (
           <button key={id} type="button" className={chipClass(active, stock)} aria-pressed={active} onClick={() => update({ category: active ? null : id })}>
-            {active ? <Icon className="size-4" aria-hidden /> : <span className={`size-3 rounded-[2px] ${stock}`} aria-hidden />}
+            {active ? <Icon className="size-4" aria-hidden /> : <span className={`size-2.5 rounded-full ${stockStrong}`} aria-hidden />}
             {t.categories[id]}
           </button>
         );

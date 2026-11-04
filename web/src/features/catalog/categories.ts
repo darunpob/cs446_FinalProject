@@ -9,17 +9,19 @@ export interface CategoryMeta {
   stock: string;
   /** Same card-stock colour, washed, for photo-less placeholders (plain field in dark theme). */
   stockWash: string;
+  /** Deeper shade of the same colour for small marks on white (swatches, icons). */
+  stockStrong: string;
 }
 
 export const CATEGORIES: CategoryMeta[] = [
-  { id: "electronics", icon: Smartphone, stock: "bg-stock-sky", stockWash: "bg-stock-sky/60" },
-  { id: "wallet", icon: Wallet, stock: "bg-stock-orange", stockWash: "bg-stock-orange/60" },
-  { id: "card", icon: CreditCard, stock: "bg-stock-pink", stockWash: "bg-stock-pink/60" },
-  { id: "keys", icon: KeyRound, stock: "bg-stock-yellow", stockWash: "bg-stock-yellow/60" },
-  { id: "bag", icon: Backpack, stock: "bg-stock-lilac", stockWash: "bg-stock-lilac/60" },
-  { id: "bottle", icon: GlassWater, stock: "bg-stock-mint", stockWash: "bg-stock-mint/60" },
-  { id: "clothing", icon: Shirt, stock: "bg-stock-lime", stockWash: "bg-stock-lime/60" },
-  { id: "other", icon: Package, stock: "bg-stock-sand", stockWash: "bg-stock-sand/70" },
+  { id: "electronics", icon: Smartphone, stock: "bg-stock-sky", stockWash: "bg-stock-sky/60", stockStrong: "bg-stock-sky-strong" },
+  { id: "wallet", icon: Wallet, stock: "bg-stock-orange", stockWash: "bg-stock-orange/60", stockStrong: "bg-stock-orange-strong" },
+  { id: "card", icon: CreditCard, stock: "bg-stock-pink", stockWash: "bg-stock-pink/60", stockStrong: "bg-stock-pink-strong" },
+  { id: "keys", icon: KeyRound, stock: "bg-stock-yellow", stockWash: "bg-stock-yellow/60", stockStrong: "bg-stock-yellow-strong" },
+  { id: "bag", icon: Backpack, stock: "bg-stock-lilac", stockWash: "bg-stock-lilac/60", stockStrong: "bg-stock-lilac-strong" },
+  { id: "bottle", icon: GlassWater, stock: "bg-stock-mint", stockWash: "bg-stock-mint/60", stockStrong: "bg-stock-mint-strong" },
+  { id: "clothing", icon: Shirt, stock: "bg-stock-lime", stockWash: "bg-stock-lime/60", stockStrong: "bg-stock-lime-strong" },
+  { id: "other", icon: Package, stock: "bg-stock-sand", stockWash: "bg-stock-sand/70", stockStrong: "bg-stock-sand-strong" },
 ];
 
 /** Categories whose photos usually show a card number: the backend masks it, and lost reports may carry a student ID. */

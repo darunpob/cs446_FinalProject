@@ -60,7 +60,7 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
       )}
       {LINE_OA_URL && <LineFollowCard reportId={receipt.id} />}
       <div className="mt-12 mb-5 flex items-center gap-2">
-        <Sparkles className="size-5 text-stock-yellow" aria-hidden />
+        <Sparkles className="size-5 text-stock-yellow-strong" aria-hidden />
         <h2 className="font-display text-2xl">{matches.length > 0 ? text.mightBeYours : text.noMatches}</h2>
       </div>
       {matches.length > 0 ? (
