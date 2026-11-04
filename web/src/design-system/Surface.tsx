@@ -5,11 +5,10 @@ import { LoaderCircle, X } from "lucide-react";
 import type { FoundItemStatus } from "../api/contract";
 import { useI18n } from "../i18n/useI18n";
 
-/** A sheet of paper on the board; `pinned` adds the red push-pin at its top edge. */
-export function Card({ className = "", pinned = false, children }: { className?: string; pinned?: boolean; children: ReactNode }) {
+/** A sheet of paper on the board. */
+export function Card({ className = "", children }: { className?: string; children: ReactNode }) {
   return (
     <div className={`paper relative rounded-md shadow-paper ${className}`}>
-      {pinned && <span className="pin" aria-hidden />}
       {children}
     </div>
   );
@@ -76,7 +75,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <Card pinned className="mx-auto flex max-w-md flex-col items-center gap-3 px-6 pt-10 pb-8 text-center">
+    <Card className="mx-auto flex max-w-md flex-col items-center gap-3 px-6 pt-10 pb-8 text-center">
       <div className="grid size-14 place-items-center rounded-md bg-stock-sand/50 text-ink-2">{icon}</div>
       <h2 className="font-display text-xl">{title}</h2>
       {description && <p className="max-w-sm text-sm leading-relaxed text-ink-2">{description}</p>}

@@ -18,7 +18,7 @@ function ProfileSummary({ profile, onSignOut }: { profile: UserProfile; onSignOu
   const { t } = useI18n();
   const isGuard = profile.role === "guard";
   return (
-    <Card pinned className="flex flex-wrap items-center gap-4 p-5 pt-6 sm:p-7">
+    <Card className="flex flex-wrap items-center gap-4 p-5 pt-6 sm:p-7">
       <span className="grid size-14 shrink-0 place-items-center rounded-md bg-stock-sand font-display text-2xl text-stock-ink shadow-paper" aria-hidden>
         {profile.displayName.trim().charAt(0).toUpperCase() || "?"}
       </span>

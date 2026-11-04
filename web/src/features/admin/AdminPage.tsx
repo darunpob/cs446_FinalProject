@@ -17,7 +17,8 @@ type AdminTab = "returns" | "payouts" | "stale" | "history";
 function Metric({ icon: Icon, label, value, stock, className = "" }: { icon: LucideIcon; label: string; value: number | null; stock: string; className?: string }) {
   return (
     <div className={`paper rounded-sm shadow-paper ${className}`}>
-      <div className={`flex h-8 items-center px-3 text-stock-ink ${stock}`}>
+      <div className={`notice-head flex h-8 items-center gap-2 rounded-t-sm px-3 text-stock-ink ${stock}`}>
+        <span className={`notice-dot size-2 shrink-0 rounded-full ${stock}`} aria-hidden />
         <Icon className="size-4" aria-hidden />
       </div>
       <div className="p-4 pt-3">

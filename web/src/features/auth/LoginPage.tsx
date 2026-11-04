@@ -68,7 +68,7 @@ export function LoginPage() {
   return (
     <div className="mx-auto max-w-md py-4">
       <PageHeading stock={needsGuard ? "guard" : "account"} title={needsGuard ? t.login.guardTitle : t.login.title} description={needsGuard ? t.login.guardSubtitle : t.login.subtitle} />
-      <Card pinned className="p-6 pt-8">
+      <Card className="p-6 pt-8">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {failure && <ErrorNotice message={failure} />}
           <Field label={t.login.email}>

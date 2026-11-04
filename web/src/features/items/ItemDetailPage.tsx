@@ -99,12 +99,13 @@ function ItemDetail({ foundItem, onChanged }: { foundItem: FoundItem; onChanged:
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
       <div className="lg:sticky lg:top-28 lg:self-start">
-        <Card pinned className="p-3">
+        <Card className="p-3">
           <PhotoGallery title={foundItem.title} category={foundItem.category} imageUrls={foundItem.imageUrls} cardNumberMasked={foundItem.cardNumberMasked} iconSize="size-24" className="aspect-[16/10] sm:aspect-[4/3]" />
         </Card>
       </div>
-      <Card pinned className="min-w-0 overflow-hidden">
-        <div className={`flex h-11 items-center gap-2 px-5 text-sm font-bold text-stock-ink ${category.stock}`}>
+      <Card className="min-w-0 overflow-hidden">
+        <div className={`notice-head flex h-11 items-center gap-2 px-5 text-sm font-bold text-stock-ink ${category.stock}`}>
+          <span className={`notice-dot size-2 shrink-0 rounded-full ${category.stock}`} aria-hidden />
           <category.icon className="size-4" aria-hidden /> {t.categories[category.id]}
         </div>
         <div className="flex flex-col gap-6 p-5 sm:p-7">

@@ -7,19 +7,19 @@ export interface CategoryMeta {
   icon: LucideIcon;
   /** Card-stock colour of the notice header and chip for this category. */
   stock: string;
-  /** Same card-stock colour, washed, for photo-less placeholders. */
+  /** Same card-stock colour, washed, for photo-less placeholders (plain field in dark theme). */
   stockWash: string;
 }
 
 export const CATEGORIES: CategoryMeta[] = [
-  { id: "electronics", icon: Smartphone, stock: "bg-stock-sky", stockWash: "bg-stock-sky/35" },
-  { id: "wallet", icon: Wallet, stock: "bg-stock-orange", stockWash: "bg-stock-orange/35" },
-  { id: "card", icon: CreditCard, stock: "bg-stock-pink", stockWash: "bg-stock-pink/35" },
-  { id: "keys", icon: KeyRound, stock: "bg-stock-yellow", stockWash: "bg-stock-yellow/35" },
-  { id: "bag", icon: Backpack, stock: "bg-stock-lilac", stockWash: "bg-stock-lilac/35" },
-  { id: "bottle", icon: GlassWater, stock: "bg-stock-mint", stockWash: "bg-stock-mint/35" },
-  { id: "clothing", icon: Shirt, stock: "bg-stock-lime", stockWash: "bg-stock-lime/35" },
-  { id: "other", icon: Package, stock: "bg-stock-sand", stockWash: "bg-stock-sand/45" },
+  { id: "electronics", icon: Smartphone, stock: "bg-stock-sky", stockWash: "bg-stock-sky/60" },
+  { id: "wallet", icon: Wallet, stock: "bg-stock-orange", stockWash: "bg-stock-orange/60" },
+  { id: "card", icon: CreditCard, stock: "bg-stock-pink", stockWash: "bg-stock-pink/60" },
+  { id: "keys", icon: KeyRound, stock: "bg-stock-yellow", stockWash: "bg-stock-yellow/60" },
+  { id: "bag", icon: Backpack, stock: "bg-stock-lilac", stockWash: "bg-stock-lilac/60" },
+  { id: "bottle", icon: GlassWater, stock: "bg-stock-mint", stockWash: "bg-stock-mint/60" },
+  { id: "clothing", icon: Shirt, stock: "bg-stock-lime", stockWash: "bg-stock-lime/60" },
+  { id: "other", icon: Package, stock: "bg-stock-sand", stockWash: "bg-stock-sand/70" },
 ];
 
 /** Categories whose photos usually show a card number: the backend masks it, and lost reports may carry a student ID. */

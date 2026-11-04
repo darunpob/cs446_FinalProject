@@ -33,7 +33,7 @@ function LostReceipt({ receipt, email }: { receipt: LostReportReceipt; email: st
   const text = t.reportLost;
   return (
     <div>
-      <Card pinned className="overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="h-3 bg-stock-pink" aria-hidden />
         <div className="p-6 sm:p-8">
           <span className="grid size-12 place-items-center rounded-sm bg-stock-pink text-stock-ink">

@@ -1,32 +1,32 @@
 ---
 name: BU Lost & Found
-description: Every found item is a notice pinned to a Thai faculty board, and its fate is stamped on it.
+description: A clean white notice board — every found item is a card with a category header, and its fate is stamped on it.
 colors:
-  felt-board: "hsl(222 40% 16%)"
-  felt: "hsl(222 42% 21%)"
-  felt-line: "hsl(222 26% 31%)"
-  on-felt: "hsl(46 50% 95%)"
-  on-felt-muted: "hsl(222 22% 79%)"
-  paper: "hsl(44 50% 97%)"
-  paper-2: "hsl(42 32% 92%)"
-  paper-3: "hsl(40 24% 86%)"
+  felt-board: "hsl(220 20% 97%)"
+  felt: "hsl(0 0% 100%)"
+  felt-line: "hsl(220 16% 90%)"
+  on-felt: "hsl(222 30% 14%)"
+  on-felt-muted: "hsl(222 10% 40%)"
+  paper: "hsl(0 0% 100%)"
+  paper-2: "hsl(220 22% 96%)"
+  paper-3: "hsl(220 16% 91%)"
   field: "hsl(0 0% 100%)"
-  ink: "hsl(222 30% 11%)"
-  ink-2: "hsl(222 10% 29%)"
-  ink-3: "hsl(222 7% 39%)"
-  rule: "hsl(42 20% 84%)"
-  rule-strong: "hsl(42 14% 68%)"
-  stock-yellow: "hsl(47 92% 62%)"
-  stock-pink: "hsl(338 80% 81%)"
-  stock-sky: "hsl(203 72% 75%)"
-  stock-mint: "hsl(146 46% 71%)"
-  stock-orange: "hsl(28 92% 66%)"
-  stock-lilac: "hsl(268 62% 83%)"
-  stock-lime: "hsl(78 56% 68%)"
-  stock-sand: "hsl(36 48% 77%)"
-  stamp-red: "hsl(3 66% 43%)"
+  ink: "hsl(222 30% 14%)"
+  ink-2: "hsl(222 10% 36%)"
+  ink-3: "hsl(222 8% 46%)"
+  rule: "hsl(220 16% 90%)"
+  rule-strong: "hsl(220 12% 80%)"
+  action: "hsl(222 60% 34%)"
+  stock-yellow: "hsl(47 86% 86%)"
+  stock-pink: "hsl(338 72% 92%)"
+  stock-sky: "hsl(203 72% 90%)"
+  stock-mint: "hsl(146 46% 82%)"
+  stock-orange: "hsl(28 82% 90%)"
+  stock-lilac: "hsl(268 62% 92%)"
+  stock-lime: "hsl(78 48% 85%)"
+  stock-sand: "hsl(36 42% 88%)"
+  stamp-red: "hsl(352 62% 46%)"
   verify-blue: "hsl(222 62% 40%)"
-  pin-red: "hsl(3 72% 48%)"
   danger: "hsl(355 70% 43%)"
   warn: "hsl(30 92% 30%)"
   success: "hsl(150 62% 26%)"
@@ -62,9 +62,9 @@ typography:
     fontWeight: 700
     letterSpacing: "0.25em"
 rounded:
-  notice: "2px"
-  sheet: "6px"
-  control: "8px"
+  notice: "6px"
+  sheet: "10px"
+  control: "12px"
 spacing:
   xs: "8px"
   sm: "12px"
@@ -73,8 +73,8 @@ spacing:
   xl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.felt}"
-    textColor: "{colors.on-felt}"
+    backgroundColor: "{colors.action}"
+    textColor: "{colors.field}"
     rounded: "{rounded.control}"
     height: "44px"
     padding: "0 16px"
@@ -101,50 +101,47 @@ components:
     rounded: "{rounded.notice}"
     height: "36px"
   page-title:
-    backgroundColor: "{colors.stock-pink}"
-    textColor: "{colors.ink}"
+    textColor: "{colors.on-felt}"
     typography: "{typography.title}"
-    rounded: "{rounded.notice}"
-    padding: "8px 20px"
 ---
 
 # Design System: BU Lost & Found
 
 ## Overview
 
-**Creative North Star: "The Faculty Notice Board"**
+**Creative North Star: "The Clean Notice Board"**
 
-The whole app is the felt board outside a Thai faculty office. The shell and page ground are dark navy felt; everything a person reads sits on paper pinned to it. Found items are notices with a card-stock header, and their status is an ink stamp. Real-world board materials supply type, palette, density and one signature move. Navigation and controls stay standard web controls.
+The app is a notice board stripped to its essentials. The light theme is a pale grey board with a white header and white cards; each found item is a card whose header carries a soft category tint, and its status is an ink stamp. The dark theme goes further toward white-minimal: a near-black board, dark grey cards, card headers in the card's own colour with a small category dot, and white primary buttons. Navigation and controls stay standard web controls.
 
-The surface is an Operate surface: an anxious owner searching on a phone, a finder logging an item, a guard at the booth. Expression never hides the task. The board carries colour at page scale (felt shell, card-stock categories, route hues) rather than a grey screen with one accent.
+The surface is an Operate surface: an anxious owner searching on a phone, a finder logging an item, a guard at the booth. Expression never hides the task, and photos of found items are the most colourful thing on screen.
 
 **Key Characteristics:**
-- Navy-felt ground and header; paper sheets for every reading surface.
-- Thai card-stock colours mark categories, route sections, and page titles.
-- Red push-pins on sheets and notices; scalloped yellow board trim under the header.
+- Light theme: pale grey board, white header with a hairline rule, white cards, pastel category headers, navy primary buttons.
+- Dark theme: near-black board, dark grey cards, category shown as a dot in a plain header, white primary buttons.
+- Hairline edges (a 1px ring inside the shadow) instead of heavy drop shadows; no pins, no scalloped trim, no tilted elements.
 - Status stamps: round red = waiting for owner, square blue = verified, struck grey = returned.
 - Itim marker voice for page titles only; Anuphan for everything else.
 
 ## Colors
 
-The palette is the board's materials: felt, paper, card stock, red pins, and stamp ink. Values are HSL custom properties in `src/styles.css`; dark theme redefines every token.
+Values are HSL custom properties in `src/styles.css`; the dark theme redefines every token. Token names (`felt`, `board`, `stock-*`) are kept from the earlier board design so components did not have to change.
 
 ### Primary
-- **Felt** (`felt`, `felt-board`): header, page ground, and the primary button on paper. In dark theme the primary button turns to stock yellow.
+- **Action** (`action`): primary buttons. Navy in light theme, near-white with dark text in dark theme.
 
 ### Secondary
-- **Card stock** (`stock-*`): eight category colours (electronics sky, wallet orange, card pink, keys yellow, bag lilac, bottle mint, clothing lime, other sand). Text on card stock is always `ink`.
+- **Category tints** (`stock-*`): eight category colours (electronics sky, wallet orange, card pink, keys yellow, bag lilac, bottle mint, clothing lime, other sand). Light theme uses them as pale header tints with `ink` text; dark theme uses them at mid strength for the category dot, chips and icon tiles.
 
 ### Tertiary
-- **Stamp ink** (`stamp-red`, `verify-blue`) and **pin red**: status and the pin, nothing else.
+- **Stamp ink** (`stamp`, `verify`): status only.
 
 ### Neutral
-- **Paper** (`paper`, `paper-2`, `paper-3`) with **ink** (`ink`, `ink-2`, `ink-3`) for all reading text. **On-felt** (`on-felt`, `on-felt-muted`) for text placed directly on the board.
+- **Board** (`board`) is the page ground, **felt** (`felt`) the header bar; text on them uses `on-felt` / `on-felt-2`. **Paper** (`surface`, `surface-2`, `surface-3`) with **ink** (`ink`, `ink-2`, `ink-3`) for every reading surface.
 
 ### Named Rules
-**The Route Stock Rule.** Each top-level route owns one card-stock hue at full strength: found items yellow, report lost pink, report found mint, guard panel sky, account sand. Page titles are cut from it and the active nav item wears it.
+**The Route Stock Rule.** Each top-level route owns one category hue: found items yellow, report lost pink, report found mint, guard panel sky, account sand. The active nav item wears it, and page titles carry it as a short bar above the heading.
 
-**The Two Surfaces Rule.** Text is either on felt (on-felt tokens, yellow focus ring) or on paper (ink tokens, ink focus ring). The `.paper` class switches the focus colour automatically; never place ink text directly on felt.
+**The Dark Header Rule.** In dark theme any element with `.notice-head` drops its tint and shows its `.notice-dot` instead; `.stock-wash` placeholders fall back to the plain field colour. These overrides live unlayered at the end of `styles.css`.
 
 ## Typography
 
@@ -154,68 +151,61 @@ The palette is the board's materials: felt, paper, card stock, red pins, and sta
 
 ### Hierarchy
 - **Display** (Itim 400, 3rem, home hero only).
-- **Title** (Itim 400, 2.25–2.5rem): page titles on a card-stock strip, item titles on the detail sheet, dialog titles.
+- **Title** (Itim 400, 2.25–2.5rem): page titles, item titles on the detail sheet, dialog titles.
 - **Heading** (Anuphan 600, 1.125rem): form section and panel headings.
 - **Body** (Anuphan 400, 15px, line-height 1.6): descriptions, max-width 65ch.
 - **Label** (Anuphan 600, 14px): field labels, chips, buttons. Numbers use tabular figures everywhere data is shown.
 - **Code** (monospace 700, tracked 0.25em): pickup codes only.
 
-### Named Rules
-**The Marker Rule.** Itim is handwriting on the board: page titles, item titles, dialog titles. Never for body, labels, buttons, or numbers.
-
 ## Layout
 
-Mobile first. Content max width 72rem with 16px (24px from `sm`) gutters. Notices sit **three per row at every width** (an explicit user decision), gap 8px on phones rising to 24px on desktop. The filter bar sticks under the 74px header. A paper tab bar is fixed at the bottom of phones, with the mint report-found button raised from it. Detail and form pages use a two-column grid from `lg`.
+Mobile first. Content max width 72rem with 16px (24px from `sm`) gutters. Notices sit **three per row at every width** (an explicit user decision), gap 8px on phones rising to 24px on desktop. The filter bar sticks under the header. A tab bar is fixed at the bottom of phones, with the mint report-found button raised from it. Detail and form pages use a two-column grid from `lg`.
 
 ## Elevation & Depth
 
-Depth is paper lying on felt. Shadows always carry an offset and a soft blur.
+Flat. Every shadow token starts with a 1px `line` ring, which gives cards a hairline edge without shifting layout, plus a faint blur.
 
-### Shadow Vocabulary
-- `shadow-paper`: resting sheets and notices.
+- `shadow-paper`: resting cards and notices.
 - `shadow-lifted`: hovered notices, menus, the raised tab button.
 - `shadow-sheet`: dialogs and the bottom tab bar.
 
-### Named Rules
-**The Pinned Rule.** A sheet that stands alone on the board carries a pin at its top edge (`.pin`). Sheets nested inside another sheet never get a pin and never get a shadow.
-
 ## Shapes
 
-Small radii, like cut paper: notices 2px, sheets 6px, controls 8px. Stamps are the exception: round (`rounded-full`) or square by status. Card-stock page titles tilt -1°; stamps tilt -7° (the ticket stamp tilts +8°).
+Soft radii: `rounded-sm` 6px (notices, small tiles), `rounded-md` 10px (sheets, menus), `rounded-lg` 12px (buttons and large controls). Stamps stay round (`rounded-full`) or square by status, upright, with a 1.5px border.
 
 ## Components
 
 ### Buttons
-Primary is felt with on-felt text; mint is reserved for report-found actions; secondary is a white field with a strong rule. Press nudges 1px down; disabled drops to 50% opacity; loading swaps the icon for a spinner and sets `aria-busy`.
+Primary uses `action` with `action-ink`; mint is reserved for report-found actions; secondary is a field with a strong rule. Press nudges 1px down; disabled drops to 50% opacity; loading swaps the icon for a spinner and sets `aria-busy`.
 
 ### Chips
-Category chips on the felt filter bar: an outlined chip with a small card-stock swatch; when selected it fills with its card stock and shows its icon.
+Category chips on the filter bar: an outlined chip with a small category swatch; when selected it fills with its category colour and shows its icon.
 
 ### Cards / Containers
-`Card` is a paper sheet (`.paper`, radius 6px, `shadow-paper`, optional pin). Form sections, the item detail, login, empty states and admin lists are all sheets.
+`Card` is a paper sheet (`.paper`, radius 10px, `shadow-paper`). Form sections, the item detail, login, empty states and admin lists are all sheets.
 
 ### Inputs / Fields
-White field, strong rule border, 8px radius, 44px tall. Focus turns the border ink with a 4px stock-yellow ring. Errors turn the border to `danger`, and a message below names the problem.
+Field background, strong rule border, 44px tall. Focus turns the border ink with a 4px ring. Errors turn the border to `danger`, and a message below names the problem.
 
 ### Navigation
-Felt header: BU mark (yellow card stock) plus "Lost & Found" in Itim, desktop links that fill with their route stock when active, language and theme controls, mint report-found button. The scalloped yellow trim edges the header. Phones get a paper bottom tab bar whose active icon sits on its route stock.
+White header (dark grey in dark theme) with a hairline bottom rule: BU mark plus "Lost & Found" in Itim, desktop links that fill with their route colour when active, language and theme controls, mint report-found button. Phones get a bottom tab bar whose active icon sits on its route colour.
 
 ### Notice (signature)
-`ItemCard`: paper notice with a pin, a card-stock header (category icon plus place code such as LIB or A5), square photo (4:3 from `sm`), status stamp over the photo's corner, title clamped to two lines, place and relative time.
+`ItemCard`: a card with a category header (`.notice-head`: tint in light theme, dot in dark theme, plus category icon and place code such as LIB or A5), square photo (4:3 from `sm`), status stamp over the photo's corner, title clamped to two lines, place and relative time.
 
 ### Status Stamp (signature)
-`StatusStamp`: bordered ink text on translucent paper, tilted. The shape and word carry the status, not colour alone. `pressed` runs the one authored motion: a 0.42s exponential stamp-press (scale 1.6 → 1, blur 3px → 0) when a status lands.
+`StatusStamp`: bordered ink text on translucent paper, upright. The shape and word carry the status, not colour alone. `pressed` runs the one authored motion: a 0.42s exponential stamp-press (scale 1.6 → 1, blur 3px → 0) when a status lands.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** put every reading surface on paper and keep text on felt in on-felt tokens.
-- **Do** colour categories and routes with card stock at full strength, with ink text on top.
+- **Do** keep reading surfaces on paper and text on the board in on-felt tokens.
+- **Do** let item photos be the loudest colour on screen; categories stay soft.
 - **Do** carry status with stamp shape and word, never colour alone.
 - **Do** keep motion to the stamp press, the dialog sheet rising, and hover lifts.
 
 ### Don't:
 - **Don't** use gradients, glass, glow shadows, or gradient text.
-- **Don't** put a kicker or eyebrow label above a heading; the card-stock title strip carries the section.
-- **Don't** nest a shadowed card inside a sheet; separate with dashed perforation rules instead.
-- **Don't** add cork texture, paper grain, or tilted notices; the board lends type, palette, density and the stamp, never a costume.
+- **Don't** bring back pins, scalloped trim, or tilted cards and titles.
+- **Don't** nest a shadowed card inside a sheet; separate with rules instead.
+- **Don't** use heavy drop shadows; edges come from the hairline ring.

@@ -55,7 +55,7 @@ export function RegisterPage() {
   return (
     <div className="mx-auto max-w-md py-4">
       <PageHeading stock="account" title={text.title} description={text.subtitle} />
-      <Card pinned className="p-6 pt-8">
+      <Card className="p-6 pt-8">
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
           {failure && <ErrorNotice message={failure} />}
           <Field label={text.nameLabel} error={errors.displayName}>

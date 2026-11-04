@@ -124,7 +124,7 @@ function PickupTicket({ pickupCode, dropOffPointId, onDone }: { pickupCode: stri
       <div className="relative rounded-md border-2 border-dashed border-line-strong bg-surface-2 px-6 pt-5 pb-6 text-center">
         <p className="text-sm font-semibold text-ink-2">{t.claim.pickupCode}</p>
         <p className="mt-1 font-mono text-4xl font-bold tracking-[0.25em] tabular-nums">{pickupCode}</p>
-        <StatusStamp status="claimed" size="lg" pressed className="absolute -top-4 -right-2 [--stamp-tilt:8deg]" />
+        <StatusStamp status="claimed" size="lg" pressed className="absolute -top-4 -right-2" />
       </div>
       <div className="flex flex-col gap-2 rounded-md border border-line p-4 text-sm">
         <p className="flex items-center gap-2 font-semibold"><MapPin className="size-4 text-ink-2" aria-hidden /> {point?.name ?? t.claim.dropOffFallback}</p>

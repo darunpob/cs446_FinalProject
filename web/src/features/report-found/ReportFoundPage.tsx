@@ -64,8 +64,7 @@ function TipsAside() {
   ];
   return (
     <aside className="lg:sticky lg:top-28 lg:self-start">
-      <div className="relative rounded-sm bg-stock-yellow p-5 pt-7 text-stock-ink shadow-paper lg:rotate-1">
-        <span className="pin" aria-hidden />
+      <div className="relative rounded-sm bg-stock-yellow p-5 pt-7 text-stock-ink shadow-paper">
         <h2 className="font-display text-xl">{t.reportFound.tipsTitle}</h2>
         <ul className="mt-4 flex flex-col gap-4">
           {tips.map(({ icon: Icon, text }) => (
@@ -94,7 +93,7 @@ function FoundSuccess({ foundItem, sentToOwner, onAnother }: { foundItem: FoundI
       <p className="mt-2 text-on-felt-2">
         {sentToOwner ? t.reportFound.sentLead : t.reportFound.successLead} <strong className="text-on-felt">{dropOffPoint(foundItem.dropOffPointId)?.name}</strong>
       </p>
-      <Card pinned className="mt-8 flex items-center gap-4 p-3 pt-5 text-left">
+      <Card className="mt-8 flex items-center gap-4 p-3 pt-5 text-left">
         <ItemVisual foundItem={foundItem} iconSize="size-7" className="size-16 shrink-0 rounded-sm" />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 font-semibold wrap-anywhere">{foundItem.title}</p>

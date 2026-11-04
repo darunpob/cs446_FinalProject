@@ -84,8 +84,8 @@ function LostNotice({ report }: { report: PublicLostReport }) {
   const category = categoryMeta(report.category);
   return (
     <li className="paper relative flex min-w-0 flex-col rounded-sm shadow-paper">
-      <span className="pin" aria-hidden />
-      <div className={`flex h-7 items-center gap-2 rounded-t-sm px-2 text-sm font-bold text-stock-ink sm:h-9 sm:px-3 ${category.stock}`}>
+      <div className={`notice-head flex h-7 items-center gap-2 rounded-t-sm px-2 text-sm font-bold text-stock-ink sm:h-9 sm:px-3 ${category.stock}`}>
+        <span className={`notice-dot size-2 shrink-0 rounded-full ${category.stock}`} aria-hidden />
         <category.icon className="size-3.5 shrink-0 sm:size-4" aria-label={t.categories[category.id]} />
         <span className="hidden truncate sm:inline" aria-hidden>{t.categories[category.id]}</span>
         {report.hasReward && (
