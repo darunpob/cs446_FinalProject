@@ -141,7 +141,7 @@ export function PhotoLightbox({ title, imageUrls, startIndex, onClose }: PhotoLi
           {imageUrls.map((imageUrl, photoIndex) => (
             <li key={imageUrl} className="shrink-0">
               <button type="button" onClick={() => showPhoto(photoIndex)} aria-pressed={photoIndex === shownIndex} aria-label={t.photo.previewAlt(photoIndex + 1)}
-                className={`block size-14 cursor-pointer overflow-hidden rounded-sm border-2 transition-[border-color,opacity] duration-150 ${photoIndex === shownIndex ? "border-stock-yellow" : "border-transparent opacity-60 hover:opacity-100"}`}>
+                className={`block size-14 cursor-pointer overflow-hidden rounded-sm border-2 transition-[border-color,opacity] duration-150 ${photoIndex === shownIndex ? "border-stock-yellow-strong" : "border-transparent opacity-60 hover:opacity-100"}`}>
                 <img src={imageUrl} alt="" loading="lazy" className="size-full object-cover" />
               </button>
             </li>

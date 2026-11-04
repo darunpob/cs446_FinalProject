@@ -30,6 +30,14 @@
   --stock-lime: hsl(78 48% 85%);
   --stock-sand: hsl(36 42% 88%);
   --stock-ink: hsl(222 30% 14%);
+  --stock-yellow-strong: hsl(38 92% 40%);
+  --stock-pink-strong: hsl(338 62% 48%);
+  --stock-sky-strong: hsl(203 76% 40%);
+  --stock-mint-strong: hsl(150 52% 32%);
+  --stock-orange-strong: hsl(24 84% 46%);
+  --stock-lilac-strong: hsl(268 46% 52%);
+  --stock-lime-strong: hsl(80 56% 30%);
+  --stock-sand-strong: hsl(32 40% 40%);
   --stamp: hsl(352 62% 46%);
   --stamp-soft: hsl(352 80% 96%);
   --verify: hsl(222 62% 40%);
@@ -86,6 +94,14 @@
     --shadow-rgb: 0 0 0;
     --paper-focus: hsl(0 0% 94%);
     --stock-ink: hsl(0 0% 7%);
+    --stock-yellow-strong: hsl(44 78% 60%);
+    --stock-pink-strong: hsl(338 60% 70%);
+    --stock-sky-strong: hsl(203 66% 64%);
+    --stock-mint-strong: hsl(150 44% 54%);
+    --stock-orange-strong: hsl(26 73% 64%);
+    --stock-lilac-strong: hsl(268 48% 72%);
+    --stock-lime-strong: hsl(80 44% 54%);
+    --stock-sand-strong: hsl(30 26% 62%);
     --felt-focus: hsl(0 0% 94%);
   }
 }
@@ -130,6 +146,14 @@
   --shadow-rgb: 0 0 0;
   --paper-focus: hsl(0 0% 94%);
   --stock-ink: hsl(0 0% 7%);
+  --stock-yellow-strong: hsl(44 78% 60%);
+  --stock-pink-strong: hsl(338 60% 70%);
+  --stock-sky-strong: hsl(203 66% 64%);
+  --stock-mint-strong: hsl(150 44% 54%);
+  --stock-orange-strong: hsl(26 73% 64%);
+  --stock-lilac-strong: hsl(268 48% 72%);
+  --stock-lime-strong: hsl(80 44% 54%);
+  --stock-sand-strong: hsl(30 26% 62%);
   --felt-focus: hsl(0 0% 94%);
 }
 
@@ -164,6 +188,14 @@
   --color-stock-lime: var(--stock-lime);
   --color-stock-sand: var(--stock-sand);
   --color-stock-ink: var(--stock-ink);
+  --color-stock-yellow-strong: var(--stock-yellow-strong);
+  --color-stock-pink-strong: var(--stock-pink-strong);
+  --color-stock-sky-strong: var(--stock-sky-strong);
+  --color-stock-mint-strong: var(--stock-mint-strong);
+  --color-stock-orange-strong: var(--stock-orange-strong);
+  --color-stock-lilac-strong: var(--stock-lilac-strong);
+  --color-stock-lime-strong: var(--stock-lime-strong);
+  --color-stock-sand-strong: var(--stock-sand-strong);
   --color-stamp: var(--stamp);
   --color-stamp-soft: var(--stamp-soft);
   --color-verify: var(--verify);
@@ -311,16 +343,21 @@
 
 /*
  * Dark theme (white-minimal): notice headers turn to plain paper and show a small category dot instead of a
- * tinted strip, and photo-less placeholders drop their tint. Unlayered so they win over the bg-stock utilities.
+ * tinted strip, page titles lose their tinted slip and show a route dot, and photo-less placeholders drop their
+ * tint. Unlayered so they win over the bg-stock utilities.
  */
-.notice-dot { display: none; }
+.notice-dot, .title-dot { display: none; }
 :root[data-theme="dark"] .notice-head { background-color: var(--surface); color: var(--ink); box-shadow: inset 0 -1px 0 var(--line); }
 :root[data-theme="dark"] .notice-dot { display: inline-block; }
 :root[data-theme="dark"] .stock-wash { background-color: var(--field); }
+:root[data-theme="dark"] .title-slip { background-color: transparent; color: var(--on-felt); padding-inline: 0; }
+:root[data-theme="dark"] .title-dot { display: inline-block; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .notice-head { background-color: var(--surface); color: var(--ink); box-shadow: inset 0 -1px 0 var(--line); }
   :root:not([data-theme="light"]) .notice-dot { display: inline-block; }
   :root:not([data-theme="light"]) .stock-wash { background-color: var(--field); }
+  :root:not([data-theme="light"]) .title-slip { background-color: transparent; color: var(--on-felt); padding-inline: 0; }
+  :root:not([data-theme="light"]) .title-dot { display: inline-block; }
 }
 
 @keyframes breathe {

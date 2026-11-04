@@ -16,7 +16,7 @@ function Hero({ draftSearch, onSearch }: { draftSearch: string; onSearch: (text:
     <section className="grid gap-4 pb-5 sm:gap-6 sm:pb-6 lg:grid-cols-[1.5fr_1fr] lg:items-end lg:gap-12">
       <div>
         <h1 className="font-display text-[2rem] leading-tight sm:text-5xl">
-          {t.home.heroTitle} <span className="text-stock-yellow">{t.home.heroHighlight}</span>
+          {t.home.heroTitle} <span className="text-stock-yellow-strong">{t.home.heroHighlight}</span>
         </h1>
         <p className="mt-2 max-w-lg text-sm leading-relaxed text-on-felt-2 sm:text-base">{t.home.heroLead}</p>
         <BoardSearch value={draftSearch} onChange={onSearch} label={t.home.searchLabel} placeholder={t.home.searchPlaceholder} className="mt-4 sm:mt-5" />

@@ -37,8 +37,8 @@ export function FormSection({ step, title, description, children }: FormSectionP
 export function PageHeading({ stock, title, description }: { stock: RouteStock; title: string; description?: string }) {
   return (
     <div className="mb-8 max-w-2xl">
-      <span className={`mb-3 block h-1.5 w-12 rounded-full shadow-paper ${ROUTE_STOCK[stock]}`} aria-hidden />
-      <h1 className="font-display text-3xl leading-snug text-on-felt sm:text-4xl">
+      <h1 className={`title-slip inline-flex items-center gap-3 rounded-md px-5 py-2 font-display text-3xl leading-snug text-stock-ink sm:text-4xl ${ROUTE_STOCK[stock]}`}>
+        <span className={`title-dot size-3 shrink-0 rounded-full ${ROUTE_STOCK[stock]}`} aria-hidden />
         {title}
       </h1>
       {description && <p className="mt-4 leading-relaxed text-on-felt-2">{description}</p>}

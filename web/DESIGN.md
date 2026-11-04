@@ -131,6 +131,7 @@ Values are HSL custom properties in `src/styles.css`; the dark theme redefines e
 
 ### Secondary
 - **Category tints** (`stock-*`): eight category colours (electronics sky, wallet orange, card pink, keys yellow, bag lilac, bottle mint, clothing lime, other sand). Light theme uses them as pale header tints with `ink` text; dark theme uses them at mid strength for the category dot, chips and icon tiles.
+- **Strong shades** (`stock-*-strong`): the same eight hues deep enough to read on white. Use them whenever a category colour is text, an icon, a border, a focus ring or a small swatch; never use the pale `stock-*` for those.
 
 ### Tertiary
 - **Stamp ink** (`stamp`, `verify`): status only.
@@ -139,7 +140,7 @@ Values are HSL custom properties in `src/styles.css`; the dark theme redefines e
 - **Board** (`board`) is the page ground, **felt** (`felt`) the header bar; text on them uses `on-felt` / `on-felt-2`. **Paper** (`surface`, `surface-2`, `surface-3`) with **ink** (`ink`, `ink-2`, `ink-3`) for every reading surface.
 
 ### Named Rules
-**The Route Stock Rule.** Each top-level route owns one category hue: found items yellow, report lost pink, report found mint, guard panel sky, account sand. The active nav item wears it, and page titles carry it as a short bar above the heading.
+**The Route Stock Rule.** Each top-level route owns one category hue: found items yellow, report lost pink, report found mint, guard panel sky, account sand. The active nav item wears it. In light theme the page title sits on a tinted slip (`.title-slip`, 10px radius, no tilt); in dark theme the slip disappears and a route-colour dot (`.title-dot`) leads the title.
 
 **The Dark Header Rule.** In dark theme any element with `.notice-head` drops its tint and shows its `.notice-dot` instead; `.stock-wash` placeholders fall back to the plain field colour. These overrides live unlayered at the end of `styles.css`.
 
@@ -151,7 +152,7 @@ Values are HSL custom properties in `src/styles.css`; the dark theme redefines e
 
 ### Hierarchy
 - **Display** (Itim 400, 3rem, home hero only).
-- **Title** (Itim 400, 2.25–2.5rem): page titles, item titles on the detail sheet, dialog titles.
+- **Title** (Itim 400, 2.25–2.5rem): page titles on a route-colour slip, item titles on the detail sheet, dialog titles.
 - **Heading** (Anuphan 600, 1.125rem): form section and panel headings.
 - **Body** (Anuphan 400, 15px, line-height 1.6): descriptions, max-width 65ch.
 - **Label** (Anuphan 600, 14px): field labels, chips, buttons. Numbers use tabular figures everywhere data is shown.

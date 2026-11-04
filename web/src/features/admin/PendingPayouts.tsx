@@ -73,7 +73,7 @@ export function PendingPayouts({ payouts, failure, onRetry, onPaid }: PendingPay
   return (
     <div className="flex flex-col gap-4">
       <p className="flex items-center gap-2 text-sm text-on-felt-2">
-        <FlaskConical className="size-4 shrink-0 text-stock-yellow" aria-hidden /> {t.reward.payoutsNote}
+        <FlaskConical className="size-4 shrink-0 text-stock-yellow-strong" aria-hidden /> {t.reward.payoutsNote}
       </p>
       <ul className="paper divide-y divide-line overflow-hidden rounded-sm shadow-paper">
         {payouts.map((payout) => <PayoutRow key={payout.rewardId} payout={payout} onPaid={onPaid} />)}

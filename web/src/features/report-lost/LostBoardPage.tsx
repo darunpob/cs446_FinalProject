@@ -157,8 +157,8 @@ function BoardHeader() {
     <section className="pb-5 sm:pb-6">
       <PageHeading stock="lost" title={t.lostBoard.title} description={t.lostBoard.subtitle} />
       <div className="mb-5 flex max-w-2xl flex-col gap-1.5 text-sm leading-relaxed text-on-felt-2">
-        <p className="flex gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-stock-mint" aria-hidden /> {t.lostBoard.privacyNote}</p>
-        <p className="flex gap-2"><CalendarClock className="mt-0.5 size-4 shrink-0 text-stock-yellow" aria-hidden /> {t.lostBoard.expiryNote(LOST_REPORT_EXPIRY_DAYS)}</p>
+        <p className="flex gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-stock-mint-strong" aria-hidden /> {t.lostBoard.privacyNote}</p>
+        <p className="flex gap-2"><CalendarClock className="mt-0.5 size-4 shrink-0 text-stock-yellow-strong" aria-hidden /> {t.lostBoard.expiryNote(LOST_REPORT_EXPIRY_DAYS)}</p>
       </div>
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr] lg:items-end lg:gap-12">
         <BoardSearch value={draftSearch} onChange={setDraftSearch} label={t.lostBoard.searchLabel} placeholder={t.lostBoard.searchPlaceholder} />

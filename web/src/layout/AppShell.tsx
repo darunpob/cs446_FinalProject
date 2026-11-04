@@ -101,7 +101,7 @@ function MobileTabBar({ navEntries }: { navEntries: NavEntry[] }) {
   const loginTab: NavEntry = { to: "/login", labelKey: "account", icon: UserRound, stock: "account" };
   const splitAt = Math.ceil((navEntries.length + 1) / 2);
   return (
-    <nav aria-label={t.nav.mobileMenu} className="paper fixed inset-x-0 bottom-0 z-40 border-t-4 border-stock-yellow pb-[env(safe-area-inset-bottom)] shadow-sheet md:hidden">
+    <nav aria-label={t.nav.mobileMenu} className="paper fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] shadow-sheet md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-2">
         <div className="flex">
           {navEntries.slice(0, splitAt).map((entry) => <MobileTab key={entry.to} entry={entry} />)}

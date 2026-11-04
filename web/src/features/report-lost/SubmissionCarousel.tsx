@@ -134,7 +134,7 @@ export function SubmissionCarousel({ reportId, lostLocationId, submissions, onAn
   const shown = submissions[current];
   if (!shown) return null;
   return (
-    <section aria-roledescription="carousel" aria-label={t.myReports.submissionsTitle(count)} className="flex flex-col gap-3 rounded-md border-2 border-stock-mint bg-surface p-4">
+    <section aria-roledescription="carousel" aria-label={t.myReports.submissionsTitle(count)} className="flex flex-col gap-3 rounded-md border-2 border-stock-mint-strong bg-surface p-4">
       <div>
         <p className="flex items-center gap-1.5 text-sm font-semibold">
           <Inbox className="size-4 text-success" aria-hidden /> {t.myReports.submissionsTitle(count)}

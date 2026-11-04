@@ -42,7 +42,7 @@ function ClaimTickets({ claims }: { claims: MyClaim[] }) {
   return (
     <section aria-labelledby="my-claims-title" className="flex flex-col gap-3">
       <h2 id="my-claims-title" className="flex items-center gap-2 font-display text-2xl text-on-felt">
-        <Ticket className="size-5 text-stock-yellow" aria-hidden /> {t.myReports.claimsTitle}
+        <Ticket className="size-5 text-stock-yellow-strong" aria-hidden /> {t.myReports.claimsTitle}
       </h2>
       <p className="-mt-1 text-sm text-on-felt-2">{t.myReports.claimsHint}</p>
       <ul className="paper divide-y divide-line overflow-hidden rounded-sm shadow-paper">

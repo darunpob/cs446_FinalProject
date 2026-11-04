@@ -6,7 +6,7 @@ import { useI18n } from "../i18n/useI18n";
 const CONTROL =
   "w-full rounded-lg border bg-field px-3.5 text-[15px] text-ink placeholder:text-ink-3 " +
   "transition-[border-color,box-shadow] duration-150 outline-none " +
-  "focus:border-ink focus:ring-4 focus:ring-stock-yellow/60";
+  "focus:border-ink focus:ring-4 focus:ring-stock-yellow-strong/35";
 
 function controlClass(hasError: boolean, extra = ""): string {
   return `${CONTROL} ${hasError ? "border-danger" : "border-line-strong hover:border-ink-3"} ${extra}`;
