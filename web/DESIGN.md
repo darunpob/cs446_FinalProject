@@ -2,18 +2,18 @@
 name: BU Lost & Found
 description: Every found item is a notice pinned to a Thai faculty board, and its fate is stamped on it.
 colors:
-  felt-board: "hsl(157 40% 16%)"
-  felt: "hsl(157 42% 21%)"
-  felt-line: "hsl(157 26% 31%)"
+  felt-board: "hsl(222 40% 16%)"
+  felt: "hsl(222 42% 21%)"
+  felt-line: "hsl(222 26% 31%)"
   on-felt: "hsl(46 50% 95%)"
-  on-felt-muted: "hsl(150 22% 79%)"
+  on-felt-muted: "hsl(222 22% 79%)"
   paper: "hsl(44 50% 97%)"
   paper-2: "hsl(42 32% 92%)"
   paper-3: "hsl(40 24% 86%)"
   field: "hsl(0 0% 100%)"
-  ink: "hsl(158 30% 11%)"
-  ink-2: "hsl(156 10% 29%)"
-  ink-3: "hsl(156 7% 39%)"
+  ink: "hsl(222 30% 11%)"
+  ink-2: "hsl(222 10% 29%)"
+  ink-3: "hsl(222 7% 39%)"
   rule: "hsl(42 20% 84%)"
   rule-strong: "hsl(42 14% 68%)"
   stock-yellow: "hsl(47 92% 62%)"
@@ -114,12 +114,12 @@ components:
 
 **Creative North Star: "The Faculty Notice Board"**
 
-The whole app is the felt board outside a Thai faculty office. The shell and page ground are dark felt green; everything a person reads sits on paper pinned to it. Found items are notices with a card-stock header, and their status is an ink stamp. Real-world board materials supply type, palette, density and one signature move. Navigation and controls stay standard web controls.
+The whole app is the felt board outside a Thai faculty office. The shell and page ground are dark navy felt; everything a person reads sits on paper pinned to it. Found items are notices with a card-stock header, and their status is an ink stamp. Real-world board materials supply type, palette, density and one signature move. Navigation and controls stay standard web controls.
 
 The surface is an Operate surface: an anxious owner searching on a phone, a finder logging an item, a guard at the booth. Expression never hides the task. The board carries colour at page scale (felt shell, card-stock categories, route hues) rather than a grey screen with one accent.
 
 **Key Characteristics:**
-- Felt-green ground and header; paper sheets for every reading surface.
+- Navy-felt ground and header; paper sheets for every reading surface.
 - Thai card-stock colours mark categories, route sections, and page titles.
 - Red push-pins on sheets and notices; scalloped yellow board trim under the header.
 - Status stamps: round red = waiting for owner, square blue = verified, struck grey = returned.
