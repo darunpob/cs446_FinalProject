@@ -4,22 +4,22 @@
 
 :root {
   color-scheme: light;
-  --board: hsl(157 40% 16%);
-  --felt: hsl(157 42% 21%);
-  --felt-line: hsl(157 26% 31%);
+  --board: hsl(222 40% 16%);
+  --felt: hsl(222 42% 21%);
+  --felt-line: hsl(222 26% 31%);
   --on-felt: hsl(46 50% 95%);
-  --on-felt-2: hsl(150 22% 79%);
+  --on-felt-2: hsl(222 22% 79%);
   --surface: hsl(44 50% 97%);
   --surface-2: hsl(42 32% 92%);
   --surface-3: hsl(40 24% 86%);
   --field: hsl(0 0% 100%);
-  --ink: hsl(158 30% 11%);
-  --ink-2: hsl(156 10% 29%);
-  --ink-3: hsl(156 7% 39%);
+  --ink: hsl(222 30% 11%);
+  --ink-2: hsl(222 10% 29%);
+  --ink-3: hsl(222 7% 39%);
   --line: hsl(42 20% 84%);
   --line-strong: hsl(42 14% 68%);
-  --action: hsl(157 42% 21%);
-  --action-hover: hsl(157 46% 15%);
+  --action: hsl(222 42% 21%);
+  --action-hover: hsl(222 46% 15%);
   --action-ink: hsl(46 50% 96%);
   --stock-yellow: hsl(47 92% 62%);
   --stock-pink: hsl(338 80% 81%);
@@ -29,7 +29,7 @@
   --stock-lilac: hsl(268 62% 83%);
   --stock-lime: hsl(78 56% 68%);
   --stock-sand: hsl(36 48% 77%);
-  --stock-ink: hsl(158 30% 11%);
+  --stock-ink: hsl(222 30% 11%);
   --stamp: hsl(3 66% 43%);
   --stamp-soft: hsl(3 80% 95%);
   --verify: hsl(222 62% 40%);
@@ -41,7 +41,7 @@
   --danger: hsl(355 70% 43%);
   --danger-soft: hsl(355 90% 95%);
   --pin: hsl(3 72% 48%);
-  --shadow-rgb: 4 22 15;
+  --shadow-rgb: 4 12 30;
   --felt-focus: var(--stock-yellow);
   --paper-focus: var(--ink);
 }
@@ -49,23 +49,23 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --board: hsl(158 30% 7%);
-    --felt: hsl(158 28% 10%);
-    --felt-line: hsl(158 16% 21%);
+    --board: hsl(222 30% 7%);
+    --felt: hsl(222 28% 10%);
+    --felt-line: hsl(222 16% 21%);
     --on-felt: hsl(46 32% 92%);
-    --on-felt-2: hsl(150 12% 71%);
-    --surface: hsl(150 7% 14%);
-    --surface-2: hsl(150 6% 18%);
-    --surface-3: hsl(150 6% 23%);
-    --field: hsl(150 8% 10%);
+    --on-felt-2: hsl(222 12% 71%);
+    --surface: hsl(222 7% 14%);
+    --surface-2: hsl(222 6% 18%);
+    --surface-3: hsl(222 6% 23%);
+    --field: hsl(222 8% 10%);
     --ink: hsl(46 28% 92%);
-    --ink-2: hsl(150 8% 73%);
-    --ink-3: hsl(150 6% 62%);
-    --line: hsl(150 6% 24%);
-    --line-strong: hsl(150 6% 34%);
+    --ink-2: hsl(222 8% 73%);
+    --ink-3: hsl(222 6% 62%);
+    --line: hsl(222 6% 24%);
+    --line-strong: hsl(222 6% 34%);
     --action: hsl(47 88% 58%);
     --action-hover: hsl(47 92% 66%);
-    --action-ink: hsl(158 30% 10%);
+    --action-ink: hsl(222 30% 10%);
     --stock-yellow: hsl(47 84% 56%);
     --stock-pink: hsl(338 64% 72%);
     --stock-sky: hsl(203 60% 66%);
@@ -92,23 +92,23 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --board: hsl(158 30% 7%);
-  --felt: hsl(158 28% 10%);
-  --felt-line: hsl(158 16% 21%);
+  --board: hsl(222 30% 7%);
+  --felt: hsl(222 28% 10%);
+  --felt-line: hsl(222 16% 21%);
   --on-felt: hsl(46 32% 92%);
-  --on-felt-2: hsl(150 12% 71%);
-  --surface: hsl(150 7% 14%);
-  --surface-2: hsl(150 6% 18%);
-  --surface-3: hsl(150 6% 23%);
-  --field: hsl(150 8% 10%);
+  --on-felt-2: hsl(222 12% 71%);
+  --surface: hsl(222 7% 14%);
+  --surface-2: hsl(222 6% 18%);
+  --surface-3: hsl(222 6% 23%);
+  --field: hsl(222 8% 10%);
   --ink: hsl(46 28% 92%);
-  --ink-2: hsl(150 8% 73%);
-  --ink-3: hsl(150 6% 62%);
-  --line: hsl(150 6% 24%);
-  --line-strong: hsl(150 6% 34%);
+  --ink-2: hsl(222 8% 73%);
+  --ink-3: hsl(222 6% 62%);
+  --line: hsl(222 6% 24%);
+  --line-strong: hsl(222 6% 34%);
   --action: hsl(47 88% 58%);
   --action-hover: hsl(47 92% 66%);
-  --action-ink: hsl(158 30% 10%);
+  --action-ink: hsl(222 30% 10%);
   --stock-yellow: hsl(47 84% 56%);
   --stock-pink: hsl(338 64% 72%);
   --stock-sky: hsl(203 60% 66%);
