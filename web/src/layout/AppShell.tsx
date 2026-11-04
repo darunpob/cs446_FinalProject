@@ -71,7 +71,7 @@ function Header({ navEntries }: { navEntries: NavEntry[] }) {
   const { t } = useI18n();
   return (
     <header className="sticky top-0 z-40">
-      <div className="bg-felt">
+      <div className="border-b border-felt-line bg-felt">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
           <BrandMark />
           <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label={t.nav.mainMenu}>
@@ -91,7 +91,6 @@ function Header({ navEntries }: { navEntries: NavEntry[] }) {
           </div>
         </div>
       </div>
-      <div className="scallop" aria-hidden />
     </header>
   );
 }

@@ -17,7 +17,7 @@ export function ItemVisual({ foundItem, className = "", iconSize = "size-12" }: 
   const Icon = category.icon;
   return (
     <div className={`grid place-items-center bg-surface-2 text-ink-2 ${className}`} role="img" aria-label={`${t.categories[category.id]} (${t.item.noImage})`}>
-      <span className={`grid size-full place-items-center ${category.stockWash}`}>
+      <span className={`stock-wash grid size-full place-items-center ${category.stockWash}`}>
         <Icon className={iconSize} strokeWidth={1.5} aria-hidden />
       </span>
     </div>

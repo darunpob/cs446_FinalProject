@@ -50,7 +50,7 @@ export function TestCheckoutPage() {
 
   return (
     <div className="mx-auto max-w-md">
-      <Card pinned className="overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="flex items-center gap-2 bg-stock-yellow px-5 py-2 text-xs font-bold text-stock-ink">
           <FlaskConical className="size-4" aria-hidden /> {text.testModeNote}
         </div>

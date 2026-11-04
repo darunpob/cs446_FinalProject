@@ -7,7 +7,7 @@ import { useDirectory } from "../catalog/DirectoryProvider";
 import { formatRelative } from "../catalog/thaiTime";
 import { ItemVisual } from "./ItemVisual";
 
-/** A found item as a notice pinned to the board: card-stock header, photo, stamp. */
+/** A found item as a notice: category header, photo, stamp. */
 export function ItemCard({ foundItem }: { foundItem: FoundItem }) {
   const { placeName } = useDirectory();
   const { t } = useI18n();
@@ -18,9 +18,11 @@ export function ItemCard({ foundItem }: { foundItem: FoundItem }) {
       to={`/items/${foundItem.id}`}
       className="paper group relative flex min-w-0 flex-col rounded-sm shadow-paper transition-[translate,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lifted"
     >
-      <span className="pin" aria-hidden />
-      <div className={`flex h-7 items-center justify-between gap-1 rounded-t-sm px-2 text-stock-ink sm:h-9 sm:px-3 ${category.stock}`}>
-        <category.icon className="size-3.5 shrink-0 sm:size-4" aria-label={t.categories[category.id]} />
+      <div className={`notice-head flex h-7 items-center justify-between gap-1 rounded-t-sm px-2 text-stock-ink sm:h-9 sm:px-3 ${category.stock}`}>
+        <span className="flex items-center gap-1.5">
+          <span className={`notice-dot size-2 shrink-0 rounded-full ${category.stock}`} aria-hidden />
+          <category.icon className="size-3.5 shrink-0 sm:size-4" aria-label={t.categories[category.id]} />
+        </span>
         <span className="truncate text-xs font-bold tabular-nums sm:text-sm">{placeCode(foundItem.foundLocationId)}</span>
       </div>
       <div className="relative">
